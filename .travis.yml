@@ -1,0 +1,5 @@
+sudo: false
+language: go
+# TODO(light): Enable Go 1.6 (#2).
+go:
+- 1.x
