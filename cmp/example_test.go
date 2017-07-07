@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -128,56 +127,6 @@ func ExampleOption_equalEmpty() {
 	fmt.Println(cmp.Equal(x, y, opt))
 	fmt.Println(cmp.Equal(y, z, opt))
 	fmt.Println(cmp.Equal(z, x, opt))
-
-	// Output:
-	// true
-	// false
-	// false
-}
-
-// Equal compares map keys using Go's == operator. To use Equal itself on
-// map keys, transform the map into something else, like a slice of
-// key-value pairs.
-func ExampleOption_transformMap() {
-	type KV struct {
-		K time.Time
-		V string
-	}
-	// This transformer flattens the map as a slice of sorted key-value pairs.
-	// We can now safely rely on the Time.Equal to be used for equality.
-	trans := cmp.Transformer("", func(m map[time.Time]string) (s []KV) {
-		for k, v := range m {
-			s = append(s, KV{k, v})
-		}
-		sort.Slice(s, func(i, j int) bool {
-			return s[i].K.Before(s[j].K)
-		})
-		return s
-	})
-
-	t1 := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
-	t2 := time.Date(2010, time.November, 10, 23, 0, 0, 0, time.UTC)
-	t3 := time.Date(2011, time.November, 10, 23, 0, 0, 0, time.UTC)
-
-	x := map[time.Time]string{
-		t1.In(time.UTC): "0th birthday",
-		t2.In(time.UTC): "1st birthday",
-		t3.In(time.UTC): "2nd birthday",
-	}
-	y := map[time.Time]string{
-		t1.In(time.Local): "0th birthday",
-		t2.In(time.Local): "1st birthday",
-		t3.In(time.Local): "2nd birthday",
-	}
-	z := map[time.Time]string{
-		time.Now(): "a long long",
-		time.Now(): "time ago",
-		time.Now(): "in a galaxy far far away",
-	}
-
-	fmt.Println(cmp.Equal(x, y, trans))
-	fmt.Println(cmp.Equal(y, z, trans))
-	fmt.Println(cmp.Equal(z, x, trans))
 
 	// Output:
 	// true

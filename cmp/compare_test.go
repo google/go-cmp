@@ -83,7 +83,7 @@ func TestDiff(t *testing.T) {
 	tests = append(tests, project4Tests()...)
 
 	for _, tt := range tests {
-		t.Run(tt.label, func(t *testing.T) {
+		tRun(t, tt.label, func(t *testing.T) {
 			var gotDiff, gotPanic string
 			func() {
 				defer func() {
@@ -1444,22 +1444,22 @@ func project1Tests() []test {
 	}}
 }
 
+type germSorter []*pb.Germ
+
+func (gs germSorter) Len() int           { return len(gs) }
+func (gs germSorter) Less(i, j int) bool { return gs[i].String() < gs[j].String() }
+func (gs germSorter) Swap(i, j int)      { gs[i], gs[j] = gs[j], gs[i] }
+
 func project2Tests() []test {
 	const label = "Project2"
 
 	sortGerms := cmp.FilterValues(func(x, y []*pb.Germ) bool {
-		ok1 := sort.SliceIsSorted(x, func(i, j int) bool {
-			return x[i].String() < x[j].String()
-		})
-		ok2 := sort.SliceIsSorted(y, func(i, j int) bool {
-			return y[i].String() < y[j].String()
-		})
+		ok1 := sort.IsSorted(germSorter(x))
+		ok2 := sort.IsSorted(germSorter(y))
 		return !ok1 || !ok2
 	}, cmp.Transformer("Sort", func(in []*pb.Germ) []*pb.Germ {
 		out := append([]*pb.Germ(nil), in...) // Make copy
-		sort.Slice(out, func(i, j int) bool {
-			return out[i].String() < out[j].String()
-		})
+		sort.Sort(germSorter(out))
 		return out
 	}))
 
@@ -1758,4 +1758,18 @@ func project4Tests() []test {
 	-: &teststructs.Poison{poisonType: 2, manufactuer: "acme2"}
 	+: <non-existent>`,
 	}}
+}
+
+// TODO: Delete this hack when we drop Go1.6 support.
+func tRun(t *testing.T, name string, f func(t *testing.T)) {
+	type runner interface {
+		Run(string, func(t *testing.T)) bool
+	}
+	var ti interface{} = t
+	if r, ok := ti.(runner); ok {
+		r.Run(name, f)
+	} else {
+		t.Logf("Test: %s", name)
+		f(t)
+	}
 }
