@@ -1,6 +1,7 @@
 # Package for equality of Go values
 
 [![GoDoc](https://godoc.org/github.com/google/go-cmp/cmp?status.svg)][godoc]
+[![Build Status](https://travis-ci.org/google/go-cmp.svg?branch=master)][travis]
 
 This package is intended to be a more powerful and safer alternative to
 `reflect.DeepEqual` for comparing whether two values are semantically equal.
@@ -25,6 +26,7 @@ The primary features of cmp are:
 This is not an official Google product.
 
 [godoc]: https://godoc.org/github.com/google/go-cmp/cmp
+[travis]: https://travis-ci.org/google/go-cmp
 
 ## Install
 
