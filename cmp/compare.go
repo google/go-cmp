@@ -28,7 +28,6 @@ package cmp
 import (
 	"fmt"
 	"reflect"
-	"sort"
 )
 
 // BUG: Maps with keys containing NaN values cannot be properly compared due to
@@ -126,10 +125,13 @@ func newState(opts []Option) *state {
 	for _, opt := range opts {
 		s.processOption(opt)
 	}
-	// Sort options such that Ignore options are evaluated first.
-	sort.SliceStable(s.opts, func(i, j int) bool {
-		return s.opts[i].op == nil && s.opts[j].op != nil
-	})
+	// Move Ignore options to the front so that they are evaluated first.
+	for i, j := 0, 0; i < len(s.opts); i++ {
+		if s.opts[i].op == nil {
+			s.opts[i], s.opts[j] = s.opts[j], s.opts[i]
+			j++
+		}
+	}
 	return s
 }
 
