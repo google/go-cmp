@@ -8,6 +8,8 @@ package cmp
 
 import "reflect"
 
+const supportAllowUnexported = false
+
 func unsafeRetrieveField(reflect.Value, reflect.StructField) reflect.Value {
-	panic("unsafeRetrieveField is not implemented on appengine or gopherjs")
+	panic("unsafeRetrieveField is not implemented")
 }
