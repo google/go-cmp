@@ -262,6 +262,9 @@ type comparer struct {
 //
 // NOTE: This feature is experimental and may be removed!
 func AllowUnexported(types ...interface{}) Option {
+	if !supportAllowUnexported {
+		panic("AllowUnexported is not supported on App Engine Classic or GopherJS")
+	}
 	m := make(map[reflect.Type]bool)
 	for _, typ := range types {
 		t := reflect.TypeOf(typ)
