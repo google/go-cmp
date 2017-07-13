@@ -79,6 +79,15 @@ func (pa *Path) pop() {
 	*pa = (*pa)[:len(*pa)-1]
 }
 
+// Last returns the last PathStep in the Path.
+// If the path is empty, this returns a non-nil PathStep that reports a nil Type.
+func (pa Path) Last() PathStep {
+	if len(pa) > 0 {
+		return pa[len(pa)-1]
+	}
+	return pathStep{}
+}
+
 // String returns the simplified path to a node.
 // The simplified path only contains struct field accesses.
 //
@@ -186,6 +195,9 @@ type (
 
 func (ps pathStep) Type() reflect.Type { return ps.typ }
 func (ps pathStep) String() string {
+	if ps.typ == nil {
+		return "<nil>"
+	}
 	s := ps.typ.String()
 	if s == "" || strings.ContainsAny(s, "{}\n") {
 		return "root" // Type too simple or complex to print
