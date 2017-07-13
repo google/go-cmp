@@ -257,10 +257,10 @@ type comparer struct {
 // comparison) and most attempts to compare *regexp.Regexp types are interested
 // in only checking that the regular expression strings are equal.
 // Both of these are accomplished using Comparers:
+//
 //	Comparer(func(x, y reflect.Type) bool { return x == y })
 //	Comparer(func(x, y *regexp.Regexp) bool { return x.String() == y.String() })
 //
-// NOTE: This feature is experimental and may be removed!
 func AllowUnexported(types ...interface{}) Option {
 	if !supportAllowUnexported {
 		panic("AllowUnexported is not supported on App Engine Classic or GopherJS")
