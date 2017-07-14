@@ -14,9 +14,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+// TODO: Re-write these examples in terms of how you actually use the
+// fundamental options and filters and not in terms of what cool things you can
+// do with them since that overlaps with cmp/cmpopts.
+
 // Approximate equality for floats can be handled by defining a custom
 // comparer on floats that determines two values to be equal if they are within
 // some range of each other.
+//
+// This example is for demonstrative purposes; use cmpopts.EquateApprox instead.
 func ExampleOption_approximateFloats() {
 	// This Comparer only operates on float64.
 	// To handle float32s, either define a similar function for that type
@@ -43,6 +49,8 @@ func ExampleOption_approximateFloats() {
 
 // Normal floating-point arithmetic defines == to be false when comparing
 // NaN with itself. In certain cases, this is not the desired property.
+//
+// This example is for demonstrative purposes; use cmpopts.EquateNaNs instead.
 func ExampleOption_equalNaNs() {
 	// This Comparer only operates on float64.
 	// To handle float32s, either define a similar function for that type
@@ -68,6 +76,9 @@ func ExampleOption_equalNaNs() {
 // To have floating-point comparisons combine both properties of NaN being
 // equal to itself and also approximate equality of values, filters are needed
 // to restrict the scope of the comparison so that they are composable.
+//
+// This example is for demonstrative purposes;
+// use cmpopts.EquateNaNs and cmpopts.EquateApprox instead.
 func ExampleOption_equalNaNsAndApproximateFloats() {
 	alwaysEqual := cmp.Comparer(func(_, _ interface{}) bool { return true })
 
@@ -105,6 +116,8 @@ func ExampleOption_equalNaNsAndApproximateFloats() {
 
 // Sometimes, an empty map or slice is considered equal to an allocated one
 // of zero length.
+//
+// This example is for demonstrative purposes; use cmpopts.EquateEmpty instead.
 func ExampleOption_equalEmpty() {
 	alwaysEqual := cmp.Comparer(func(_, _ interface{}) bool { return true })
 
@@ -137,6 +150,8 @@ func ExampleOption_equalEmpty() {
 // Two slices may be considered equal if they have the same elements,
 // regardless of the order that they appear in. Transformations can be used
 // to sort the slice.
+//
+// This example is for demonstrative purposes; use cmpopts.SortSlices instead.
 func ExampleOption_sortedSlice() {
 	// This Transformer sorts a []int.
 	// Since the transformer transforms []int into []int, there is problem where
