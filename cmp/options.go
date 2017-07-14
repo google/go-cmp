@@ -14,11 +14,11 @@ import (
 )
 
 // Option configures for specific behavior of Equal and Diff. In particular,
-// the fundamental Option functions (Ignore, Transformer, and Comparer),
+// the fundamental options (Ignore, Transformer, Comparer, and Default),
 // configure how equality is determined.
 //
-// The fundamental options may be composed with filters (FilterPath and
-// FilterValues) to control the scope over which they are applied.
+// The fundamental options may be composed with filters (FilterPath, FilterValues,
+// and FilterPriority) to control the scope over which they are applied.
 //
 // The cmp/cmpopts package provides helper functions for creating options that
 // may be used with Equal and Diff.
@@ -33,7 +33,7 @@ type Option interface {
 }
 
 // applicableOption represents the following types:
-//	Fundamental: ignore | invalid | *comparer | *transformer
+//	Fundamental: noop | ignore | invalid | *comparer | *transformer
 //	Grouping:    Options
 type applicableOption interface {
 	Option
@@ -44,8 +44,8 @@ type applicableOption interface {
 }
 
 // coreOption represents the following types:
-//	Fundamental: ignore | invalid | *comparer | *transformer
-//	Filters:     *pathFilter | *valuesFilter
+//	Fundamental: noop | ignore | invalid | *comparer | *transformer
+//	Filters:     *pathFilter | *valuesFilter | *priorityFilter
 type coreOption interface {
 	Option
 	isCore()
@@ -57,28 +57,28 @@ func (core) isCore() {}
 
 // Options is a list of Option values that also satisfies the Option interface.
 // Helper comparison packages may return an Options value when packing multiple
-// Option values into a single Option. When this package processes an Options,
-// it will be implicitly expanded into a flat list.
-//
-// Applying a filter on an Options is equivalent to applying that same filter
-// on all individual options held within.
+// Option values into a single Option. When this package processes Options
+// or nested Options, it will be implicitly expanded into a flat set.
 type Options []Option
 
 func (opts Options) filter(s *state, vx, vy reflect.Value, t reflect.Type) (out applicableOption) {
 	for _, opt := range opts {
 		switch opt := opt.filter(s, vx, vy, t); opt.(type) {
 		case ignore:
-			return ignore{} // Only ignore can short-circuit evaluation
+			return ignore{} // Highest precedence; can short-circuit filtering
 		case invalid:
-			out = invalid{} // Takes precedence over comparer or transformer
-		case *comparer, *transformer, Options:
+			out = invalid{} // Second highest precedence
+		case noop, *comparer, *transformer, Options:
 			switch out.(type) {
 			case nil:
 				out = opt
 			case invalid:
 				// Keep invalid
-			case *comparer, *transformer, Options:
-				out = Options{out, opt} // Conflicting comparers or transformers
+			case noop, *comparer, *transformer, Options:
+				if opt == (noop{}) && out == (noop{}) {
+					break // Coelesce redundant Default together
+				}
+				out = Options{out, opt} // Conflicting Comparer, Tranformer, or Default
 			}
 		}
 	}
@@ -87,7 +87,7 @@ func (opts Options) filter(s *state, vx, vy reflect.Value, t reflect.Type) (out 
 
 func (opts Options) apply(s *state, _, _ reflect.Value) bool {
 	const warning = "ambiguous set of applicable options"
-	const help = "consider using filters to ensure at most one Comparer or Transformer may apply"
+	const help = "consider using filters to ensure at most one Comparer, Transformer, or Default may apply"
 	var ss []string
 	for _, opt := range flattenOptions(nil, opts) {
 		ss = append(ss, fmt.Sprint(opt))
@@ -104,11 +104,12 @@ func (opts Options) String() string {
 	return fmt.Sprintf("Options{%s}", strings.Join(ss, ", "))
 }
 
-// FilterPath returns a new Option where opt is only evaluated if filter f
+// FilterPath returns a new Option where opt is only applicable if filter f
 // returns true for the current Path in the value tree.
 //
-// The option passed in may be an Ignore, Transformer, Comparer, Options, or
-// a previously filtered Option.
+// The Option passed in may be a filtered option (via the Filter functions),
+// fundamental option (like Ignore, Transformer, Comparer, or Default), or
+// Options group containing elements of the former.
 func FilterPath(f func(Path) bool, opt Option) Option {
 	if f == nil {
 		panic("invalid path filter function")
@@ -137,7 +138,7 @@ func (f pathFilter) String() string {
 	return fmt.Sprintf("FilterPath(%s, %v)", fn, f.opt)
 }
 
-// FilterValues returns a new Option where opt is only evaluated if filter f,
+// FilterValues returns a new Option where opt is only applicable if filter f,
 // which is a function of the form "func(T, T) bool", returns true for the
 // current pair of values being compared. If the type of the values is not
 // assignable to T, then this filter implicitly returns false.
@@ -148,8 +149,9 @@ func (f pathFilter) String() string {
 // If T is an interface, it is possible that f is called with two values with
 // different concrete types that both implement T.
 //
-// The option passed in may be an Ignore, Transformer, Comparer, Options, or
-// a previously filtered Option.
+// The Option passed in may be a filtered option (via the Filter functions),
+// fundamental option (like Ignore, Transformer, Comparer, or Default), or
+// Options group containing elements of the former.
 func FilterValues(f interface{}, opt Option) Option {
 	v := reflect.ValueOf(f)
 	if !function.IsType(v.Type(), function.ValueFilter) || v.IsNil() {
@@ -186,6 +188,65 @@ func (f valuesFilter) String() string {
 	fn := getFuncName(f.fnc.Pointer())
 	return fmt.Sprintf("FilterValues(%s, %v)", fn, f.opt)
 }
+
+// FilterPriority returns a new Option where an option, opts[i],
+// is only applicable if no fundamental options remain after applying all filters
+// in all prior options, opts[:i].
+//
+// In order to prevent further options from being applicable, the Default option
+// can be used to ensure that some fundamental option remains.
+//
+// The Option passed in may be a filtered option (via the Filter functions),
+// fundamental option (like Ignore, Transformer, Comparer, or Default), or
+// Options group containing elements of the former.
+func FilterPriority(opts ...Option) Option {
+	var newOpts []Option
+	for _, opt := range opts {
+		if opt := normalizeOption(opt); opt != nil {
+			newOpts = append(newOpts, opt)
+		}
+	}
+	if len(newOpts) > 0 {
+		return &priorityFilter{opts: newOpts}
+	}
+	return nil
+}
+
+type priorityFilter struct {
+	core
+	opts []Option
+}
+
+func (f priorityFilter) filter(s *state, vx, vy reflect.Value, t reflect.Type) applicableOption {
+	for _, opt := range f.opts {
+		if opt := opt.filter(s, vx, vy, t); opt != nil {
+			return opt
+		}
+	}
+	return nil
+}
+
+func (f priorityFilter) String() string {
+	var ss []string
+	for _, opt := range f.opts {
+		ss = append(ss, fmt.Sprint(opt))
+	}
+	return fmt.Sprintf("FilterPriority(%s)", strings.Join(ss, ", "))
+}
+
+// Default is an Option that configures Equal to stop processing options and
+// to proceed to the next evaluation rule (i.e., checking for the Equal method).
+// This value is intended to be combined with FilterPriority to act as a
+// sentinel type that prevents other options from being applicable.
+// It is an error to pass an unfiltered Default option to Equal.
+func Default() Option { return noop{} }
+
+type noop struct{ core }
+
+func (noop) isFiltered() bool                                                     { return false }
+func (noop) filter(_ *state, _, _ reflect.Value, _ reflect.Type) applicableOption { return noop{} }
+func (noop) apply(_ *state, _, _ reflect.Value) bool                              { return false }
+func (noop) String() string                                                       { return "Default()" }
 
 // Ignore is an Option that causes all comparisons to be ignored.
 // This value is intended to be combined with FilterPath or FilterValues.
