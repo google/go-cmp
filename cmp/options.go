@@ -11,12 +11,15 @@ import (
 	"strings"
 )
 
-// Option configures for specific behavior of Diff and Equal. In particular,
+// Option configures for specific behavior of Equal and Diff. In particular,
 // the fundamental Option functions (Ignore, Transformer, and Comparer),
 // configure how equality is determined.
 //
 // The fundamental options may be composed with filters (FilterPath and
 // FilterValues) to control the scope over which they are applied.
+//
+// The cmp/cmpopts package provides helper functions for creating options that
+// may be used with Equal and Diff.
 type Option interface {
 	// Prevent Option from being equivalent to interface{}, which provides
 	// a small type checking benefit by preventing Equal(opt, x, y).
