@@ -67,7 +67,7 @@ import (
 //
 // Structs are equal if all of their fields are equal. If a struct contains
 // unexported fields, Equal panics unless the AllowUnexported option is used or
-// an Ignore option ignores that field.
+// an Ignore option (e.g., cmpopts.IgnoreUnexported) ignores that field.
 // Slices and arrays are equal if they have the same length and the elements
 // at each index are equal.
 // Maps are equal if their keys are exactly equal (according to the == operator)
@@ -279,7 +279,8 @@ func (s *state) tryOptions(vx, vy *reflect.Value, t reflect.Type) bool {
 	// are either exported or can be forcibly exported.
 	if sf, ok := s.curPath[len(s.curPath)-1].(*structField); ok && sf.unexported {
 		if !sf.force {
-			panic(fmt.Sprintf("cannot handle unexported field: %#v", s.curPath))
+			const help = "consider using AllowUnexported or cmpopts.IgnoreUnexported"
+			panic(fmt.Sprintf("cannot handle unexported field: %#v\n%s", s.curPath, help))
 		}
 
 		// Use unsafe pointer arithmetic to get read-write access to an
