@@ -202,7 +202,7 @@ func (ps pathStep) String() string {
 	if s == "" || strings.ContainsAny(s, "{}\n") {
 		return "root" // Type too simple or complex to print
 	}
-	return "{" + s + "}"
+	return fmt.Sprintf("{%s}", s)
 }
 
 func (si sliceIndex) String() string    { return fmt.Sprintf("[%d]", si.key) }
