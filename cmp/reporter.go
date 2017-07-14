@@ -171,7 +171,7 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 			s := formatAny(v.Index(i), subConf, visited)
 			ss = append(ss, s)
 		}
-		s := "{" + strings.Join(ss, ", ") + "}"
+		s := fmt.Sprintf("{%s}", strings.Join(ss, ", "))
 		if conf.printType {
 			return v.Type().String() + s
 		}
@@ -196,7 +196,7 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 			sv := formatAny(v.MapIndex(k), subConf, visited)
 			ss = append(ss, fmt.Sprintf("%s: %s", sk, sv))
 		}
-		s := "{" + strings.Join(ss, ", ") + "}"
+		s := fmt.Sprintf("{%s}", strings.Join(ss, ", "))
 		if conf.printType {
 			return v.Type().String() + s
 		}
@@ -215,7 +215,7 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 			s := formatAny(vv, subConf, visited)
 			ss = append(ss, fmt.Sprintf("%s: %s", name, s))
 		}
-		s := "{" + strings.Join(ss, ", ") + "}"
+		s := fmt.Sprintf("{%s}", strings.Join(ss, ", "))
 		if conf.printType {
 			return v.Type().String() + s
 		}
