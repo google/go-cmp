@@ -1,5 +1,8 @@
 sudo: false
 language: go
 go:
-- 1.6
-- 1.x
+  - 1.x
+  - 1.6
+script:
+  - diff -u <(echo -n) <(gofmt -d .)
+  - go test -v ./...
