@@ -1478,18 +1478,18 @@ func project2Tests() []test {
 	createBatch := func() ts.GermBatch {
 		return ts.GermBatch{
 			DirtyGerms: map[int32][]*pb.Germ{
-				17: []*pb.Germ{
-					&pb.Germ{Stringer: pb.Stringer{"germ1"}},
+				17: {
+					{Stringer: pb.Stringer{"germ1"}},
 				},
-				18: []*pb.Germ{
-					&pb.Germ{Stringer: pb.Stringer{"germ2"}},
-					&pb.Germ{Stringer: pb.Stringer{"germ3"}},
-					&pb.Germ{Stringer: pb.Stringer{"germ4"}},
+				18: {
+					{Stringer: pb.Stringer{"germ2"}},
+					{Stringer: pb.Stringer{"germ3"}},
+					{Stringer: pb.Stringer{"germ4"}},
 				},
 			},
 			GermMap: map[int32]*pb.Germ{
-				13: &pb.Germ{Stringer: pb.Stringer{"germ13"}},
-				21: &pb.Germ{Stringer: pb.Stringer{"germ21"}},
+				13: {Stringer: pb.Stringer{"germ13"}},
+				21: {Stringer: pb.Stringer{"germ21"}},
 			},
 			DishMap: map[int32]*ts.Dish{
 				0: ts.CreateDish(nil, io.EOF),
@@ -1602,8 +1602,8 @@ func project3Tests() []test {
 		d.Discord = 554
 		d.Proto = pb.Dirt{Stringer: pb.Stringer{"proto"}}
 		d.SetWizard(map[string]*pb.Wizard{
-			"harry": &pb.Wizard{Stringer: pb.Stringer{"potter"}},
-			"albus": &pb.Wizard{Stringer: pb.Stringer{"dumbledore"}},
+			"harry": {Stringer: pb.Stringer{"potter"}},
+			"albus": {Stringer: pb.Stringer{"dumbledore"}},
 		})
 		d.SetLastTime(54321)
 		return d
@@ -1637,7 +1637,7 @@ func project3Tests() []test {
 			d := createDirt()
 			d.Discord = 500
 			d.SetWizard(map[string]*pb.Wizard{
-				"harry": &pb.Wizard{Stringer: pb.Stringer{"otter"}},
+				"harry": {Stringer: pb.Stringer{"otter"}},
 			})
 			return d
 		}(),
