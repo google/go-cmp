@@ -21,8 +21,9 @@
 // • If no custom equality functions are used and no Equal method is defined,
 // equality is determined by recursively comparing the primitive kinds on both
 // values, much like reflect.DeepEqual. Unlike reflect.DeepEqual, unexported
-// fields are not compared; they result in panics unless suppressed by using
-// an Ignore option.
+// fields are not compared by default; they result in panics unless suppressed
+// by using an Ignore option (see cmpopts.IgnoreUnexported) or explictly compared
+// using the AllowUnexported option.
 package cmp
 
 import (
