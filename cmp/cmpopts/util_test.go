@@ -200,14 +200,14 @@ func TestOptions(t *testing.T) {
 	}, {
 		label: "SortMaps",
 		x: map[MyTime]string{
-			MyTime{time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)}: "0th birthday",
-			MyTime{time.Date(2010, time.November, 10, 23, 0, 0, 0, time.UTC)}: "1st birthday",
-			MyTime{time.Date(2011, time.November, 10, 23, 0, 0, 0, time.UTC)}: "2nd birthday",
+			{time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)}: "0th birthday",
+			{time.Date(2010, time.November, 10, 23, 0, 0, 0, time.UTC)}: "1st birthday",
+			{time.Date(2011, time.November, 10, 23, 0, 0, 0, time.UTC)}: "2nd birthday",
 		},
 		y: map[MyTime]string{
-			MyTime{time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).In(time.Local)}: "0th birthday",
-			MyTime{time.Date(2010, time.November, 10, 23, 0, 0, 0, time.UTC).In(time.Local)}: "1st birthday",
-			MyTime{time.Date(2011, time.November, 10, 23, 0, 0, 0, time.UTC).In(time.Local)}: "2nd birthday",
+			{time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).In(time.Local)}: "0th birthday",
+			{time.Date(2010, time.November, 10, 23, 0, 0, 0, time.UTC).In(time.Local)}: "1st birthday",
+			{time.Date(2011, time.November, 10, 23, 0, 0, 0, time.UTC).In(time.Local)}: "2nd birthday",
 		},
 		opts:      []cmp.Option{SortMaps(func(x, y time.Time) bool { return x.Before(y) })},
 		wantEqual: false,

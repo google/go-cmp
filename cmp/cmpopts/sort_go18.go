@@ -15,8 +15,8 @@ const hasReflectStructOf = true
 
 func mapEntryType(t reflect.Type) reflect.Type {
 	return reflect.StructOf([]reflect.StructField{
-		reflect.StructField{Name: "K", Type: t.Key()},
-		reflect.StructField{Name: "V", Type: t.Elem()},
+		{Name: "K", Type: t.Key()},
+		{Name: "V", Type: t.Elem()},
 	})
 }
 
