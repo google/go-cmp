@@ -3,6 +3,14 @@ language: go
 go:
   - 1.x
   - 1.6
+  - master
+matrix:
+  allow_failures:
+    - go: master
+  fast_finish: true
+install:
+  - # Do nothing. This is needed to prevent default install action "go get -t -v ./..." from happening here (it is intended for this package to have no dependencies other than the standard library).
 script:
-  - diff -u <(echo -n) <(gofmt -d .)
-  - go test -v ./...
+  - diff -u <(echo -n) <(gofmt -d -s .)
+  - go tool vet .
+  - go test -v -race ./...
