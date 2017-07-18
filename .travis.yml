@@ -2,9 +2,11 @@ sudo: false
 language: go
 go:
   - 1.x
-  - 1.6
   - master
 matrix:
+  include:
+    - go: 1.6.x
+      script: go test -v -race ./...
   allow_failures:
     - go: master
   fast_finish: true
