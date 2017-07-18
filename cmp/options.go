@@ -251,7 +251,7 @@ type comparer struct {
 // defined in an internal package where the semantic meaning of an unexported
 // field is in the control of the user.
 //
-// For most cases, a custom Comparer should be used instead that defines
+// For some cases, a custom Comparer should be used instead that defines
 // equality as a function of the public API of a type rather than the underlying
 // unexported implementation.
 //
@@ -264,6 +264,8 @@ type comparer struct {
 //	Comparer(func(x, y reflect.Type) bool { return x == y })
 //	Comparer(func(x, y *regexp.Regexp) bool { return x.String() == y.String() })
 //
+// In other cases, the cmpopts.IgnoreUnexported option can be used to ignore
+// all unexported fields on specified struct types.
 func AllowUnexported(types ...interface{}) Option {
 	if !supportAllowUnexported {
 		panic("AllowUnexported is not supported on App Engine Classic or GopherJS")
