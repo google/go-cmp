@@ -31,6 +31,7 @@ import (
 	"reflect"
 
 	"github.com/google/go-cmp/cmp/internal/diff"
+	"github.com/google/go-cmp/cmp/internal/value"
 )
 
 // BUG: Maps with keys containing NaN values cannot be properly compared due to
@@ -442,7 +443,7 @@ func (s *state) compareMap(vx, vy reflect.Value, t reflect.Type) {
 	step := &mapIndex{pathStep: pathStep{t.Elem()}}
 	s.curPath.push(step)
 	defer s.curPath.pop()
-	for _, k := range sortKeys(append(vx.MapKeys(), vy.MapKeys()...)) {
+	for _, k := range value.SortKeys(append(vx.MapKeys(), vy.MapKeys()...)) {
 		step.key = k
 		vvx := vx.MapIndex(k)
 		vvy := vy.MapIndex(k)
