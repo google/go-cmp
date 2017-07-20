@@ -26,31 +26,6 @@ type defaultReporter struct {
 var _ reporter = (*defaultReporter)(nil)
 
 func (r *defaultReporter) Report(x, y reflect.Value, eq bool, p Path) {
-	// TODO: Is there a way to nicely print added/modified/removed elements
-	// from a slice? This will most certainly require support from the
-	// equality logic, but what would be the right API for this?
-	//
-	// The current API is equivalent to a Hamming distance for measuring the
-	// difference between two sequences of symbols. That is, the only operation
-	// we can represent is substitution. The new API would need to handle a
-	// Levenshtein distance, such that insertions, deletions, and substitutions
-	// are permitted. Furthermore, this will require an algorithm for computing
-	// the edit distance. Unfortunately, the time complexity for a minimal
-	// edit distance algorithm is not much better than O(n^2).
-	// There are approximations for the algorithm that can run much faster.
-	// See literature on computing Levenshtein distance.
-	//
-	// Passing in a pair of x and y is actually good for representing insertion
-	// and deletion by the fact that x or y may be an invalid value. However,
-	// we may need to pass in two paths px and py, to indicate the paths
-	// relative to x and y. Alternative, since we only perform the Levenshtein
-	// distance on slices, maybe we alter the SliceIndex type to record
-	// two different indexes.
-
-	// TODO: Perhaps we should coalesce differences on primitive kinds
-	// together if the number of differences exceeds some ratio.
-	// For example, comparing two SHA256s leads to many byte differences.
-
 	if eq {
 		// TODO: Maybe print some equal results for context?
 		return // Ignore equal results
@@ -62,7 +37,7 @@ func (r *defaultReporter) Report(x, y reflect.Value, eq bool, p Path) {
 		sx := prettyPrint(x, true)
 		sy := prettyPrint(y, true)
 		if sx == sy {
-			// Use of Stringer is not helpful, so rely on more exact formatting.
+			// Stringer is not helpful, so rely on more exact formatting.
 			sx = prettyPrint(x, false)
 			sy = prettyPrint(y, false)
 		}
