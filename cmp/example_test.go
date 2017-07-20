@@ -18,6 +18,110 @@ import (
 // fundamental options and filters and not in terms of what cool things you can
 // do with them since that overlaps with cmp/cmpopts.
 
+// Use Diff for printing out human-readable errors for test cases comparing
+// nested or structured data.
+func ExampleDiff_testing() {
+	// Code under test:
+	type ShipManifest struct {
+		Name     string
+		Crew     map[string]string
+		Androids int
+		Stolen   bool
+	}
+
+	// AddCrew tries to add the given crewmember to the manifest.
+	AddCrew := func(m *ShipManifest, name, title string) {
+		if m.Crew == nil {
+			m.Crew = make(map[string]string)
+		}
+		m.Crew[title] = name
+	}
+
+	// Test function:
+	tests := []struct {
+		desc        string
+		before      *ShipManifest
+		name, title string
+		after       *ShipManifest
+	}{
+		{
+			desc:   "add to empty",
+			before: &ShipManifest{},
+			name:   "Zaphod Beeblebrox",
+			title:  "Galactic President",
+			after: &ShipManifest{
+				Crew: map[string]string{
+					"Zaphod Beeblebrox": "Galactic President",
+				},
+			},
+		},
+		{
+			desc: "add another",
+			before: &ShipManifest{
+				Crew: map[string]string{
+					"Zaphod Beeblebrox": "Galactic President",
+				},
+			},
+			name:  "Trillian",
+			title: "Human",
+			after: &ShipManifest{
+				Crew: map[string]string{
+					"Zaphod Beeblebrox": "Galactic President",
+					"Trillian":          "Human",
+				},
+			},
+		},
+		{
+			desc: "overwrite",
+			before: &ShipManifest{
+				Crew: map[string]string{
+					"Zaphod Beeblebrox": "Galactic President",
+				},
+			},
+			name:  "Zaphod Beeblebrox",
+			title: "Just this guy, you know?",
+			after: &ShipManifest{
+				Crew: map[string]string{
+					"Zaphod Beeblebrox": "Just this guy, you know?",
+				},
+			},
+		},
+	}
+
+	var t fakeT
+	for _, test := range tests {
+		AddCrew(test.before, test.name, test.title)
+		if diff := cmp.Diff(test.before, test.after); diff != "" {
+			t.Errorf("%s: after AddCrew, manifest differs: (-got +want)\n%s", test.desc, diff)
+		}
+	}
+
+	// Output:
+	// add to empty: after AddCrew, manifest differs: (-got +want)
+	// {*cmp_test.ShipManifest}.Crew["Galactic President"]:
+	// 	-: "Zaphod Beeblebrox"
+	// 	+: <non-existent>
+	// {*cmp_test.ShipManifest}.Crew["Zaphod Beeblebrox"]:
+	// 	-: <non-existent>
+	// 	+: "Galactic President"
+	//
+	// add another: after AddCrew, manifest differs: (-got +want)
+	// {*cmp_test.ShipManifest}.Crew["Human"]:
+	// 	-: "Trillian"
+	// 	+: <non-existent>
+	// {*cmp_test.ShipManifest}.Crew["Trillian"]:
+	// 	-: <non-existent>
+	// 	+: "Human"
+	//
+	// overwrite: after AddCrew, manifest differs: (-got +want)
+	// {*cmp_test.ShipManifest}.Crew["Just this guy, you know?"]:
+	// 	-: "Zaphod Beeblebrox"
+	// 	+: <non-existent>
+	// {*cmp_test.ShipManifest}.Crew["Zaphod Beeblebrox"]:
+	// 	-: "Galactic President"
+	// 	+: "Just this guy, you know?"
+}
+
 // Approximate equality for floats can be handled by defining a custom
 // comparer on floats that determines two values to be equal if they are within
 // some range of each other.
@@ -264,3 +368,7 @@ func ExampleOption_transformComplex() {
 	// false
 	// false
 }
+
+type fakeT struct{}
+
+func (t fakeT) Errorf(format string, args ...interface{}) { fmt.Printf(format+"\n", args...) }
