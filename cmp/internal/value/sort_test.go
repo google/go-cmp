@@ -2,92 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE.md file.
 
-package cmp
+package value_test
 
 import (
-	"bytes"
-	"io"
 	"math"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/internal/value"
 )
-
-func TestFormatAny(t *testing.T) {
-	type key struct {
-		a int
-		b string
-		c chan bool
-	}
-
-	tests := []struct {
-		in   interface{}
-		want string
-	}{{
-		in:   []int{},
-		want: "[]int{}",
-	}, {
-		in:   []int(nil),
-		want: "[]int(nil)",
-	}, {
-		in:   []int{1, 2, 3, 4, 5},
-		want: "[]int{1, 2, 3, 4, 5}",
-	}, {
-		in:   []interface{}{1, true, "hello", struct{ A, B int }{1, 2}},
-		want: "[]interface {}{1, true, \"hello\", struct { A int; B int }{A: 1, B: 2}}",
-	}, {
-		in:   []struct{ A, B int }{{1, 2}, {0, 4}, {}},
-		want: "[]struct { A int; B int }{{A: 1, B: 2}, {B: 4}, {}}",
-	}, {
-		in:   map[*int]string{new(int): "hello"},
-		want: "map[*int]string{0x00: \"hello\"}",
-	}, {
-		in:   map[key]string{{}: "hello"},
-		want: "map[cmp.key]string{{}: \"hello\"}",
-	}, {
-		in:   map[key]string{{a: 5, b: "key", c: make(chan bool)}: "hello"},
-		want: "map[cmp.key]string{{a: 5, b: \"key\", c: (chan bool)(0x00)}: \"hello\"}",
-	}, {
-		in:   map[io.Reader]string{new(bytes.Reader): "hello"},
-		want: "map[io.Reader]string{0x00: \"hello\"}",
-	}, {
-		in: func() interface{} {
-			var a = []interface{}{nil}
-			a[0] = a
-			return a
-		}(),
-		want: "[]interface {}{([]interface {})(0x00)}",
-	}, {
-		in: func() interface{} {
-			type A *A
-			var a A
-			a = &a
-			return a
-		}(),
-		want: "&(cmp.A)(0x00)",
-	}, {
-		in: func() interface{} {
-			type A map[*A]A
-			a := make(A)
-			a[&a] = a
-			return a
-		}(),
-		want: "cmp.A{0x00: 0x00}",
-	}, {
-		in: func() interface{} {
-			var a [2]interface{}
-			a[0] = &a
-			return a
-		}(),
-		want: "[2]interface {}{&[2]interface {}{(*[2]interface {})(0x00), interface {}(nil)}, interface {}(nil)}",
-	}}
-
-	for i, tt := range tests {
-		got := formatAny(reflect.ValueOf(tt.in), formatConfig{true, true, true, false}, nil)
-		if got != tt.want {
-			t.Errorf("test %d, pretty print:\ngot  %q\nwant %q", i, got, tt.want)
-		}
-	}
-}
 
 func TestSortKeys(t *testing.T) {
 	type (
@@ -101,14 +25,14 @@ func TestSortKeys(t *testing.T) {
 		EmptyStruct struct{}
 	)
 
-	opts := []Option{
-		Comparer(func(x, y float64) bool {
+	opts := []cmp.Option{
+		cmp.Comparer(func(x, y float64) bool {
 			if math.IsNaN(x) && math.IsNaN(y) {
 				return true
 			}
 			return x == y
 		}),
-		Comparer(func(x, y complex128) bool {
+		cmp.Comparer(func(x, y complex128) bool {
 			rx, ix, ry, iy := real(x), imag(x), real(y), imag(y)
 			if math.IsNaN(rx) && math.IsNaN(ry) {
 				rx, ry = 0, 0
@@ -118,11 +42,11 @@ func TestSortKeys(t *testing.T) {
 			}
 			return rx == ry && ix == iy
 		}),
-		Comparer(func(x, y chan bool) bool { return true }),
-		Comparer(func(x, y chan int) bool { return true }),
-		Comparer(func(x, y chan float64) bool { return true }),
-		Comparer(func(x, y chan interface{}) bool { return true }),
-		Comparer(func(x, y *int) bool { return true }),
+		cmp.Comparer(func(x, y chan bool) bool { return true }),
+		cmp.Comparer(func(x, y chan int) bool { return true }),
+		cmp.Comparer(func(x, y chan float64) bool { return true }),
+		cmp.Comparer(func(x, y chan interface{}) bool { return true }),
+		cmp.Comparer(func(x, y *int) bool { return true }),
 	}
 
 	tests := []struct {
@@ -188,7 +112,8 @@ func TestSortKeys(t *testing.T) {
 			[2]int{2, 3}, [2]int{2, 4}, [2]int{4, 0}, MyArray([2]int{2, 4}),
 			make(chan bool), make(chan bool), make(chan int), make(chan interface{}),
 			new(int), new(int),
-			MyString("abc"), MyString("abcd"), MyString("abcde"), "abc", "abcd", "abcde", "bar", "foo",
+			"abc", "abcd", "abcde", "bar", "foo",
+			MyString("abc"), MyString("abcd"), MyString("abcde"),
 			EmptyStruct{},
 			MyStruct{"alpha", [2]int{3, 3}, make(chan float64)},
 			MyStruct{"bravo", [2]int{2, 3}, make(chan float64)},
@@ -217,11 +142,11 @@ func TestSortKeys(t *testing.T) {
 	for i, tt := range tests {
 		keys := append(reflect.ValueOf(tt.in).MapKeys(), reflect.ValueOf(tt.in).MapKeys()...)
 		var got []interface{}
-		for _, k := range sortKeys(keys) {
+		for _, k := range value.SortKeys(keys) {
 			got = append(got, k.Interface())
 		}
-		if !Equal(got, tt.want, opts...) {
-			t.Errorf("test %d, output mismatch:\ngot  %#v\nwant %#v", i, got, tt.want)
+		if d := cmp.Diff(tt.want, got, opts...); d != "" {
+			t.Errorf("test %d, output mismatch (-want +got):\n%s", i, d)
 		}
 	}
 }

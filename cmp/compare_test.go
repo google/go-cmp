@@ -1438,8 +1438,8 @@ func project1Tests() []test {
 	-: "southbay2"
 	+: "southbay"
 *{teststructs.Eagle}.Dreamers[1].Animal[0].(teststructs.Goat).Immutable.State:
-	-: 6
-	+: 5
+	-: testprotos.Goat_States(6)
+	+: testprotos.Goat_States(5)
 {teststructs.Eagle}.Slaps[0].Immutable.MildSlap:
 	-: false
 	+: true
@@ -1652,8 +1652,8 @@ func project3Tests() []test {
 	-: &teststructs.MockTable{state: []string{"a", "c"}}
 	+: &teststructs.MockTable{state: []string{"a", "b", "c"}}
 {teststructs.Dirt}.Discord:
-	-: 554
-	+: 500
+	-: teststructs.DiscordState(554)
+	+: teststructs.DiscordState(500)
 λ({teststructs.Dirt}.Proto):
 	-: "blah"
 	+: "proto"
@@ -1751,10 +1751,10 @@ func project4Tests() []test {
 	-: 0x04
 	+: 0x03
 {teststructs.Cartel}.poisons[0].poisonType:
-	-: 1
-	+: 5
+	-: testprotos.PoisonType(1)
+	+: testprotos.PoisonType(5)
 {teststructs.Cartel}.poisons[1->?]:
-	-: &teststructs.Poison{poisonType: 2, manufactuer: "acme2"}
+	-: &teststructs.Poison{poisonType: testprotos.PoisonType(2), manufactuer: "acme2"}
 	+: <non-existent>`,
 	}}
 }
