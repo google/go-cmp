@@ -9,6 +9,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"math"
 	"math/rand"
 	"reflect"
 	"regexp"
@@ -334,6 +335,41 @@ root:
 			}, cmp.Ignore()),
 		},
 		wantPanic: "non-deterministic or non-symmetric function detected",
+	}, {
+		label: label,
+		x:     []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+		y:     []int{10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
+		opts: []cmp.Option{
+			cmp.Comparer(func(x, y int) bool {
+				return x < y
+			}),
+		},
+		wantPanic: "non-deterministic or non-symmetric function detected",
+	}, {
+		label: label,
+		x:     make([]string, 1000),
+		y:     make([]string, 1000),
+		opts: []cmp.Option{
+			cmp.Transformer("", func(x string) int {
+				return rand.Int()
+			}),
+		},
+		wantPanic: "non-deterministic function detected",
+	}, {
+		// Make sure the dynamic checks don't raise a false positive for
+		// non-reflexive comparisons.
+		label: label,
+		x:     make([]int, 10),
+		y:     make([]int, 10),
+		opts: []cmp.Option{
+			cmp.Transformer("", func(x int) float64 {
+				return math.NaN()
+			}),
+		},
+		wantDiff: `
+{[]int}:
+	-: []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	+: []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}`,
 	}}
 }
 
@@ -392,7 +428,7 @@ func transformerTests() []test {
 				if in == 0 {
 					return "string"
 				}
-				return in
+				return float64(in)
 			}),
 		},
 		wantDiff: `

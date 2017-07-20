@@ -106,25 +106,20 @@ func Diff(x, y interface{}, opts ...Option) string {
 }
 
 type state struct {
-	result  diff.Result // The current result of comparison
-	curPath Path        // The current path in the value tree
+	// These fields represent the "comparison state".
+	// Calling statelessCompare must not result in observable changes to these.
+	result   diff.Result // The current result of comparison
+	curPath  Path        // The current path in the value tree
+	reporter reporter    // Optional reporter used for difference formatting
 
-	// dsCheck tracks the state needed to periodically perform checks that
-	// user provided func(T, T) bool functions are symmetric and deterministic.
-	//
-	// Checks occur every Nth function call, where N is a triangular number:
-	//	0 1 3 6 10 15 21 28 36 45 55 66 78 91 105 120 136 153 171 190 ...
-	// See https://en.wikipedia.org/wiki/Triangular_number
-	//
-	// This sequence ensures that the cost of checks drops significantly as
-	// the number of functions calls grows larger.
-	dsCheck struct{ curr, next int }
+	// dynChecker triggers pseudo-random checks for option correctness.
+	// It is safe for statelessCompare to mutate this value.
+	dynChecker dynChecker
 
 	// These fields, once set by processOption, will not change.
 	exporters map[reflect.Type]bool // Set of structs with unexported field visibility
 	optsIgn   []option              // List of all ignore options without value filters
 	opts      []option              // List of all other options
-	reporter  reporter              // Optional reporter used for difference formatting
 }
 
 func newState(opts []Option) *state {
@@ -172,6 +167,24 @@ func (s *state) processOption(opt Option) {
 	default:
 		panic(fmt.Sprintf("unknown option %T", opt))
 	}
+}
+
+// statelessCompare compares two values and returns the result.
+// This function is stateless in that it does not alter the current result,
+// or output to any registered reporters.
+func (s *state) statelessCompare(vx, vy reflect.Value) diff.Result {
+	// We do not save and restore the curPath because all of the compareX
+	// methods should properly push and pop from the path.
+	// It is an implementation bug if the contents of curPath differs from
+	// when calling this function to when returning from it.
+
+	oldResult, oldReporter := s.result, s.reporter
+	s.result = diff.Result{} // Reset result
+	s.reporter = nil         // Remove reporter to avoid spurious printouts
+	s.compareAny(vx, vy)
+	res := s.result
+	s.result, s.reporter = oldResult, oldReporter
+	return res
 }
 
 func (s *state) compareAny(vx, vy reflect.Value) {
@@ -330,7 +343,7 @@ func (s *state) applyFilters(vx, vy reflect.Value, t reflect.Type, opt option) b
 		}
 	}
 	for _, f := range opt.valueFilters {
-		if !t.AssignableTo(f.in) || !s.callFunc(f.fnc, vx, vy) {
+		if !t.AssignableTo(f.in) || !s.callTTBFunc(f.fnc, vx, vy) {
 			return false
 		}
 	}
@@ -340,14 +353,17 @@ func (s *state) applyFilters(vx, vy reflect.Value, t reflect.Type, opt option) b
 func (s *state) applyOption(vx, vy reflect.Value, t reflect.Type, opt option) {
 	switch op := opt.op.(type) {
 	case *transformer:
-		vx = op.fnc.Call([]reflect.Value{vx})[0]
-		vy = op.fnc.Call([]reflect.Value{vy})[0]
+		// Update path before calling the Transformer so that dynamic checks
+		// will use the updated path.
 		s.curPath.push(&transform{pathStep{op.fnc.Type().Out(0)}, op})
 		defer s.curPath.pop()
+
+		vx = s.callTRFunc(op.fnc, vx)
+		vy = s.callTRFunc(op.fnc, vy)
 		s.compareAny(vx, vy)
 		return
 	case *comparer:
-		eq := s.callFunc(op.fnc, vx, vy)
+		eq := s.callTTBFunc(op.fnc, vx, vy)
 		s.report(eq, vx, vy)
 		return
 	}
@@ -361,26 +377,60 @@ func (s *state) tryMethod(vx, vy reflect.Value, t reflect.Type) bool {
 		return false
 	}
 
-	eq := s.callFunc(m.Func, vx, vy)
+	eq := s.callTTBFunc(m.Func, vx, vy)
 	s.report(eq, vx, vy)
 	return true
 }
 
-func (s *state) callFunc(f, x, y reflect.Value) bool {
-	got := f.Call([]reflect.Value{x, y})[0].Bool()
-	if s.dsCheck.curr == s.dsCheck.next {
-		// Swapping the input arguments is sufficient to check that
-		// f is symmetric and deterministic.
-		want := f.Call([]reflect.Value{y, x})[0].Bool()
-		if got != want {
-			fn := getFuncName(f.Pointer())
-			panic(fmt.Sprintf("non-deterministic or non-symmetric function detected: %s", fn))
-		}
-		s.dsCheck.curr = 0
-		s.dsCheck.next++
+func (s *state) callTRFunc(f, v reflect.Value) reflect.Value {
+	if !s.dynChecker.Next() {
+		return f.Call([]reflect.Value{v})[0]
 	}
-	s.dsCheck.curr++
-	return got
+
+	// Run the function twice and ensure that we get the same results back.
+	// We run in goroutines so that the race detector (if enabled) can detect
+	// unsafe mutations to the input.
+	c := make(chan reflect.Value)
+	go detectRaces(c, f, v)
+	want := f.Call([]reflect.Value{v})[0]
+	if got := <-c; !s.statelessCompare(got, want).Equal() {
+		// To avoid false-positives with non-reflexive equality operations,
+		// we sanity check whether a value is equal to itself.
+		if !s.statelessCompare(want, want).Equal() {
+			return want
+		}
+		fn := getFuncName(f.Pointer())
+		panic(fmt.Sprintf("non-deterministic function detected: %s", fn))
+	}
+	return want
+}
+
+func (s *state) callTTBFunc(f, x, y reflect.Value) bool {
+	if !s.dynChecker.Next() {
+		return f.Call([]reflect.Value{x, y})[0].Bool()
+	}
+
+	// Swapping the input arguments is sufficient to check that
+	// f is symmetric and deterministic.
+	// We run in goroutines so that the race detector (if enabled) can detect
+	// unsafe mutations to the input.
+	c := make(chan reflect.Value)
+	go detectRaces(c, f, y, x)
+	want := f.Call([]reflect.Value{x, y})[0].Bool()
+	if got := <-c; !got.IsValid() || got.Bool() != want {
+		fn := getFuncName(f.Pointer())
+		panic(fmt.Sprintf("non-deterministic or non-symmetric function detected: %s", fn))
+	}
+	return want
+}
+
+func detectRaces(c chan<- reflect.Value, f reflect.Value, vs ...reflect.Value) {
+	var ret reflect.Value
+	defer func() {
+		recover() // Ignore panics, let the other call to f panic instead
+		c <- ret
+	}()
+	ret = f.Call(vs)[0]
 }
 
 func (s *state) compareArray(vx, vy reflect.Value, t reflect.Type) {
@@ -388,15 +438,10 @@ func (s *state) compareArray(vx, vy reflect.Value, t reflect.Type) {
 	s.curPath.push(step)
 
 	// Compute an edit-script for slices vx and vy.
-	oldResult, oldReporter := s.result, s.reporter
-	s.reporter = nil // Remove reporter to avoid spurious printouts
 	eq, es := diff.Difference(vx.Len(), vy.Len(), func(ix, iy int) diff.Result {
 		step.xkey, step.ykey = ix, iy
-		s.result = diff.Result{} // Reset result
-		s.compareAny(vx.Index(ix), vy.Index(iy))
-		return s.result
+		return s.statelessCompare(vx.Index(ix), vy.Index(iy))
 	})
-	s.result, s.reporter = oldResult, oldReporter
 
 	// Equal or no edit-script, so report entire slices as is.
 	if eq || es == nil {
@@ -507,6 +552,29 @@ func (s *state) report(eq bool, vx, vy reflect.Value) {
 	if s.reporter != nil {
 		s.reporter.Report(vx, vy, eq, s.curPath)
 	}
+}
+
+// dynChecker tracks the state needed to periodically perform checks that
+// user provided functions are symmetric and deterministic.
+// The zero value is safe for immediate use.
+type dynChecker struct{ curr, next int }
+
+// Next increments the state and reports whether a check should be performed.
+//
+// Checks occur every Nth function call, where N is a triangular number:
+//	0 1 3 6 10 15 21 28 36 45 55 66 78 91 105 120 136 153 171 190 ...
+// See https://en.wikipedia.org/wiki/Triangular_number
+//
+// This sequence ensures that the cost of checks drops significantly as
+// the number of functions calls grows larger.
+func (dc *dynChecker) Next() bool {
+	ok := dc.curr == dc.next
+	if ok {
+		dc.curr = 0
+		dc.next++
+	}
+	dc.curr++
+	return ok
 }
 
 // makeAddressable returns a value that is always addressable.
