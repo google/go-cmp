@@ -69,12 +69,13 @@ import (
 // Structs are equal if all of their fields are equal. If a struct contains
 // unexported fields, Equal panics unless the AllowUnexported option is used or
 // an Ignore option (e.g., cmpopts.IgnoreUnexported) ignores that field.
-// Slices and arrays are equal if they have the same length and the elements
-// at each index are equal.
-// Maps are equal if their keys are exactly equal (according to the == operator)
-// and the corresponding elements for each key are equal. To specify a custom
-// comparison for map keys, use a Transformer to convert the map to a
-// corresponding slice type.
+//
+// Arrays, slices, and maps are equal if they are both nil or both non-nil
+// with the same length and the elements at each index or key are equal.
+// Note that a non-nil empty slice and a nil slice are not equal.
+// To equate empty slices and maps, consider using cmpopts.EquateEmpty.
+// Map keys are equal according to the == operator.
+// To use custom comparisons for map keys, consider using cmpopts.SortMaps.
 func Equal(x, y interface{}, opts ...Option) bool {
 	s := newState(opts)
 	s.compareAny(reflect.ValueOf(x), reflect.ValueOf(y))
