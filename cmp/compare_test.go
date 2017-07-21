@@ -7,6 +7,7 @@ package cmp_test
 import (
 	"bytes"
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -338,7 +339,9 @@ root:
 }
 
 func transformerTests() []test {
-	const label = "Transformer/"
+	type JSON string
+
+	const label = "Transformer"
 
 	return []test{{
 		label: label,
@@ -399,6 +402,57 @@ func transformerTests() []test {
 λ({int}):
 	-: "string"
 	+: 1`,
+	}, {
+		label: label,
+		x: JSON(`{
+		  "firstName": "John",
+		  "lastName": "Smith",
+		  "age": 25,
+		  "isAlive": true,
+		  "address": {
+		    "city": "Los Angeles",
+		    "postalCode": "10021-3100",
+		    "state": "CA",
+		    "streetAddress": "21 2nd Street"
+		  },
+		  "phoneNumbers": [{
+		    "type": "home",
+		    "number": "212 555-4321"
+		  },{
+		    "type": "office",
+		    "number": "646 555-4567"
+		  },{
+		    "number": "123 456-7890",
+		    "type": "mobile"
+		  }],
+		  "children": []
+		}`),
+		y: JSON(`{"firstName":"John","lastName":"Smith","isAlive":true,"age":25,
+			"address":{"streetAddress":"21 2nd Street","city":"New York",
+			"state":"NY","postalCode":"10021-3100"},"phoneNumbers":[{"type":"home",
+			"number":"212 555-1234"},{"type":"office","number":"646 555-4567"},{
+			"type":"mobile","number":"123 456-7890"}],"children":[],"spouse":null}`),
+		opts: []cmp.Option{
+			cmp.Transformer("ParseJSON", func(s JSON) (m map[string]interface{}) {
+				if err := json.Unmarshal([]byte(s), &m); err != nil {
+					panic(err)
+				}
+				return m
+			}),
+		},
+		wantDiff: `
+ParseJSON({cmp_test.JSON})["address"]["city"]:
+	-: "Los Angeles"
+	+: "New York"
+ParseJSON({cmp_test.JSON})["address"]["state"]:
+	-: "CA"
+	+: "NY"
+ParseJSON({cmp_test.JSON})["phoneNumbers"][0]["number"]:
+	-: "212 555-4321"
+	+: "212 555-1234"
+ParseJSON({cmp_test.JSON})["spouse"]:
+	-: <non-existent>
+	+: interface {}(nil)`,
 	}}
 }
 

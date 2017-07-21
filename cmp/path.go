@@ -150,13 +150,12 @@ func (pa Path) GoString() string {
 			ssPost = append(ssPost, ")")
 			continue
 		case *typeAssertion:
-			// Elide type assertions immediately following a transform to
-			// prevent overly verbose path printouts.
-			// Some transforms return interface{} because of Go's lack of
-			// generics, but typically take in and return the exact same
-			// concrete type. Other times, the transform creates an anonymous
-			// struct, which will be very verbose to print.
-			if _, ok := nextStep.(*transform); ok {
+			// As a special-case, elide type assertions on anonymous types
+			// since they are typically generated dynamically and can be very
+			// verbose. For example, some transforms return interface{} because
+			// of Go's lack of generics, but typically take in and return the
+			// exact same concrete type.
+			if s.Type().PkgPath() == "" {
 				continue
 			}
 		}
