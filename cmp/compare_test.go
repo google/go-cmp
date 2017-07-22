@@ -84,7 +84,7 @@ func TestDiff(t *testing.T) {
 	tests = append(tests, project4Tests()...)
 
 	for _, tt := range tests {
-		tRun(t, tt.label, func(t *testing.T) {
+		tRunParallel(t, tt.label, func(t *testing.T) {
 			var gotDiff, gotPanic string
 			func() {
 				defer func() {
@@ -1760,14 +1760,18 @@ func project4Tests() []test {
 }
 
 // TODO: Delete this hack when we drop Go1.6 support.
-func tRun(t *testing.T, name string, f func(t *testing.T)) {
+func tRunParallel(t *testing.T, name string, f func(t *testing.T)) {
 	type runner interface {
 		Run(string, func(t *testing.T)) bool
 	}
 	var ti interface{} = t
 	if r, ok := ti.(runner); ok {
-		r.Run(name, f)
+		r.Run(name, func(t *testing.T) {
+			t.Parallel()
+			f(t)
+		})
 	} else {
+		// Cannot run sub-tests in parallel in Go1.6.
 		t.Logf("Test: %s", name)
 		f(t)
 	}
