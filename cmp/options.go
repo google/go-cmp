@@ -286,9 +286,14 @@ type visibleStructs map[reflect.Type]bool
 func (visibleStructs) option() {}
 
 // reporter is an Option that configures how differences are reported.
-//
-// TODO: Not exported yet, see concerns in defaultReporter.Report.
 type reporter interface {
+	// TODO: Not exported yet.
+	//
+	// Perhaps add PushStep and PopStep and change Report to only accept
+	// a PathStep instead of the full-path? Adding a PushStep and PopStep makes
+	// it clear that we are traversing the value tree in a depth-first-search
+	// manner, which has an effect on how values are printed.
+
 	Option
 
 	// Report is called for every comparison made and will be provided with
@@ -297,8 +302,4 @@ type reporter interface {
 	// invalid reflect.Value if one of the values is non-existent;
 	// which is possible with maps and slices.
 	Report(x, y reflect.Value, eq bool, p Path)
-
-	// TODO: Perhaps add PushStep and PopStep and change Report to only accept
-	// a PathStep instead of the full-path? This change allows us to provide
-	// better output closer to what pretty.Compare is able to achieve.
 }
