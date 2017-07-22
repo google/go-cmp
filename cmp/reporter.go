@@ -24,7 +24,6 @@ var _ reporter = (*defaultReporter)(nil)
 
 func (r *defaultReporter) Report(x, y reflect.Value, eq bool, p Path) {
 	if eq {
-		// TODO: Maybe print some equal results for context?
 		return // Ignore equal results
 	}
 	const maxBytes = 4096
