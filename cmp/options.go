@@ -258,8 +258,8 @@ func (tr *transformer) filter(_ *state, _, _ reflect.Value, t reflect.Type) appl
 func (tr *transformer) apply(s *state, vx, vy reflect.Value) bool {
 	// Update path before calling the Transformer so that dynamic checks
 	// will use the updated path.
-	s.curPath.push(&transform{pathStep{tr.fnc.Type().Out(0)}, tr})
-	defer s.curPath.pop()
+	s.pushStep(&transform{pathStep{tr.fnc.Type().Out(0)}, tr})
+	defer s.popStep()
 
 	vx = s.callTRFunc(tr.fnc, vx)
 	vy = s.callTRFunc(tr.fnc, vy)
@@ -367,23 +367,50 @@ func (visibleStructs) filter(_ *state, _, _ reflect.Value, _ reflect.Type) appli
 	panic("not implemented")
 }
 
-// reporter is an Option that configures how differences are reported.
-type reporter interface {
-	// TODO: Not exported yet.
-	//
-	// Perhaps add PushStep and PopStep and change Report to only accept
-	// a PathStep instead of the full-path? Adding a PushStep and PopStep makes
-	// it clear that we are traversing the value tree in a depth-first-search
-	// manner, which has an effect on how values are printed.
+// Reporter returns an Option that configures Equal to report the result of
+// every comparison made to the provided reporter, r.
+//
+// As Equal traverses the values, it does so in a depth-first search.
+// PushStep is called when descending into a sub-value and
+// PopStep is called when ascending back out of the sub-value.
+//
+// The Report method is called for every comparison made and will be provided
+// with the two values being compared and the result of equality.
+// When traversing slices or maps, one of the reflect.Values may be invalid
+// if it is non-existent. Since Equal does not mutate the input values,
+// it is safe to keep a reference to the values past the Report call.
+// However, Report must not mutate the input values.
+//
+// If r has a method Debug(string), then Debug will be called with verbose
+// debugging information regarding the execution of Equal.
+func Reporter(r interface {
+	PushStep(PathStep)
+	PopStep()
+	Report(x, y reflect.Value, eq bool)
+}) Option {
+	if dbg, ok := r.(debugger); ok {
+		return output{reporter: r, debugger: dbg}
+	}
+	return output{reporter: r}
+}
 
-	Option
+type (
+	reporter interface {
+		PushStep(PathStep)
+		PopStep()
+		Report(_, _ reflect.Value, _ bool)
+	}
+	debugger interface {
+		Debug(string)
+	}
+	output struct {
+		reporter
+		debugger
+	}
+)
 
-	// Report is called for every comparison made and will be provided with
-	// the two values being compared, the equality result, and the
-	// current path in the value tree. It is possible for x or y to be an
-	// invalid reflect.Value if one of the values is non-existent;
-	// which is possible with maps and slices.
-	Report(x, y reflect.Value, eq bool, p Path)
+func (output) filter(_ *state, _, _ reflect.Value, _ reflect.Type) applicableOption {
+	panic("not implemented")
 }
 
 // normalizeOption normalizes the input options such that all Options groups

@@ -96,7 +96,7 @@ func Equal(x, y interface{}, opts ...Option) bool {
 // Do not depend on this output being stable.
 func Diff(x, y interface{}, opts ...Option) string {
 	r := new(defaultReporter)
-	opts = Options{Options(opts), r}
+	opts = Options{Options(opts), Reporter(r)}
 	eq := Equal(x, y, opts...)
 	d := r.String()
 	if (d == "") != eq {
@@ -108,9 +108,9 @@ func Diff(x, y interface{}, opts ...Option) string {
 type state struct {
 	// These fields represent the "comparison state".
 	// Calling statelessCompare must not result in observable changes to these.
-	result   diff.Result // The current result of comparison
-	curPath  Path        // The current path in the value tree
-	reporter reporter    // Optional reporter used for difference formatting
+	result  diff.Result // The current result of comparison
+	curPath Path        // The current path in the value tree
+	out     output      // Optional reporter and/or debugger
 
 	// dynChecker triggers pseudo-random checks for option correctness.
 	// It is safe for statelessCompare to mutate this value.
@@ -151,11 +151,11 @@ func (s *state) processOption(opt Option) {
 		for t := range opt {
 			s.exporters[t] = true
 		}
-	case reporter:
-		if s.reporter != nil {
-			panic("difference reporter already registered")
+	case output:
+		if s.out != (output{}) {
+			panic("Reporter already registered")
 		}
-		s.reporter = opt
+		s.out = opt
 	default:
 		panic(fmt.Sprintf("unknown option %T", opt))
 	}
@@ -170,17 +170,17 @@ func (s *state) statelessCompare(vx, vy reflect.Value) diff.Result {
 	// It is an implementation bug if the contents of curPath differs from
 	// when calling this function to when returning from it.
 
-	oldResult, oldReporter := s.result, s.reporter
-	s.result = diff.Result{} // Reset result
-	s.reporter = nil         // Remove reporter to avoid spurious printouts
+	oldResult, oldOutput := s.result, s.out
+	s.result, s.out = diff.Result{}, output{} // Reset result and output
 	s.compareAny(vx, vy)
 	res := s.result
-	s.result, s.reporter = oldResult, oldReporter
+	s.result, s.out = oldResult, oldOutput
 	return res
 }
 
 func (s *state) compareAny(vx, vy reflect.Value) {
 	// TODO: Support cyclic data structures.
+	// TODO: Make use of s.out.debugger if available.
 
 	// Rule 0: Differing types are never equal.
 	if !vx.IsValid() || !vy.IsValid() {
@@ -193,8 +193,8 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 	}
 	t := vx.Type()
 	if len(s.curPath) == 0 {
-		s.curPath.push(&pathStep{typ: t})
-		defer s.curPath.pop()
+		s.pushStep(&pathStep{typ: t})
+		defer s.popStep()
 	}
 	vx, vy = s.tryExporting(vx, vy)
 
@@ -239,8 +239,8 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 			s.report(vx.IsNil() && vy.IsNil(), vx, vy)
 			return
 		}
-		s.curPath.push(&indirect{pathStep{t.Elem()}})
-		defer s.curPath.pop()
+		s.pushStep(&indirect{pathStep{t.Elem()}})
+		defer s.popStep()
 		s.compareAny(vx.Elem(), vy.Elem())
 		return
 	case reflect.Interface:
@@ -252,8 +252,8 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 			s.report(false, vx.Elem(), vy.Elem())
 			return
 		}
-		s.curPath.push(&typeAssertion{pathStep{vx.Elem().Type()}})
-		defer s.curPath.pop()
+		s.pushStep(&typeAssertion{pathStep{vx.Elem().Type()}})
+		defer s.popStep()
 		s.compareAny(vx.Elem(), vy.Elem())
 		return
 	case reflect.Slice:
@@ -389,12 +389,14 @@ func sanitizeValue(v reflect.Value, t reflect.Type) reflect.Value {
 
 func (s *state) compareArray(vx, vy reflect.Value, t reflect.Type) {
 	step := &sliceIndex{pathStep{t.Elem()}, 0, 0}
-	s.curPath.push(step)
 
 	// Compute an edit-script for slices vx and vy.
 	es := diff.Difference(vx.Len(), vy.Len(), func(ix, iy int) diff.Result {
 		step.xkey, step.ykey = ix, iy
-		return s.statelessCompare(vx.Index(ix), vy.Index(iy))
+		s.pushStep(step)
+		res := s.statelessCompare(vx.Index(ix), vy.Index(iy))
+		s.popStep()
+		return res
 	})
 
 	// Report the entire slice as is if the arrays are of primitive kind,
@@ -407,7 +409,6 @@ func (s *state) compareArray(vx, vy reflect.Value, t reflect.Type) {
 		isPrimitive = true
 	}
 	if isPrimitive && es.Dist() > (vx.Len()+vy.Len())/4 {
-		s.curPath.pop() // Pop first since we are reporting the whole slice
 		s.report(false, vx, vy)
 		return
 	}
@@ -418,14 +419,17 @@ func (s *state) compareArray(vx, vy reflect.Value, t reflect.Type) {
 		switch e {
 		case diff.UniqueX:
 			step.xkey, step.ykey = ix, -1
+			s.pushStep(step)
 			s.report(false, vx.Index(ix), nothing)
 			ix++
 		case diff.UniqueY:
 			step.xkey, step.ykey = -1, iy
+			s.pushStep(step)
 			s.report(false, nothing, vy.Index(iy))
 			iy++
 		default:
 			step.xkey, step.ykey = ix, iy
+			s.pushStep(step)
 			if e == diff.Identity {
 				s.report(true, vx.Index(ix), vy.Index(iy))
 			} else {
@@ -434,8 +438,8 @@ func (s *state) compareArray(vx, vy reflect.Value, t reflect.Type) {
 			ix++
 			iy++
 		}
+		s.popStep()
 	}
-	s.curPath.pop()
 	return
 }
 
@@ -448,10 +452,9 @@ func (s *state) compareMap(vx, vy reflect.Value, t reflect.Type) {
 	// We combine and sort the two map keys so that we can perform the
 	// comparisons in a deterministic order.
 	step := &mapIndex{pathStep: pathStep{t.Elem()}}
-	s.curPath.push(step)
-	defer s.curPath.pop()
 	for _, k := range value.SortKeys(append(vx.MapKeys(), vy.MapKeys()...)) {
 		step.key = k
+		s.pushStep(step)
 		vvx := vx.MapIndex(k)
 		vvy := vy.MapIndex(k)
 		switch {
@@ -468,6 +471,7 @@ func (s *state) compareMap(vx, vy reflect.Value, t reflect.Type) {
 			// See https://golang.org/issue/11104
 			panic(fmt.Sprintf("%#v has map key with NaNs", s.curPath))
 		}
+		s.popStep()
 	}
 }
 
@@ -475,8 +479,6 @@ func (s *state) compareStruct(vx, vy reflect.Value, t reflect.Type) {
 	var vax, vay reflect.Value // Addressable versions of vx and vy
 
 	step := &structField{}
-	s.curPath.push(step)
-	defer s.curPath.pop()
 	for i := 0; i < t.NumField(); i++ {
 		vvx := vx.Field(i)
 		vvy := vy.Field(i)
@@ -499,7 +501,23 @@ func (s *state) compareStruct(vx, vy reflect.Value, t reflect.Type) {
 			step.pvy = vay
 			step.field = t.Field(i)
 		}
+		s.pushStep(step)
 		s.compareAny(vvx, vvy)
+		s.popStep()
+	}
+}
+
+func (s *state) pushStep(ps PathStep) {
+	s.curPath.push(ps)
+	if s.out.reporter != nil {
+		s.out.PushStep(ps)
+	}
+}
+
+func (s *state) popStep() {
+	s.curPath.pop()
+	if s.out.reporter != nil {
+		s.out.PopStep()
 	}
 }
 
@@ -511,8 +529,8 @@ func (s *state) report(eq bool, vx, vy reflect.Value) {
 	} else {
 		s.result.NDiff++
 	}
-	if s.reporter != nil {
-		s.reporter.Report(vx, vy, eq, s.curPath)
+	if s.out.reporter != nil {
+		s.out.Report(vx, vy, eq)
 	}
 }
 

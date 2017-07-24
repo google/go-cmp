@@ -13,16 +13,17 @@ import (
 )
 
 type defaultReporter struct {
-	Option
+	path   Path     // The current path
 	diffs  []string // List of differences, possibly truncated
 	ndiffs int      // Total number of differences
 	nbytes int      // Number of bytes in diffs
 	nlines int      // Number of lines in diffs
 }
 
-var _ reporter = (*defaultReporter)(nil)
+func (r *defaultReporter) PushStep(ps PathStep) { r.path.push(ps) }
+func (r *defaultReporter) PopStep()             { r.path.pop() }
 
-func (r *defaultReporter) Report(x, y reflect.Value, eq bool, p Path) {
+func (r *defaultReporter) Report(x, y reflect.Value, eq bool) {
 	if eq {
 		return // Ignore equal results
 	}
@@ -37,7 +38,7 @@ func (r *defaultReporter) Report(x, y reflect.Value, eq bool, p Path) {
 			sx = value.Format(x, false)
 			sy = value.Format(y, false)
 		}
-		s := fmt.Sprintf("%#v:\n\t-: %s\n\t+: %s\n", p, sx, sy)
+		s := fmt.Sprintf("%#v:\n\t-: %s\n\t+: %s\n", r.path, sx, sy)
 		r.diffs = append(r.diffs, s)
 		r.nbytes += len(s)
 		r.nlines += strings.Count(s, "\n")
