@@ -145,8 +145,8 @@ func TestSortKeys(t *testing.T) {
 		for _, k := range value.SortKeys(keys) {
 			got = append(got, k.Interface())
 		}
-		if d := cmp.Diff(tt.want, got, opts...); d != "" {
-			t.Errorf("test %d, output mismatch (-want +got):\n%s", i, d)
+		if d := cmp.Diff(got, tt.want, opts...); d != "" {
+			t.Errorf("test %d, Sort() mismatch (-got +want):\n%s", i, d)
 		}
 	}
 }
