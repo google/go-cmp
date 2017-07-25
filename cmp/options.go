@@ -183,9 +183,10 @@ func Ignore() Option {
 // The transformer f must be a function "func(T) R" that converts values of
 // type T to those of type R and is implicitly filtered to input values
 // assignable to T. The transformer must not mutate T in any way.
-// If T and R are the same type, an additional filter must be applied to
-// act as the base case to prevent an infinite recursion applying the same
-// transform to itself (see the SortedSlice example).
+// To prevent infinite cycles recursively applying the same transform to
+// the output of itself (e.g., in the case where the input and output types
+// are the same), an implicit filter is added such that a transformer may only
+// be called if that exact transformer is not already in the Path.
 //
 // The name is a user provided label that is used as the Transform.Name in the
 // transformation PathStep. If empty, an arbitrary name is used.
