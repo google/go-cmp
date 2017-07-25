@@ -11,7 +11,7 @@ import (
 	"sort"
 )
 
-// SortKey sorts a list of map keys, deduplicating keys if necessary.
+// SortKeys sorts a list of map keys, deduplicating keys if necessary.
 // The type of each value must be comparable.
 func SortKeys(vs []reflect.Value) []reflect.Value {
 	if len(vs) == 0 {
