@@ -85,7 +85,7 @@ func TestFormat(t *testing.T) {
 	for i, tt := range tests {
 		got := Format(reflect.ValueOf(tt.in), true)
 		if got != tt.want {
-			t.Errorf("test %d, pretty print:\ngot  %q\nwant %q", i, got, tt.want)
+			t.Errorf("test %d, Format():\ngot  %q\nwant %q", i, got, tt.want)
 		}
 	}
 }
