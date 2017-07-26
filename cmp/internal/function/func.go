@@ -14,6 +14,7 @@ const (
 
 	ttbFunc // func(T, T) bool
 	tibFunc // func(T, I) bool
+	tbFunc  // func(T) bool
 	trFunc  // func(T) R
 
 	Equal           = ttbFunc // func(T, T) bool
@@ -21,6 +22,7 @@ const (
 	Transformer     = trFunc  // func(T) R
 	ValueFilter     = ttbFunc // func(T, T) bool
 	Less            = ttbFunc // func(T, T) bool
+	Remove          = tbFunc  // func(T) bool
 )
 
 var boolType = reflect.TypeOf(true)
@@ -38,6 +40,10 @@ func IsType(t reflect.Type, ft funcType) bool {
 		}
 	case tibFunc: // func(T, I) bool
 		if ni == 2 && no == 1 && t.In(0).AssignableTo(t.In(1)) && t.Out(0) == boolType {
+			return true
+		}
+	case tbFunc: // func(T) bool
+		if ni == 1 && no == 1 && t.Out(0) == boolType {
 			return true
 		}
 	case trFunc: // func(T) R
