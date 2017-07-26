@@ -215,9 +215,12 @@ func (invalid) apply(s *state, _, _ reflect.Value) bool {
 // The transformer f must be a function "func(T) R" that converts values of
 // type T to those of type R and is implicitly filtered to input values
 // assignable to T. The transformer must not mutate T in any way.
-// If T and R are the same type, an additional filter must be applied to
-// act as the base case to prevent an infinite recursion applying the same
-// transform to itself (see the SortedSlice example).
+//
+// To help prevent some cases of infinite recursive cycles applying the
+// same transform to the output of itself (e.g., in the case where the
+// input and output types are the same), an implicit filter is added such that
+// a transformer is applicable only if that exact transformer is not already
+// in the tail of the Path since the last non-Transform step.
 //
 // The name is a user provided label that is used as the Transform.Name in the
 // transformation PathStep. If empty, an arbitrary name is used.
@@ -248,7 +251,14 @@ type transformer struct {
 
 func (tr *transformer) isFiltered() bool { return tr.typ != nil }
 
-func (tr *transformer) filter(_ *state, _, _ reflect.Value, t reflect.Type) applicableOption {
+func (tr *transformer) filter(s *state, _, _ reflect.Value, t reflect.Type) applicableOption {
+	for i := len(s.curPath) - 1; i >= 0; i-- {
+		if t, ok := s.curPath[i].(*transform); !ok {
+			break // Hit most recent non-Transform step
+		} else if tr == t.trans {
+			return nil // Cannot directly use same Transform
+		}
+	}
 	if tr.typ == nil || t.AssignableTo(tr.typ) {
 		return tr
 	}
