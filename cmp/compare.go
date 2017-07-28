@@ -96,7 +96,7 @@ func Equal(x, y interface{}, opts ...Option) bool {
 // Do not depend on this output being stable.
 func Diff(x, y interface{}, opts ...Option) string {
 	r := new(defaultReporter)
-	opts = append(opts[:len(opts):len(opts)], r) // Force copy when appending
+	opts = Options{Options(opts), r}
 	eq := Equal(x, y, opts...)
 	d := r.String()
 	if (d == "") != eq {
