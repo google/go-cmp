@@ -79,6 +79,7 @@ func TestDiff(t *testing.T) {
 	tests = append(tests, transformerTests()...)
 	tests = append(tests, embeddedTests()...)
 	tests = append(tests, methodTests()...)
+	tests = append(tests, formatTests()...)
 	tests = append(tests, project1Tests()...)
 	tests = append(tests, project2Tests()...)
 	tests = append(tests, project3Tests()...)
@@ -1359,6 +1360,21 @@ func methodTests() []test {
 		x:     ts.AssignD(make(chan bool)),
 		y:     ts.AssignD(make(chan bool)),
 	}}
+}
+
+func formatTests() []test {
+	const label = "Format/"
+	return []test{
+		{
+			label: label + "NilStringer",
+			x:     new(fmt.Stringer),
+			y:     nil,
+			wantDiff: `
+:
+	-: &<nil>
+	+: <non-existent>`,
+		},
+	}
 }
 
 func project1Tests() []test {
