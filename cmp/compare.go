@@ -49,7 +49,7 @@ var nothing = reflect.Value{}
 // and the overall result is false.
 //
 // • Let S be the set of all Ignore, Transformer, and Comparer options that
-// remain after applying all path filters, value filters, and type filters.
+// remain after applying all explicit and implicit filters.
 // If at least one Ignore exists in S, then the comparison is ignored.
 // If the number of Transformer and Comparer options in S is greater than one,
 // then Equal panics because it is ambiguous which option to use.
@@ -108,9 +108,10 @@ func Diff(x, y interface{}, opts ...Option) string {
 type state struct {
 	// These fields represent the "comparison state".
 	// Calling statelessCompare must not result in observable changes to these.
-	result   diff.Result // The current result of comparison
-	curPath  Path        // The current path in the value tree
-	reporter reporter    // Optional reporter used for difference formatting
+	result    diff.Result           // The current result of comparison
+	curPath   Path                  // The current path in the value tree
+	usedTrans map[*transformer]bool // The current set of called transformers
+	reporter  reporter              // Optional reporter used for difference formatting
 
 	// dynChecker triggers pseudo-random checks for option correctness.
 	// It is safe for statelessCompare to mutate this value.
@@ -124,6 +125,7 @@ type state struct {
 
 func newState(opts []Option) *state {
 	s := new(state)
+	s.usedTrans = make(map[*transformer]bool)
 	for _, opt := range opts {
 		s.processOption(opt)
 	}
@@ -173,9 +175,9 @@ func (s *state) processOption(opt Option) {
 // This function is stateless in that it does not alter the current result,
 // or output to any registered reporters.
 func (s *state) statelessCompare(vx, vy reflect.Value) diff.Result {
-	// We do not save and restore the curPath because all of the compareX
-	// methods should properly push and pop from the path.
-	// It is an implementation bug if the contents of curPath differs from
+	// We do not save and restore the curPath and usedTrans because all of the
+	// compareX methods should properly push and pop from them.
+	// It is an implementation bug if their contents differs from
 	// when calling this function to when returning from it.
 
 	oldResult, oldReporter := s.result, s.reporter
@@ -347,16 +349,21 @@ func (s *state) applyFilters(vx, vy reflect.Value, t reflect.Type, opt option) b
 			return false
 		}
 	}
+	if t, ok := opt.op.(*transformer); ok && s.usedTrans[t] {
+		return false
+	}
 	return true
 }
 
 func (s *state) applyOption(vx, vy reflect.Value, t reflect.Type, opt option) {
 	switch op := opt.op.(type) {
 	case *transformer:
-		// Update path before calling the Transformer so that dynamic checks
-		// will use the updated path.
+		// Update path and usedTrans before calling the Transformer so that
+		// dynamic checks will use the updated values.
 		s.curPath.push(&transform{pathStep{op.fnc.Type().Out(0)}, op})
 		defer s.curPath.pop()
+		s.usedTrans[op] = true
+		defer delete(s.usedTrans, op)
 
 		vx = s.callTRFunc(op.fnc, vx)
 		vy = s.callTRFunc(op.fnc, vy)
