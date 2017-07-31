@@ -18,52 +18,16 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	pb "github.com/google/go-cmp/cmp/internal/testprotos"
 	ts "github.com/google/go-cmp/cmp/internal/teststructs"
 )
 
 var now = time.Now()
-var boolType = reflect.TypeOf(true)
-var mutexType = reflect.TypeOf(sync.Mutex{})
 
 func intPtr(n int) *int { return &n }
-
-func equalRegexp(x, y *regexp.Regexp) bool {
-	if x == nil || y == nil {
-		return x == nil && y == nil
-	}
-	return x.String() == y.String()
-}
-
-func IgnoreUnexported(typs ...interface{}) cmp.Option {
-	m := make(map[reflect.Type]bool)
-	for _, typ := range typs {
-		t := reflect.TypeOf(typ)
-		if t.Kind() != reflect.Struct {
-			panic(fmt.Sprintf("invalid struct type: %T", typ))
-		}
-		m[t] = true
-	}
-	return cmp.FilterPath(func(p cmp.Path) bool {
-		if len(p) < 2 {
-			return false
-		}
-		sf, ok := p[len(p)-1].(cmp.StructField)
-		if !ok {
-			return false
-		}
-		return m[p[len(p)-2].Type()] && !isExported(sf.Name())
-	}, cmp.Ignore())
-}
-
-func isExported(id string) bool {
-	r, _ := utf8.DecodeRuneInString(id)
-	return unicode.IsUpper(r)
-}
 
 type test struct {
 	label     string       // Test description
@@ -79,13 +43,13 @@ func TestDiff(t *testing.T) {
 	tests = append(tests, transformerTests()...)
 	tests = append(tests, embeddedTests()...)
 	tests = append(tests, methodTests()...)
-	tests = append(tests, formatTests()...)
 	tests = append(tests, project1Tests()...)
 	tests = append(tests, project2Tests()...)
 	tests = append(tests, project3Tests()...)
 	tests = append(tests, project4Tests()...)
 
 	for _, tt := range tests {
+		tt := tt
 		tRunParallel(t, tt.label, func(t *testing.T) {
 			var gotDiff, gotPanic string
 			func() {
@@ -248,12 +212,22 @@ func comparerTests() []test {
 		label: label,
 		x:     []*regexp.Regexp{nil, regexp.MustCompile("a*b*c*")},
 		y:     []*regexp.Regexp{nil, regexp.MustCompile("a*b*c*")},
-		opts:  []cmp.Option{cmp.Comparer(equalRegexp)},
+		opts: []cmp.Option{cmp.Comparer(func(x, y *regexp.Regexp) bool {
+			if x == nil || y == nil {
+				return x == nil && y == nil
+			}
+			return x.String() == y.String()
+		})},
 	}, {
 		label: label,
 		x:     []*regexp.Regexp{nil, regexp.MustCompile("a*b*c*")},
 		y:     []*regexp.Regexp{nil, regexp.MustCompile("a*b*d*")},
-		opts:  []cmp.Option{cmp.Comparer(equalRegexp)},
+		opts: []cmp.Option{cmp.Comparer(func(x, y *regexp.Regexp) bool {
+			if x == nil || y == nil {
+				return x == nil && y == nil
+			}
+			return x.String() == y.String()
+		})},
 		wantDiff: `
 {[]*regexp.Regexp}[1]:
 	-: "a*b*c*"
@@ -316,6 +290,14 @@ root:
 {[16]uint8}:
 	-: [16]uint8{0x0c, 0xc1, 0x75, 0xb9, 0xc0, 0xf1, 0xb6, 0xa8, 0x31, 0xc3, 0x99, 0xe2, 0x69, 0x77, 0x26, 0x61}
 	+: [16]uint8{0x92, 0xeb, 0x5f, 0xfe, 0xe6, 0xae, 0x2f, 0xec, 0x3a, 0xd7, 0x1c, 0x77, 0x75, 0x31, 0x57, 0x8f}`,
+	}, {
+		label: label,
+		x:     new(fmt.Stringer),
+		y:     nil,
+		wantDiff: `
+:
+	-: &<nil>
+	+: <non-existent>`,
 	}, {
 		label: label,
 		x:     make([]int, 1000),
@@ -542,7 +524,7 @@ func embeddedTests() []test {
 		x:     ts.ParentStructA{},
 		y:     ts.ParentStructA{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructA{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructA{}),
 		},
 	}, {
 		label: label + "ParentStructA",
@@ -578,7 +560,7 @@ func embeddedTests() []test {
 		x:     ts.ParentStructB{},
 		y:     ts.ParentStructB{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructB{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructB{}),
 		},
 		wantPanic: "cannot handle unexported field",
 	}, {
@@ -586,8 +568,8 @@ func embeddedTests() []test {
 		x:     ts.ParentStructB{},
 		y:     ts.ParentStructB{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructB{}),
-			IgnoreUnexported(ts.PublicStruct{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructB{}),
+			cmpopts.IgnoreUnexported(ts.PublicStruct{}),
 		},
 	}, {
 		label: label + "ParentStructB",
@@ -628,7 +610,7 @@ func embeddedTests() []test {
 		x:     ts.ParentStructC{},
 		y:     ts.ParentStructC{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructC{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructC{}),
 		},
 	}, {
 		label: label + "ParentStructC",
@@ -670,7 +652,7 @@ func embeddedTests() []test {
 		x:     ts.ParentStructD{},
 		y:     ts.ParentStructD{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructD{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructD{}),
 		},
 		wantPanic: "cannot handle unexported field",
 	}, {
@@ -678,8 +660,8 @@ func embeddedTests() []test {
 		x:     ts.ParentStructD{},
 		y:     ts.ParentStructD{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructD{}),
-			IgnoreUnexported(ts.PublicStruct{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructD{}),
+			cmpopts.IgnoreUnexported(ts.PublicStruct{}),
 		},
 	}, {
 		label: label + "ParentStructD",
@@ -721,7 +703,7 @@ func embeddedTests() []test {
 		x:     ts.ParentStructE{},
 		y:     ts.ParentStructE{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructE{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructE{}),
 		},
 		wantPanic: "cannot handle unexported field",
 	}, {
@@ -729,8 +711,8 @@ func embeddedTests() []test {
 		x:     ts.ParentStructE{},
 		y:     ts.ParentStructE{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructE{}),
-			IgnoreUnexported(ts.PublicStruct{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructE{}),
+			cmpopts.IgnoreUnexported(ts.PublicStruct{}),
 		},
 	}, {
 		label: label + "ParentStructE",
@@ -780,7 +762,7 @@ func embeddedTests() []test {
 		x:     ts.ParentStructF{},
 		y:     ts.ParentStructF{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructF{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructF{}),
 		},
 		wantPanic: "cannot handle unexported field",
 	}, {
@@ -788,8 +770,8 @@ func embeddedTests() []test {
 		x:     ts.ParentStructF{},
 		y:     ts.ParentStructF{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructF{}),
-			IgnoreUnexported(ts.PublicStruct{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructF{}),
+			cmpopts.IgnoreUnexported(ts.PublicStruct{}),
 		},
 	}, {
 		label: label + "ParentStructF",
@@ -850,7 +832,7 @@ func embeddedTests() []test {
 		x:     ts.ParentStructG{},
 		y:     ts.ParentStructG{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructG{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructG{}),
 		},
 	}, {
 		label: label + "ParentStructG",
@@ -895,7 +877,7 @@ func embeddedTests() []test {
 		x:     ts.ParentStructH{},
 		y:     ts.ParentStructH{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructH{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructH{}),
 		},
 	}, {
 		label: label + "ParentStructH",
@@ -936,14 +918,14 @@ func embeddedTests() []test {
 		x:     ts.ParentStructI{},
 		y:     ts.ParentStructI{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructI{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructI{}),
 		},
 	}, {
 		label: label + "ParentStructI",
 		x:     createStructI(0),
 		y:     createStructI(0),
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructI{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructI{}),
 		},
 		wantPanic: "cannot handle unexported field",
 	}, {
@@ -951,7 +933,7 @@ func embeddedTests() []test {
 		x:     createStructI(0),
 		y:     createStructI(0),
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructI{}, ts.PublicStruct{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructI{}, ts.PublicStruct{}),
 		},
 	}, {
 		label: label + "ParentStructI",
@@ -998,7 +980,7 @@ func embeddedTests() []test {
 		x:     ts.ParentStructJ{},
 		y:     ts.ParentStructJ{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructJ{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructJ{}),
 		},
 		wantPanic: "cannot handle unexported field",
 	}, {
@@ -1006,7 +988,7 @@ func embeddedTests() []test {
 		x:     ts.ParentStructJ{},
 		y:     ts.ParentStructJ{},
 		opts: []cmp.Option{
-			IgnoreUnexported(ts.ParentStructJ{}, ts.PublicStruct{}),
+			cmpopts.IgnoreUnexported(ts.ParentStructJ{}, ts.PublicStruct{}),
 		},
 	}, {
 		label: label + "ParentStructJ",
@@ -1075,7 +1057,7 @@ func methodTests() []test {
 		if m, ok := reflect.PtrTo(t).MethodByName("Equal"); ok {
 			tf := m.Func.Type()
 			return !tf.IsVariadic() && tf.NumIn() == 2 && tf.NumOut() == 1 &&
-				tf.In(0).AssignableTo(tf.In(1)) && tf.Out(0) == boolType
+				tf.In(0).AssignableTo(tf.In(1)) && tf.Out(0) == reflect.TypeOf(true)
 		}
 		return false
 	}, cmp.Transformer("Ref", func(x interface{}) interface{} {
@@ -1362,25 +1344,10 @@ func methodTests() []test {
 	}}
 }
 
-func formatTests() []test {
-	const label = "Format/"
-	return []test{
-		{
-			label: label + "NilStringer",
-			x:     new(fmt.Stringer),
-			y:     nil,
-			wantDiff: `
-:
-	-: &<nil>
-	+: <non-existent>`,
-		},
-	}
-}
-
 func project1Tests() []test {
 	const label = "Project1"
 
-	ignoreUnexported := IgnoreUnexported(
+	ignoreUnexported := cmpopts.IgnoreUnexported(
 		ts.EagleImmutable{},
 		ts.DreamerImmutable{},
 		ts.SlapImmutable{},
@@ -1636,9 +1603,7 @@ func project3Tests() []test {
 
 	allowVisibility := cmp.AllowUnexported(ts.Dirt{})
 
-	ignoreLocker := cmp.FilterPath(func(p cmp.Path) bool {
-		return len(p) > 0 && p[len(p)-1].Type() == mutexType
-	}, cmp.Ignore())
+	ignoreLocker := cmpopts.IgnoreInterfaces(struct{ sync.Locker }{})
 
 	transformProtos := cmp.Transformer("", func(x pb.Dirt) *pb.Dirt {
 		return &x
