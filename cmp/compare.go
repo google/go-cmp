@@ -54,11 +54,10 @@ var nothing = reflect.Value{}
 // If at least one Ignore exists in S, then the comparison is ignored.
 // If the number of Transformer and Comparer options in S is greater than one,
 // then Equal panics because it is ambiguous which option to use.
-// If S contains a single Transformer, then apply that transformer on the
-// current values and recursively call Equal on the transformed output values.
-// If S contains a single Comparer, then use that Comparer to determine whether
-// the current values are equal or not.
-// Otherwise, S is empty and evaluation proceeds to the next rule.
+// If S contains a single Transformer, then use that to transform the current
+// values and recursively call Equal on the output values.
+// If S contains a single Comparer, then use that to compare the current values.
+// Otherwise, evaluation proceeds to the next rule.
 //
 // • If the values have an Equal method of the form "(T) Equal(T) bool" or
 // "(T) Equal(I) bool" where T is assignable to I, then use the result of
@@ -119,8 +118,7 @@ type state struct {
 
 	// These fields, once set by processOption, will not change.
 	exporters map[reflect.Type]bool // Set of structs with unexported field visibility
-	optsIgn   []option              // List of all ignore options without value filters
-	opts      []option              // List of all other options
+	opts      Options               // List of all fundamental and filter options
 }
 
 func newState(opts []Option) *state {
@@ -128,37 +126,30 @@ func newState(opts []Option) *state {
 	for _, opt := range opts {
 		s.processOption(opt)
 	}
-	// Move Ignore options to the front so that they are evaluated first.
-	for i, j := 0, 0; i < len(s.opts); i++ {
-		if s.opts[i].op == nil {
-			s.opts[i], s.opts[j] = s.opts[j], s.opts[i]
-			j++
-		}
-	}
 	return s
 }
 
 func (s *state) processOption(opt Option) {
 	switch opt := opt.(type) {
+	case nil:
 	case Options:
 		for _, o := range opt {
 			s.processOption(o)
 		}
+	case coreOption:
+		type filtered interface {
+			isFiltered() bool
+		}
+		if fopt, ok := opt.(filtered); ok && !fopt.isFiltered() {
+			panic(fmt.Sprintf("cannot use an unfiltered option: %v", opt))
+		}
+		s.opts = append(s.opts, opt)
 	case visibleStructs:
 		if s.exporters == nil {
 			s.exporters = make(map[reflect.Type]bool)
 		}
 		for t := range opt {
 			s.exporters[t] = true
-		}
-	case option:
-		if opt.typeFilter == nil && len(opt.pathFilters)+len(opt.valueFilters) == 0 {
-			panic(fmt.Sprintf("cannot use an unfiltered option: %v", opt))
-		}
-		if opt.op == nil && len(opt.valueFilters) == 0 {
-			s.optsIgn = append(s.optsIgn, opt)
-		} else {
-			s.opts = append(s.opts, opt)
 		}
 	case reporter:
 		if s.reporter != nil {
@@ -205,9 +196,10 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 		s.curPath.push(&pathStep{typ: t})
 		defer s.curPath.pop()
 	}
+	vx, vy = s.tryExporting(vx, vy)
 
 	// Rule 1: Check whether an option applies on this node in the value tree.
-	if s.tryOptions(&vx, &vy, t) {
+	if s.tryOptions(vx, vy, t) {
 		return
 	}
 
@@ -284,90 +276,37 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 	}
 }
 
-// tryOptions iterates through all of the options and evaluates whether any
-// of them can be applied. This may modify the underlying values vx and vy
-// if an unexported field is being forcibly exported.
-func (s *state) tryOptions(vx, vy *reflect.Value, t reflect.Type) bool {
-	// Try all ignore options that do not depend on the value first.
-	// This avoids possible panics when processing unexported fields.
-	for _, opt := range s.optsIgn {
-		var v reflect.Value // Dummy value; should never be used
-		if s.applyFilters(v, v, t, opt) {
-			return true // Ignore option applied
-		}
-	}
-
-	// Since the values must be used after this point, verify that the values
-	// are either exported or can be forcibly exported.
+func (s *state) tryExporting(vx, vy reflect.Value) (reflect.Value, reflect.Value) {
 	if sf, ok := s.curPath[len(s.curPath)-1].(*structField); ok && sf.unexported {
-		if !sf.force {
-			const help = "consider using AllowUnexported or cmpopts.IgnoreUnexported"
-			panic(fmt.Sprintf("cannot handle unexported field: %#v\n%s", s.curPath, help))
+		if sf.force {
+			// Use unsafe pointer arithmetic to get read-write access to an
+			// unexported field in the struct.
+			vx = unsafeRetrieveField(sf.pvx, sf.field)
+			vy = unsafeRetrieveField(sf.pvy, sf.field)
+		} else {
+			// We are not allowed to export the value, so invalidate them
+			// so that tryOptions can panic later if not explicitly ignored.
+			vx = nothing
+			vy = nothing
 		}
+	}
+	return vx, vy
+}
 
-		// Use unsafe pointer arithmetic to get read-write access to an
-		// unexported field in the struct.
-		*vx = unsafeRetrieveField(sf.pvx, sf.field)
-		*vy = unsafeRetrieveField(sf.pvy, sf.field)
+func (s *state) tryOptions(vx, vy reflect.Value, t reflect.Type) bool {
+	// If there were no FilterValues, we will not detect invalid inputs,
+	// so manually check for them and append invalid if necessary.
+	// We still evaluate the options since an ignore can override invalid.
+	opts := s.opts
+	if !vx.IsValid() || !vy.IsValid() {
+		opts = Options{opts, invalid{}}
 	}
 
-	// Try all other options now.
-	optIdx := -1 // Index of Option to apply
-	for i, opt := range s.opts {
-		if !s.applyFilters(*vx, *vy, t, opt) {
-			continue
-		}
-		if opt.op == nil {
-			return true // Ignored comparison
-		}
-		if optIdx >= 0 {
-			panic(fmt.Sprintf("ambiguous set of options at %#v\n\n%v\n\n%v\n", s.curPath, s.opts[optIdx], opt))
-		}
-		optIdx = i
-	}
-	if optIdx >= 0 {
-		s.applyOption(*vx, *vy, t, s.opts[optIdx])
-		return true
+	// Evaluate all filters and apply the remaining options.
+	if opt := opts.filter(s, vx, vy, t); opt != nil {
+		return opt.apply(s, vx, vy)
 	}
 	return false
-}
-
-func (s *state) applyFilters(vx, vy reflect.Value, t reflect.Type, opt option) bool {
-	if opt.typeFilter != nil {
-		if !t.AssignableTo(opt.typeFilter) {
-			return false
-		}
-	}
-	for _, f := range opt.pathFilters {
-		if !f(s.curPath) {
-			return false
-		}
-	}
-	for _, f := range opt.valueFilters {
-		if !t.AssignableTo(f.in) || !s.callTTBFunc(f.fnc, vx, vy) {
-			return false
-		}
-	}
-	return true
-}
-
-func (s *state) applyOption(vx, vy reflect.Value, t reflect.Type, opt option) {
-	switch op := opt.op.(type) {
-	case *transformer:
-		// Update path before calling the Transformer so that dynamic checks
-		// will use the updated path.
-		s.curPath.push(&transform{pathStep{op.fnc.Type().Out(0)}, op})
-		defer s.curPath.pop()
-
-		vx = s.callTRFunc(op.fnc, vx)
-		vy = s.callTRFunc(op.fnc, vy)
-		s.compareAny(vx, vy)
-		return
-	case *comparer:
-		eq := s.callTTBFunc(op.fnc, vx, vy)
-		s.report(eq, vx, vy)
-		return
-	}
 }
 
 func (s *state) tryMethod(vx, vy reflect.Value, t reflect.Type) bool {
