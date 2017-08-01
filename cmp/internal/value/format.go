@@ -43,7 +43,7 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 	if !v.IsValid() {
 		return "<non-existent>"
 	}
-	if conf.useStringer && v.Type().Implements(stringerIface) {
+	if conf.useStringer && v.Type().Implements(stringerIface) && v.CanInterface() {
 		if (v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface) && v.IsNil() {
 			return "<nil>"
 		}
