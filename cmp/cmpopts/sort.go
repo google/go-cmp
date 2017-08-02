@@ -9,6 +9,7 @@ import (
 	"reflect"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/internal/function"
 )
 
 // SortSlices returns a Transformer option that sorts all []V.
@@ -26,7 +27,7 @@ import (
 // SortSlices can be used in conjuction with EquateEmpty.
 func SortSlices(less interface{}) cmp.Option {
 	vf := reflect.ValueOf(less)
-	if !isTTBoolFunc(vf.Type()) || vf.IsNil() {
+	if !function.IsType(vf.Type(), function.Less) || vf.IsNil() {
 		panic(fmt.Sprintf("invalid less function: %T", less))
 	}
 	ss := sliceSorter{vf.Type().In(0), vf}
@@ -97,7 +98,7 @@ func (ss sliceSorter) less(v reflect.Value, i, j int) bool {
 // SortMaps can be used in conjuction with EquateEmpty.
 func SortMaps(less interface{}) cmp.Option {
 	vf := reflect.ValueOf(less)
-	if !isTTBoolFunc(vf.Type()) || vf.IsNil() {
+	if !function.IsType(vf.Type(), function.Less) || vf.IsNil() {
 		panic(fmt.Sprintf("invalid less function: %T", less))
 	}
 	ms := mapSorter{vf.Type().In(0), vf}
@@ -142,14 +143,4 @@ func (ms mapSorter) less(v reflect.Value, i, j int) bool {
 		vx, vy = vx.Elem(), vy.Elem()
 	}
 	return ms.fnc.Call([]reflect.Value{vx, vy})[0].Bool()
-}
-
-var boolType = reflect.TypeOf(true)
-
-// isTTBoolFunc reports whether f is of the form: func(T, T) bool.
-func isTTBoolFunc(t reflect.Type) bool {
-	if t == nil || t.Kind() != reflect.Func || t.IsVariadic() {
-		return false
-	}
-	return t.NumIn() == 2 && t.NumOut() == 1 && t.In(0) == t.In(1) && t.Out(0) == boolType
 }

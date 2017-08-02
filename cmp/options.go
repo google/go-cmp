@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/google/go-cmp/cmp/internal/function"
 )
 
 // Option configures for specific behavior of Equal and Diff. In particular,
@@ -150,7 +152,7 @@ func FilterPath(f func(Path) bool, opt Option) Option {
 // a previously filtered Option.
 func FilterValues(f interface{}, opt Option) Option {
 	v := reflect.ValueOf(f)
-	if functionType(v.Type()) != valueFilterFunc || v.IsNil() {
+	if !function.IsType(v.Type(), function.ValueFilter) || v.IsNil() {
 		panic(fmt.Sprintf("invalid values filter function: %T", f))
 	}
 	switch opt := opt.(type) {
@@ -191,7 +193,7 @@ func Ignore() Option {
 // transformation PathStep. If empty, an arbitrary name is used.
 func Transformer(name string, f interface{}) Option {
 	v := reflect.ValueOf(f)
-	if functionType(v.Type()) != transformFunc || v.IsNil() {
+	if !function.IsType(v.Type(), function.Transformer) || v.IsNil() {
 		panic(fmt.Sprintf("invalid transformer function: %T", f))
 	}
 	if name == "" {
@@ -226,7 +228,7 @@ type transformer struct {
 //	• Pure: equal(x, y) does not modify x or y
 func Comparer(f interface{}) Option {
 	v := reflect.ValueOf(f)
-	if functionType(v.Type()) != equalFunc || v.IsNil() {
+	if !function.IsType(v.Type(), function.Equal) || v.IsNil() {
 		panic(fmt.Sprintf("invalid comparer function: %T", f))
 	}
 	opt := option{op: &comparer{v}}

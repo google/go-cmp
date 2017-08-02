@@ -31,6 +31,7 @@ import (
 	"reflect"
 
 	"github.com/google/go-cmp/cmp/internal/diff"
+	"github.com/google/go-cmp/cmp/internal/function"
 	"github.com/google/go-cmp/cmp/internal/value"
 )
 
@@ -372,8 +373,7 @@ func (s *state) applyOption(vx, vy reflect.Value, t reflect.Type, opt option) {
 func (s *state) tryMethod(vx, vy reflect.Value, t reflect.Type) bool {
 	// Check if this type even has an Equal method.
 	m, ok := t.MethodByName("Equal")
-	ft := functionType(m.Type)
-	if !ok || (ft != equalFunc && ft != equalIfaceFunc) {
+	if !ok || !function.IsType(m.Type, function.EqualAssignable) {
 		return false
 	}
 
@@ -587,34 +587,4 @@ func makeAddressable(v reflect.Value) reflect.Value {
 	vc := reflect.New(v.Type()).Elem()
 	vc.Set(v)
 	return vc
-}
-
-type funcType int
-
-const (
-	invalidFunc     funcType    = iota
-	equalFunc                   // func(T, T) bool
-	equalIfaceFunc              // func(T, I) bool
-	transformFunc               // func(T) R
-	valueFilterFunc = equalFunc // func(T, T) bool
-)
-
-var boolType = reflect.TypeOf(true)
-
-// functionType identifies which type of function signature this is.
-func functionType(t reflect.Type) funcType {
-	if t == nil || t.Kind() != reflect.Func || t.IsVariadic() {
-		return invalidFunc
-	}
-	ni, no := t.NumIn(), t.NumOut()
-	switch {
-	case ni == 2 && no == 1 && t.In(0) == t.In(1) && t.Out(0) == boolType:
-		return equalFunc // or valueFilterFunc
-	case ni == 2 && no == 1 && t.In(0).AssignableTo(t.In(1)) && t.Out(0) == boolType:
-		return equalIfaceFunc
-	case ni == 1 && no == 1:
-		return transformFunc
-	default:
-		return invalidFunc
-	}
 }
