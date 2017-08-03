@@ -113,7 +113,7 @@ func comparerTests() []test {
 			cmp.Comparer(func(x, y int) bool { return true }),
 			cmp.Transformer("", func(x int) float64 { return float64(x) }),
 		},
-		wantPanic: "ambiguous set of options",
+		wantPanic: "ambiguous set of applicable options",
 	}, {
 		label: label,
 		x:     1,
@@ -380,7 +380,7 @@ func transformerTests() []test {
 			cmp.Transformer("", func(in int) int { return in / 2 }),
 			cmp.Transformer("", func(in int) int { return in }),
 		},
-		wantPanic: "ambiguous set of options",
+		wantPanic: "ambiguous set of applicable options",
 	}, {
 		label: label,
 		x:     []int{0, -5, 0, -1},
