@@ -130,7 +130,7 @@ func TestOptionPanic(t *testing.T) {
 		label:     "FilterPath",
 		fnc:       FilterPath,
 		args:      []interface{}{func(Path) bool { return true }, &defaultReporter{}},
-		wantPanic: "unknown option type",
+		wantPanic: "invalid option type",
 	}, {
 		label: "FilterPath",
 		fnc:   FilterPath,
@@ -139,7 +139,7 @@ func TestOptionPanic(t *testing.T) {
 		label:     "FilterPath",
 		fnc:       FilterPath,
 		args:      []interface{}{func(Path) bool { return true }, Options{Ignore(), &defaultReporter{}}},
-		wantPanic: "unknown option type",
+		wantPanic: "invalid option type",
 	}, {
 		label:     "FilterValues",
 		fnc:       FilterValues,
@@ -172,7 +172,7 @@ func TestOptionPanic(t *testing.T) {
 		label:     "FilterValues",
 		fnc:       FilterValues,
 		args:      []interface{}{func(int, int) bool { return true }, &defaultReporter{}},
-		wantPanic: "unknown option type",
+		wantPanic: "invalid option type",
 	}, {
 		label: "FilterValues",
 		fnc:   FilterValues,
@@ -181,7 +181,7 @@ func TestOptionPanic(t *testing.T) {
 		label:     "FilterValues",
 		fnc:       FilterValues,
 		args:      []interface{}{func(int, int) bool { return true }, Options{Ignore(), &defaultReporter{}}},
-		wantPanic: "unknown option type",
+		wantPanic: "invalid option type",
 	}}
 
 	for _, tt := range tests {

@@ -11,7 +11,7 @@ import (
 	"sort"
 )
 
-// SortKey sorts a list of map keys, deduplicating keys if necessary.
+// SortKeys sorts a list of map keys, deduplicating keys if necessary.
 // The type of each value must be comparable.
 func SortKeys(vs []reflect.Value) []reflect.Value {
 	if len(vs) == 0 {
@@ -24,7 +24,7 @@ func SortKeys(vs []reflect.Value) []reflect.Value {
 	// Deduplicate keys (fails for NaNs).
 	vs2 := vs[:1]
 	for _, v := range vs[1:] {
-		if v.Interface() != vs2[len(vs2)-1].Interface() {
+		if isLess(vs2[len(vs2)-1], v) {
 			vs2 = append(vs2, v)
 		}
 	}

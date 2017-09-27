@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/google/go-cmp/cmp/internal/function"
 )
 
 // Option configures for specific behavior of Equal and Diff. In particular,
@@ -21,10 +23,37 @@ import (
 // The cmp/cmpopts package provides helper functions for creating options that
 // may be used with Equal and Diff.
 type Option interface {
-	// Prevent Option from being equivalent to interface{}, which provides
-	// a small type checking benefit by preventing Equal(opt, x, y).
-	option()
+	// filter applies all filters and returns the option that remains.
+	// Each option may only read s.curPath and call s.callTTBFunc.
+	//
+	// An Options is returned only if multiple comparers or transformers
+	// can apply simultaneously and will only contain values of those types
+	// or sub-Options containing values of those types.
+	filter(s *state, vx, vy reflect.Value, t reflect.Type) applicableOption
 }
+
+// applicableOption represents the following types:
+//	Fundamental: ignore | invalid | *comparer | *transformer
+//	Grouping:    Options
+type applicableOption interface {
+	Option
+
+	// apply executes the option and reports whether the option was applied.
+	// Each option may mutate s.
+	apply(s *state, vx, vy reflect.Value) bool
+}
+
+// coreOption represents the following types:
+//	Fundamental: ignore | invalid | *comparer | *transformer
+//	Filters:     *pathFilter | *valuesFilter
+type coreOption interface {
+	Option
+	isCore()
+}
+
+type core struct{}
+
+func (core) isCore() {}
 
 // Options is a list of Option values that also satisfies the Option interface.
 // Helper comparison packages may return an Options value when packing multiple
@@ -35,79 +64,44 @@ type Option interface {
 // on all individual options held within.
 type Options []Option
 
-func (Options) option() {}
-
-type (
-	pathFilter  func(Path) bool
-	valueFilter struct {
-		in  reflect.Type  // T
-		fnc reflect.Value // func(T, T) bool
-	}
-)
-
-type option struct {
-	typeFilter   reflect.Type
-	pathFilters  []pathFilter
-	valueFilters []valueFilter
-
-	// op is the operation to perform. If nil, then this acts as an ignore.
-	op interface{} // nil | *transformer | *comparer
-}
-
-func (option) option() {}
-
-func (o option) String() string {
-	// TODO: Add information about the caller?
-	// TODO: Maintain the order that filters were added?
-
-	var ss []string
-	switch op := o.op.(type) {
-	case *transformer:
-		fn := getFuncName(op.fnc.Pointer())
-		ss = append(ss, fmt.Sprintf("Transformer(%s, %s)", op.name, fn))
-	case *comparer:
-		fn := getFuncName(op.fnc.Pointer())
-		ss = append(ss, fmt.Sprintf("Comparer(%s)", fn))
-	default:
-		ss = append(ss, "Ignore()")
-	}
-
-	for _, f := range o.pathFilters {
-		fn := getFuncName(reflect.ValueOf(f).Pointer())
-		ss = append(ss, fmt.Sprintf("FilterPath(%s)", fn))
-	}
-	for _, f := range o.valueFilters {
-		fn := getFuncName(f.fnc.Pointer())
-		ss = append(ss, fmt.Sprintf("FilterValues(%s)", fn))
-	}
-	return strings.Join(ss, "\n\t")
-}
-
-// getFuncName returns a short function name from the pointer.
-// The string parsing logic works up until Go1.9.
-func getFuncName(p uintptr) string {
-	fnc := runtime.FuncForPC(p)
-	if fnc == nil {
-		return "<unknown>"
-	}
-	name := fnc.Name() // E.g., "long/path/name/mypkg.(mytype).(long/path/name/mypkg.myfunc)-fm"
-	if strings.HasSuffix(name, ")-fm") || strings.HasSuffix(name, ")·fm") {
-		// Strip the package name from method name.
-		name = strings.TrimSuffix(name, ")-fm")
-		name = strings.TrimSuffix(name, ")·fm")
-		if i := strings.LastIndexByte(name, '('); i >= 0 {
-			methodName := name[i+1:] // E.g., "long/path/name/mypkg.myfunc"
-			if j := strings.LastIndexByte(methodName, '.'); j >= 0 {
-				methodName = methodName[j+1:] // E.g., "myfunc"
+func (opts Options) filter(s *state, vx, vy reflect.Value, t reflect.Type) (out applicableOption) {
+	for _, opt := range opts {
+		switch opt := opt.filter(s, vx, vy, t); opt.(type) {
+		case ignore:
+			return ignore{} // Only ignore can short-circuit evaluation
+		case invalid:
+			out = invalid{} // Takes precedence over comparer or transformer
+		case *comparer, *transformer, Options:
+			switch out.(type) {
+			case nil:
+				out = opt
+			case invalid:
+				// Keep invalid
+			case *comparer, *transformer, Options:
+				out = Options{out, opt} // Conflicting comparers or transformers
 			}
-			name = name[:i] + methodName // E.g., "long/path/name/mypkg.(mytype)." + "myfunc"
 		}
 	}
-	if i := strings.LastIndexByte(name, '/'); i >= 0 {
-		// Strip the package name.
-		name = name[i+1:] // E.g., "mypkg.(mytype).myfunc"
+	return out
+}
+
+func (opts Options) apply(s *state, _, _ reflect.Value) bool {
+	const warning = "ambiguous set of applicable options"
+	const help = "consider using filters to ensure at most one Comparer or Transformer may apply"
+	var ss []string
+	for _, opt := range flattenOptions(nil, opts) {
+		ss = append(ss, fmt.Sprint(opt))
 	}
-	return name
+	set := strings.Join(ss, "\n\t")
+	panic(fmt.Sprintf("%s at %#v:\n\t%s\n%s", warning, s.curPath, set, help))
+}
+
+func (opts Options) String() string {
+	var ss []string
+	for _, opt := range opts {
+		ss = append(ss, fmt.Sprint(opt))
+	}
+	return fmt.Sprintf("Options{%s}", strings.Join(ss, ", "))
 }
 
 // FilterPath returns a new Option where opt is only evaluated if filter f
@@ -119,20 +113,28 @@ func FilterPath(f func(Path) bool, opt Option) Option {
 	if f == nil {
 		panic("invalid path filter function")
 	}
-	switch opt := opt.(type) {
-	case Options:
-		var opts []Option
-		for _, o := range opt {
-			opts = append(opts, FilterPath(f, o)) // Append to slice copy
-		}
-		return Options(opts)
-	case option:
-		n := len(opt.pathFilters)
-		opt.pathFilters = append(opt.pathFilters[:n:n], f) // Append to copy
-		return opt
-	default:
-		panic(fmt.Sprintf("unknown option type: %T", opt))
+	if opt := normalizeOption(opt); opt != nil {
+		return &pathFilter{fnc: f, opt: opt}
 	}
+	return nil
+}
+
+type pathFilter struct {
+	core
+	fnc func(Path) bool
+	opt Option
+}
+
+func (f pathFilter) filter(s *state, vx, vy reflect.Value, t reflect.Type) applicableOption {
+	if f.fnc(s.curPath) {
+		return f.opt.filter(s, vx, vy, t)
+	}
+	return nil
+}
+
+func (f pathFilter) String() string {
+	fn := getFuncName(reflect.ValueOf(f.fnc).Pointer())
+	return fmt.Sprintf("FilterPath(%s, %v)", fn, f.opt)
 }
 
 // FilterValues returns a new Option where opt is only evaluated if filter f,
@@ -150,31 +152,61 @@ func FilterPath(f func(Path) bool, opt Option) Option {
 // a previously filtered Option.
 func FilterValues(f interface{}, opt Option) Option {
 	v := reflect.ValueOf(f)
-	if functionType(v.Type()) != valueFilterFunc || v.IsNil() {
+	if !function.IsType(v.Type(), function.ValueFilter) || v.IsNil() {
 		panic(fmt.Sprintf("invalid values filter function: %T", f))
 	}
-	switch opt := opt.(type) {
-	case Options:
-		var opts []Option
-		for _, o := range opt {
-			opts = append(opts, FilterValues(f, o)) // Append to slice copy
+	if opt := normalizeOption(opt); opt != nil {
+		vf := &valuesFilter{fnc: v, opt: opt}
+		if ti := v.Type().In(0); ti.Kind() != reflect.Interface || ti.NumMethod() > 0 {
+			vf.typ = ti
 		}
-		return Options(opts)
-	case option:
-		n := len(opt.valueFilters)
-		vf := valueFilter{v.Type().In(0), v}
-		opt.valueFilters = append(opt.valueFilters[:n:n], vf) // Append to copy
-		return opt
-	default:
-		panic(fmt.Sprintf("unknown option type: %T", opt))
+		return vf
 	}
+	return nil
+}
+
+type valuesFilter struct {
+	core
+	typ reflect.Type  // T
+	fnc reflect.Value // func(T, T) bool
+	opt Option
+}
+
+func (f valuesFilter) filter(s *state, vx, vy reflect.Value, t reflect.Type) applicableOption {
+	if !vx.IsValid() || !vy.IsValid() {
+		return invalid{}
+	}
+	if (f.typ == nil || t.AssignableTo(f.typ)) && s.callTTBFunc(f.fnc, vx, vy) {
+		return f.opt.filter(s, vx, vy, t)
+	}
+	return nil
+}
+
+func (f valuesFilter) String() string {
+	fn := getFuncName(f.fnc.Pointer())
+	return fmt.Sprintf("FilterValues(%s, %v)", fn, f.opt)
 }
 
 // Ignore is an Option that causes all comparisons to be ignored.
 // This value is intended to be combined with FilterPath or FilterValues.
 // It is an error to pass an unfiltered Ignore option to Equal.
-func Ignore() Option {
-	return option{}
+func Ignore() Option { return ignore{} }
+
+type ignore struct{ core }
+
+func (ignore) isFiltered() bool                                                     { return false }
+func (ignore) filter(_ *state, _, _ reflect.Value, _ reflect.Type) applicableOption { return ignore{} }
+func (ignore) apply(_ *state, _, _ reflect.Value) bool                              { return true }
+func (ignore) String() string                                                       { return "Ignore()" }
+
+// invalid is a sentinel Option type to indicate that some options could not
+// be evaluated due to unexported fields.
+type invalid struct{ core }
+
+func (invalid) filter(_ *state, _, _ reflect.Value, _ reflect.Type) applicableOption { return invalid{} }
+func (invalid) apply(s *state, _, _ reflect.Value) bool {
+	const help = "consider using AllowUnexported or cmpopts.IgnoreUnexported"
+	panic(fmt.Sprintf("cannot handle unexported field: %#v\n%s", s.curPath, help))
 }
 
 // Transformer returns an Option that applies a transformation function that
@@ -191,7 +223,7 @@ func Ignore() Option {
 // transformation PathStep. If empty, an arbitrary name is used.
 func Transformer(name string, f interface{}) Option {
 	v := reflect.ValueOf(f)
-	if functionType(v.Type()) != transformFunc || v.IsNil() {
+	if !function.IsType(v.Type(), function.Transformer) || v.IsNil() {
 		panic(fmt.Sprintf("invalid transformer function: %T", f))
 	}
 	if name == "" {
@@ -200,16 +232,43 @@ func Transformer(name string, f interface{}) Option {
 	if !isValid(name) {
 		panic(fmt.Sprintf("invalid name: %q", name))
 	}
-	opt := option{op: &transformer{name, reflect.ValueOf(f)}}
+	tr := &transformer{name: name, fnc: reflect.ValueOf(f)}
 	if ti := v.Type().In(0); ti.Kind() != reflect.Interface || ti.NumMethod() > 0 {
-		opt.typeFilter = ti
+		tr.typ = ti
 	}
-	return opt
+	return tr
 }
 
 type transformer struct {
+	core
 	name string
+	typ  reflect.Type  // T
 	fnc  reflect.Value // func(T) R
+}
+
+func (tr *transformer) isFiltered() bool { return tr.typ != nil }
+
+func (tr *transformer) filter(_ *state, _, _ reflect.Value, t reflect.Type) applicableOption {
+	if tr.typ == nil || t.AssignableTo(tr.typ) {
+		return tr
+	}
+	return nil
+}
+
+func (tr *transformer) apply(s *state, vx, vy reflect.Value) bool {
+	// Update path before calling the Transformer so that dynamic checks
+	// will use the updated path.
+	s.curPath.push(&transform{pathStep{tr.fnc.Type().Out(0)}, tr})
+	defer s.curPath.pop()
+
+	vx = s.callTRFunc(tr.fnc, vx)
+	vy = s.callTRFunc(tr.fnc, vy)
+	s.compareAny(vx, vy)
+	return true
+}
+
+func (tr transformer) String() string {
+	return fmt.Sprintf("Transformer(%s, %s)", tr.name, getFuncName(tr.fnc.Pointer()))
 }
 
 // Comparer returns an Option that determines whether two values are equal
@@ -226,18 +285,39 @@ type transformer struct {
 //	• Pure: equal(x, y) does not modify x or y
 func Comparer(f interface{}) Option {
 	v := reflect.ValueOf(f)
-	if functionType(v.Type()) != equalFunc || v.IsNil() {
+	if !function.IsType(v.Type(), function.Equal) || v.IsNil() {
 		panic(fmt.Sprintf("invalid comparer function: %T", f))
 	}
-	opt := option{op: &comparer{v}}
+	cm := &comparer{fnc: v}
 	if ti := v.Type().In(0); ti.Kind() != reflect.Interface || ti.NumMethod() > 0 {
-		opt.typeFilter = ti
+		cm.typ = ti
 	}
-	return opt
+	return cm
 }
 
 type comparer struct {
+	core
+	typ reflect.Type  // T
 	fnc reflect.Value // func(T, T) bool
+}
+
+func (cm *comparer) isFiltered() bool { return cm.typ != nil }
+
+func (cm *comparer) filter(_ *state, _, _ reflect.Value, t reflect.Type) applicableOption {
+	if cm.typ == nil || t.AssignableTo(cm.typ) {
+		return cm
+	}
+	return nil
+}
+
+func (cm *comparer) apply(s *state, vx, vy reflect.Value) bool {
+	eq := s.callTTBFunc(cm.fnc, vx, vy)
+	s.report(eq, vx, vy)
+	return true
+}
+
+func (cm comparer) String() string {
+	return fmt.Sprintf("Comparer(%s)", getFuncName(cm.fnc.Pointer()))
 }
 
 // AllowUnexported returns an Option that forcibly allows operations on
@@ -283,12 +363,19 @@ func AllowUnexported(types ...interface{}) Option {
 
 type visibleStructs map[reflect.Type]bool
 
-func (visibleStructs) option() {}
+func (visibleStructs) filter(_ *state, _, _ reflect.Value, _ reflect.Type) applicableOption {
+	panic("not implemented")
+}
 
 // reporter is an Option that configures how differences are reported.
-//
-// TODO: Not exported yet, see concerns in defaultReporter.Report.
 type reporter interface {
+	// TODO: Not exported yet.
+	//
+	// Perhaps add PushStep and PopStep and change Report to only accept
+	// a PathStep instead of the full-path? Adding a PushStep and PopStep makes
+	// it clear that we are traversing the value tree in a depth-first-search
+	// manner, which has an effect on how values are printed.
+
 	Option
 
 	// Report is called for every comparison made and will be provided with
@@ -297,8 +384,63 @@ type reporter interface {
 	// invalid reflect.Value if one of the values is non-existent;
 	// which is possible with maps and slices.
 	Report(x, y reflect.Value, eq bool, p Path)
+}
 
-	// TODO: Perhaps add PushStep and PopStep and change Report to only accept
-	// a PathStep instead of the full-path? This change allows us to provide
-	// better output closer to what pretty.Compare is able to achieve.
+// normalizeOption normalizes the input options such that all Options groups
+// are flattened and groups with a single element are reduced to that element.
+// Only coreOptions and Options containing coreOptions are allowed.
+func normalizeOption(src Option) Option {
+	switch opts := flattenOptions(nil, Options{src}); len(opts) {
+	case 0:
+		return nil
+	case 1:
+		return opts[0]
+	default:
+		return opts
+	}
+}
+
+// flattenOptions copies all options in src to dst as a flat list.
+// Only coreOptions and Options containing coreOptions are allowed.
+func flattenOptions(dst, src Options) Options {
+	for _, opt := range src {
+		switch opt := opt.(type) {
+		case nil:
+			continue
+		case Options:
+			dst = flattenOptions(dst, opt)
+		case coreOption:
+			dst = append(dst, opt)
+		default:
+			panic(fmt.Sprintf("invalid option type: %T", opt))
+		}
+	}
+	return dst
+}
+
+// getFuncName returns a short function name from the pointer.
+// The string parsing logic works up until Go1.9.
+func getFuncName(p uintptr) string {
+	fnc := runtime.FuncForPC(p)
+	if fnc == nil {
+		return "<unknown>"
+	}
+	name := fnc.Name() // E.g., "long/path/name/mypkg.(mytype).(long/path/name/mypkg.myfunc)-fm"
+	if strings.HasSuffix(name, ")-fm") || strings.HasSuffix(name, ")·fm") {
+		// Strip the package name from method name.
+		name = strings.TrimSuffix(name, ")-fm")
+		name = strings.TrimSuffix(name, ")·fm")
+		if i := strings.LastIndexByte(name, '('); i >= 0 {
+			methodName := name[i+1:] // E.g., "long/path/name/mypkg.myfunc"
+			if j := strings.LastIndexByte(methodName, '.'); j >= 0 {
+				methodName = methodName[j+1:] // E.g., "myfunc"
+			}
+			name = name[:i] + methodName // E.g., "long/path/name/mypkg.(mytype)." + "myfunc"
+		}
+	}
+	if i := strings.LastIndexByte(name, '/'); i >= 0 {
+		// Strip the package name.
+		name = name[i+1:] // E.g., "mypkg.(mytype).myfunc"
+	}
+	return name
 }

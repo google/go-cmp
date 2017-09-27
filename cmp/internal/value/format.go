@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE.md file.
 
+// Package value provides functionality for reflect.Value types.
 package value
 
 import (
@@ -42,8 +43,8 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 	if !v.IsValid() {
 		return "<non-existent>"
 	}
-	if conf.useStringer && v.Type().Implements(stringerIface) {
-		if v.Kind() == reflect.Ptr && v.IsNil() {
+	if conf.useStringer && v.Type().Implements(stringerIface) && v.CanInterface() {
+		if (v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface) && v.IsNil() {
 			return "<nil>"
 		}
 		return fmt.Sprintf("%q", v.Interface().(fmt.Stringer).String())
