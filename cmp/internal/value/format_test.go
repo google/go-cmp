@@ -80,10 +80,12 @@ func TestFormat(t *testing.T) {
 		want: "[2]interface {}{&[2]interface {}{(*[2]interface {})(0x00), interface {}(nil)}, interface {}(nil)}",
 	}}
 
-	formatFakePointers = true
-	defer func() { formatFakePointers = false }()
 	for i, tt := range tests {
-		got := Format(reflect.ValueOf(tt.in), true)
+		// Intentionally retrieve the value through an unexported field to
+		// ensure the format logic does not depend on read-write access
+		// to the reflect.Value.
+		v := reflect.ValueOf(struct{ x interface{} }{tt.in}).Field(0)
+		got := formatAny(v, formatConfig{useStringer: true, printType: true, followPointers: true}, nil)
 		if got != tt.want {
 			t.Errorf("test %d, Format():\ngot  %q\nwant %q", i, got, tt.want)
 		}

@@ -13,10 +13,6 @@ import (
 	"unicode/utf8"
 )
 
-// formatFakePointers controls whether to substitute pointer addresses with nil.
-// This is used for deterministic testing.
-var formatFakePointers = false
-
 var stringerIface = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 
 // Format formats the value v as a string.
@@ -27,7 +23,7 @@ var stringerIface = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 //	* Prints a nil-slice as being nil, not empty
 //	* Prints map entries in deterministic order
 func Format(v reflect.Value, useStringer bool) string {
-	return formatAny(v, formatConfig{useStringer, true, true, !formatFakePointers}, nil)
+	return formatAny(v, formatConfig{useStringer, true, true, true}, nil)
 }
 
 type formatConfig struct {
