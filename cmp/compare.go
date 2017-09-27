@@ -35,7 +35,7 @@ import (
 	"github.com/google/go-cmp/cmp/internal/value"
 )
 
-// BUG: Maps with keys containing NaN values cannot be properly compared due to
+// BUG(dsnet): Maps with keys containing NaN values cannot be properly compared due to
 // the reflection package's inability to retrieve such entries. Equal will panic
 // anytime it comes across a NaN key, but this behavior may change.
 //
