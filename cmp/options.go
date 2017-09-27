@@ -348,7 +348,7 @@ func (cm comparer) String() string {
 // all unexported fields on specified struct types.
 func AllowUnexported(types ...interface{}) Option {
 	if !supportAllowUnexported {
-		panic("AllowUnexported is not supported on App Engine Classic or GopherJS")
+		panic("AllowUnexported is not supported on App Engine Classic")
 	}
 	m := make(map[reflect.Type]bool)
 	for _, typ := range types {
