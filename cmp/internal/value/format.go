@@ -8,9 +8,9 @@ package value
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 )
 
 var stringerIface = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
@@ -43,7 +43,10 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 		if (v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface) && v.IsNil() {
 			return "<nil>"
 		}
-		return fmt.Sprintf("%q", v.Interface().(fmt.Stringer).String())
+
+		const stringerPrefix = "s" // Indicates that the String method was used
+		s := v.Interface().(fmt.Stringer).String()
+		return stringerPrefix + formatString(s)
 	}
 
 	switch v.Kind() {
@@ -62,7 +65,7 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 	case reflect.Complex64, reflect.Complex128:
 		return formatPrimitive(v.Type(), v.Complex(), conf)
 	case reflect.String:
-		return formatPrimitive(v.Type(), fmt.Sprintf("%q", v), conf)
+		return formatPrimitive(v.Type(), formatString(v.String()), conf)
 	case reflect.UnsafePointer, reflect.Chan, reflect.Func:
 		return formatPointer(v, conf)
 	case reflect.Ptr:
@@ -123,11 +126,13 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 		visited = insertPointer(visited, v.Pointer())
 
 		var ss []string
-		subConf := conf
-		subConf.printType = v.Type().Elem().Kind() == reflect.Interface
+		keyConf, valConf := conf, conf
+		keyConf.printType = v.Type().Key().Kind() == reflect.Interface
+		keyConf.followPointers = false
+		valConf.printType = v.Type().Elem().Kind() == reflect.Interface
 		for _, k := range SortKeys(v.MapKeys()) {
-			sk := formatAny(k, formatConfig{realPointers: conf.realPointers}, visited)
-			sv := formatAny(v.MapIndex(k), subConf, visited)
+			sk := formatAny(k, keyConf, visited)
+			sv := formatAny(v.MapIndex(k), valConf, visited)
 			ss = append(ss, fmt.Sprintf("%s: %s", sk, sv))
 		}
 		s := fmt.Sprintf("{%s}", strings.Join(ss, ", "))
@@ -145,7 +150,7 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 				continue // Elide zero value fields
 			}
 			name := v.Type().Field(i).Name
-			subConf.useStringer = conf.useStringer && isExported(name)
+			subConf.useStringer = conf.useStringer
 			s := formatAny(vv, subConf, visited)
 			ss = append(ss, fmt.Sprintf("%s: %s", name, s))
 		}
@@ -157,6 +162,17 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 	default:
 		panic(fmt.Sprintf("%v kind not handled", v.Kind()))
 	}
+}
+
+func formatString(s string) string {
+	// Avoid performing quote-escaping if the string is already escaped.
+	hasEscapes := strings.ContainsAny(s, `\`)
+	allPrintable := strings.IndexFunc(s, unicode.IsPrint) >= 0
+	rawAllowed := !strings.ContainsAny(s, "`\n")
+	if hasEscapes && allPrintable && rawAllowed {
+		return "`" + s + "`"
+	}
+	return strconv.Quote(s)
 }
 
 func formatPrimitive(t reflect.Type, v interface{}, conf formatConfig) string {
@@ -246,10 +262,4 @@ func isZero(v reflect.Value) bool {
 		return true
 	}
 	return false
-}
-
-// isExported reports whether the identifier is exported.
-func isExported(id string) bool {
-	r, _ := utf8.DecodeRuneInString(id)
-	return unicode.IsUpper(r)
 }

@@ -47,7 +47,7 @@ func TestFormat(t *testing.T) {
 		want: "map[value.key]string{{a: 5, b: \"key\", c: (chan bool)(0x00)}: \"hello\"}",
 	}, {
 		in:   map[io.Reader]string{new(bytes.Reader): "hello"},
-		want: "map[io.Reader]string{0x00: \"hello\"}",
+		want: "map[io.Reader]string{(*bytes.Reader)(0x00): \"hello\"}",
 	}, {
 		in: func() interface{} {
 			var a = []interface{}{nil}
