@@ -377,15 +377,23 @@ func (s *state) compareArray(vx, vy reflect.Value, t reflect.Type) {
 	s.curPath.push(step)
 
 	// Compute an edit-script for slices vx and vy.
-	eq, es := diff.Difference(vx.Len(), vy.Len(), func(ix, iy int) diff.Result {
+	es := diff.Difference(vx.Len(), vy.Len(), func(ix, iy int) diff.Result {
 		step.xkey, step.ykey = ix, iy
 		return s.statelessCompare(vx.Index(ix), vy.Index(iy))
 	})
 
-	// Equal or no edit-script, so report entire slices as is.
-	if eq || es == nil {
+	// Report the entire slice as is if the arrays are of primitive kind,
+	// and the arrays are different enough.
+	isPrimitive := false
+	switch t.Elem().Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Bool, reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128:
+		isPrimitive = true
+	}
+	if isPrimitive && es.Dist() > (vx.Len()+vy.Len())/4 {
 		s.curPath.pop() // Pop first since we are reporting the whole slice
-		s.report(eq, vx, vy)
+		s.report(false, vx, vy)
 		return
 	}
 

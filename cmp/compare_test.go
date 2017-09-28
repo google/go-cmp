@@ -84,6 +84,37 @@ func TestDiff(t *testing.T) {
 func comparerTests() []test {
 	const label = "Comparer"
 
+	type tarHeader struct {
+		Name       string
+		Mode       int64
+		Uid        int
+		Gid        int
+		Size       int64
+		ModTime    time.Time
+		Typeflag   byte
+		Linkname   string
+		Uname      string
+		Gname      string
+		Devmajor   int64
+		Devminor   int64
+		AccessTime time.Time
+		ChangeTime time.Time
+		Xattrs     map[string]string
+	}
+
+	makeTarHeaders := func(tf byte) (hs []tarHeader) {
+		for i := 0; i < 5; i++ {
+			hs = append(hs, tarHeader{
+				Name: fmt.Sprintf("some/dummy/test/file%d", i),
+				Mode: 0664, Uid: i * 1000, Gid: i * 1000, Size: 1 << uint(i),
+				ModTime: now.Add(time.Duration(i) * time.Hour),
+				Uname:   "user", Gname: "group",
+				Typeflag: tf,
+			})
+		}
+		return hs
+	}
+
 	return []test{{
 		label: label,
 		x:     1,
@@ -299,6 +330,26 @@ root:
 :
 	-: &<nil>
 	+: <non-existent>`,
+	}, {
+		label: label,
+		x:     makeTarHeaders('0'),
+		y:     makeTarHeaders('\x00'),
+		wantDiff: `
+{[]cmp_test.tarHeader}[0].Typeflag:
+	-: 0x30
+	+: 0x00
+{[]cmp_test.tarHeader}[1].Typeflag:
+	-: 0x30
+	+: 0x00
+{[]cmp_test.tarHeader}[2].Typeflag:
+	-: 0x30
+	+: 0x00
+{[]cmp_test.tarHeader}[3].Typeflag:
+	-: 0x30
+	+: 0x00
+{[]cmp_test.tarHeader}[4].Typeflag:
+	-: 0x30
+	+: 0x00`,
 	}, {
 		label: label,
 		x:     make([]int, 1000),
