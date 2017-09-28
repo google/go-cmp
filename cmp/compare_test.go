@@ -206,7 +206,7 @@ func comparerTests() []test {
 		label:    label,
 		x:        &struct{ R *bytes.Buffer }{new(bytes.Buffer)},
 		y:        &struct{ R *bytes.Buffer }{},
-		wantDiff: "root.R:\n\t-: \"\"\n\t+: <nil>\n",
+		wantDiff: "root.R:\n\t-: s\"\"\n\t+: <nil>\n",
 	}, {
 		label: label,
 		x:     &struct{ R *bytes.Buffer }{new(bytes.Buffer)},
@@ -262,8 +262,8 @@ func comparerTests() []test {
 		})},
 		wantDiff: `
 {[]*regexp.Regexp}[1]:
-	-: "a*b*c*"
-	+: "a*b*d*"`,
+	-: s"a*b*c*"
+	+: s"a*b*d*"`,
 	}, {
 		label: label,
 		x: func() ***int {
@@ -312,8 +312,8 @@ func comparerTests() []test {
 		opts:  []cmp.Option{cmp.Comparer(func(x, y fmt.Stringer) bool { return x.String() == y.String() })},
 		wantDiff: `
 root:
-	-: "hello"
-	+: "hello2"`,
+	-: s"hello"
+	+: s"hello2"`,
 	}, {
 		label: label,
 		x:     md5.Sum([]byte{'a'}),
@@ -405,6 +405,20 @@ root:
 {[]int}:
 	-: []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	+: []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}`,
+	}, {
+		// Ensure reasonable Stringer formatting of map keys.
+		label: label,
+		x:     map[*pb.Stringer]*pb.Stringer{{"hello"}: {"world"}},
+		y:     map[*pb.Stringer]*pb.Stringer(nil),
+		wantDiff: `
+{map[*testprotos.Stringer]*testprotos.Stringer}:
+	-: map[*testprotos.Stringer]*testprotos.Stringer{s"hello": s"world"}
+	+: map[*testprotos.Stringer]*testprotos.Stringer(nil)`,
+	}, {
+		// Ensure Stringer avoids double-quote escaping if possible.
+		label:    label,
+		x:        []*pb.Stringer{{`multi\nline\nline\nline`}},
+		wantDiff: ":\n\t-: []*testprotos.Stringer{s`multi\\nline\\nline\\nline`}\n\t+: <non-existent>",
 	}}
 }
 
@@ -1535,7 +1549,7 @@ func project1Tests() []test {
 			Args: &pb.MetaData{Stringer: pb.Stringer{"metadata2"}},
 		}}},
 		opts:     []cmp.Option{cmp.Comparer(pb.Equal)},
-		wantDiff: "{teststructs.Eagle}.Slaps[4].Args:\n\t-: \"metadata\"\n\t+: \"metadata2\"\n",
+		wantDiff: "{teststructs.Eagle}.Slaps[4].Args:\n\t-: s\"metadata\"\n\t+: s\"metadata2\"\n",
 	}, {
 		label: label,
 		x:     createEagle(),
@@ -1657,11 +1671,11 @@ func project2Tests() []test {
 		opts: []cmp.Option{cmp.Comparer(pb.Equal), equalDish},
 		wantDiff: `
 {teststructs.GermBatch}.DirtyGerms[18][0->?]:
-	-: "germ2"
+	-: s"germ2"
 	+: <non-existent>
 {teststructs.GermBatch}.DirtyGerms[18][?->2]:
 	-: <non-existent>
-	+: "germ2"`,
+	+: s"germ2"`,
 	}, {
 		label: label,
 		x:     createBatch(),
@@ -1690,9 +1704,9 @@ func project2Tests() []test {
 		wantDiff: `
 {teststructs.GermBatch}.DirtyGerms[17]:
 	-: <non-existent>
-	+: []*testprotos.Germ{"germ1"}
+	+: []*testprotos.Germ{s"germ1"}
 {teststructs.GermBatch}.DirtyGerms[18][2->?]:
-	-: "germ4"
+	-: s"germ4"
 	+: <non-existent>
 {teststructs.GermBatch}.DishMap[1]:
 	-: (*teststructs.Dish)(nil)
@@ -1777,14 +1791,14 @@ func project3Tests() []test {
 	-: teststructs.DiscordState(554)
 	+: teststructs.DiscordState(500)
 λ({teststructs.Dirt}.Proto):
-	-: "blah"
-	+: "proto"
+	-: s"blah"
+	+: s"proto"
 {teststructs.Dirt}.wizard["albus"]:
-	-: "dumbledore"
+	-: s"dumbledore"
 	+: <non-existent>
 {teststructs.Dirt}.wizard["harry"]:
-	-: "potter"
-	+: "otter"`,
+	-: s"potter"
+	+: s"otter"`,
 	}}
 }
 
