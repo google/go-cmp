@@ -49,5 +49,5 @@ func (r *defaultReporter) String() string {
 	if r.ndiffs == len(r.diffs) {
 		return s
 	}
-	return fmt.Sprintf("%s... %d more differences ...", s, len(r.diffs)-r.ndiffs)
+	return fmt.Sprintf("%s... %d more differences ...", s, r.ndiffs-len(r.diffs))
 }
