@@ -165,14 +165,22 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 }
 
 func formatString(s string) string {
-	// Avoid performing quote-escaping if the string is already escaped.
-	hasEscapes := strings.ContainsAny(s, `\`)
-	allPrintable := strings.IndexFunc(s, unicode.IsPrint) >= 0
-	rawAllowed := !strings.ContainsAny(s, "`\n")
-	if hasEscapes && allPrintable && rawAllowed {
+	// Use quoted string if it the same length as a raw string literal.
+	// Otherwise, attempt to use the raw string form.
+	qs := strconv.Quote(s)
+	if len(qs) == 1+len(s)+1 {
+		return qs
+	}
+
+	// Disallow newlines to ensure output is a single line.
+	// Only allow printable runes for readability purposes.
+	rawInvalid := func(r rune) bool {
+		return r == '`' || r == '\n' || !unicode.IsPrint(r)
+	}
+	if strings.IndexFunc(s, rawInvalid) < 0 {
 		return "`" + s + "`"
 	}
-	return strconv.Quote(s)
+	return qs
 }
 
 func formatPrimitive(t reflect.Type, v interface{}, conf formatConfig) string {
