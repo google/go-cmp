@@ -84,6 +84,13 @@ func TestDiff(t *testing.T) {
 func comparerTests() []test {
 	const label = "Comparer"
 
+	type Iface1 interface {
+		Method()
+	}
+	type Iface2 interface {
+		Method()
+	}
+
 	type tarHeader struct {
 		Name       string
 		Mode       int64
@@ -419,6 +426,33 @@ root:
 		label:    label,
 		x:        []*pb.Stringer{{`multi\nline\nline\nline`}},
 		wantDiff: ":\n\t-: []*testprotos.Stringer{s`multi\\nline\\nline\\nline`}\n\t+: <non-existent>",
+	}, {
+		label: label,
+		x:     struct{ I Iface2 }{},
+		y:     struct{ I Iface2 }{},
+		opts: []cmp.Option{
+			cmp.Comparer(func(x, y Iface1) bool {
+				return x == nil && y == nil
+			}),
+		},
+	}, {
+		label: label,
+		x:     struct{ I Iface2 }{},
+		y:     struct{ I Iface2 }{},
+		opts: []cmp.Option{
+			cmp.Transformer("", func(v Iface1) bool {
+				return v == nil
+			}),
+		},
+	}, {
+		label: label,
+		x:     struct{ I Iface2 }{},
+		y:     struct{ I Iface2 }{},
+		opts: []cmp.Option{
+			cmp.FilterValues(func(x, y Iface1) bool {
+				return x == nil && y == nil
+			}, cmp.Ignore()),
+		},
 	}}
 }
 

@@ -322,6 +322,7 @@ func (s *state) tryMethod(vx, vy reflect.Value, t reflect.Type) bool {
 }
 
 func (s *state) callTRFunc(f, v reflect.Value) reflect.Value {
+	v = sanitizeValue(v, f.Type().In(0))
 	if !s.dynChecker.Next() {
 		return f.Call([]reflect.Value{v})[0]
 	}
@@ -345,6 +346,8 @@ func (s *state) callTRFunc(f, v reflect.Value) reflect.Value {
 }
 
 func (s *state) callTTBFunc(f, x, y reflect.Value) bool {
+	x = sanitizeValue(x, f.Type().In(0))
+	y = sanitizeValue(y, f.Type().In(1))
 	if !s.dynChecker.Next() {
 		return f.Call([]reflect.Value{x, y})[0].Bool()
 	}
@@ -370,6 +373,18 @@ func detectRaces(c chan<- reflect.Value, f reflect.Value, vs ...reflect.Value) {
 		c <- ret
 	}()
 	ret = f.Call(vs)[0]
+}
+
+// sanitizeValue converts nil interfaces of type T to those of type R,
+// assuming that T is assignable to R.
+// Otherwise, it returns the input value as is.
+func sanitizeValue(v reflect.Value, t reflect.Type) reflect.Value {
+	// TODO(dsnet): Remove this hacky workaround.
+	// See https://golang.org/issue/22143
+	if v.Kind() == reflect.Interface && v.IsNil() && v.Type() != t {
+		return reflect.New(t).Elem()
+	}
+	return v
 }
 
 func (s *state) compareArray(vx, vy reflect.Value, t reflect.Type) {
