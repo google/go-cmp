@@ -746,7 +746,7 @@ func TestOptions(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		tRun(t, tt.label, func(t *testing.T) {
+		t.Run(tt.label, func(t *testing.T) {
 			var gotEqual bool
 			var gotPanic string
 			func() {
@@ -974,7 +974,7 @@ func TestPanic(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		tRun(t, tt.label, func(t *testing.T) {
+		t.Run(tt.label, func(t *testing.T) {
 			// Prepare function arguments.
 			vf := reflect.ValueOf(tt.fnc)
 			var vargs []reflect.Value
@@ -1015,19 +1015,5 @@ func TestPanic(t *testing.T) {
 				t.Errorf("panic message:\ngot:  %s\nwant: %s\nreason: %s", gotPanic, tt.wantPanic, tt.reason)
 			}
 		})
-	}
-}
-
-// TODO: Delete this hack when we drop Go1.6 support.
-func tRun(t *testing.T, name string, f func(t *testing.T)) {
-	type runner interface {
-		Run(string, func(t *testing.T)) bool
-	}
-	var ti interface{} = t
-	if r, ok := ti.(runner); ok {
-		r.Run(name, f)
-	} else {
-		t.Logf("Test: %s", name)
-		f(t)
 	}
 }
