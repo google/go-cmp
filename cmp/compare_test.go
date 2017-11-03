@@ -1633,15 +1633,11 @@ func (gs germSorter) Swap(i, j int)      { gs[i], gs[j] = gs[j], gs[i] }
 func project2Tests() []test {
 	const label = "Project2"
 
-	sortGerms := cmp.FilterValues(func(x, y []*pb.Germ) bool {
-		ok1 := sort.IsSorted(germSorter(x))
-		ok2 := sort.IsSorted(germSorter(y))
-		return !ok1 || !ok2
-	}, cmp.Transformer("Sort", func(in []*pb.Germ) []*pb.Germ {
+	sortGerms := cmp.Transformer("Sort", func(in []*pb.Germ) []*pb.Germ {
 		out := append([]*pb.Germ(nil), in...) // Make copy
 		sort.Sort(germSorter(out))
 		return out
-	}))
+	})
 
 	equalDish := cmp.Comparer(func(x, y *ts.Dish) bool {
 		if x == nil || y == nil {
@@ -1739,7 +1735,7 @@ func project2Tests() []test {
 {teststructs.GermBatch}.DirtyGerms[17]:
 	-: <non-existent>
 	+: []*testprotos.Germ{s"germ1"}
-{teststructs.GermBatch}.DirtyGerms[18][2->?]:
+Sort({teststructs.GermBatch}.DirtyGerms[18])[2->?]:
 	-: s"germ4"
 	+: <non-existent>
 {teststructs.GermBatch}.DishMap[1]:
