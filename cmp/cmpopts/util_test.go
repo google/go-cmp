@@ -543,6 +543,40 @@ func TestOptions(t *testing.T) {
 		wantEqual: false,
 		reason:    "not equal because highest-level field is not ignored: Foo3",
 	}, {
+		label:     "IgnoreUnsetFields",
+		x:         createBar3X(),
+		y:         createBar3Y(),
+		opts:      []cmp.Option{IgnoreUnsetFields(Bar3{Delta: struct{ Echo Foo1 }{Foo1{Alpha: 1}}})},
+		wantEqual: true,
+		reason:    "equal because only Bar3.Delta.Echo.Foo1.Alpha is being compared",
+	}, {
+		label:     "IgnoreUnsetFields",
+		x:         createBar3X(),
+		y:         createBar3Y(),
+		opts:      []cmp.Option{IgnoreUnsetFields(Everything{Bar3: Bar3{Delta: struct{ Echo Foo1 }{Foo1{Alpha: 1}}}})},
+		wantEqual: false,
+		reason:    "not equal because IgnoreUnsetFields is rooted under Everything type",
+	}, {
+		label: "IgnoreUnsetFields",
+		x:     ParentStruct{&privateStruct{1, 2}, &PublicStruct{3, +4}, 5, 6},
+		y:     ParentStruct{&privateStruct{1, 2}, &PublicStruct{3, -4}, 5, 6},
+		opts: []cmp.Option{
+			IgnoreUnsetFields(ParentStruct{&privateStruct{1, 1}, &PublicStruct{1, 0}, 1, 1}),
+			cmp.AllowUnexported(ParentStruct{}, privateStruct{}, PublicStruct{}),
+		},
+		wantEqual: true,
+		reason:    "equal because ParentStruct.PublicStruct.private is ignored",
+	}, {
+		label: "IgnoreUnsetFields",
+		x:     ParentStruct{&privateStruct{-1, 2}, &PublicStruct{3, +4}, 5, 6},
+		y:     ParentStruct{&privateStruct{+1, 2}, &PublicStruct{3, -4}, 5, 6},
+		opts: []cmp.Option{
+			IgnoreUnsetFields(ParentStruct{&privateStruct{1, 1}, &PublicStruct{1, 0}, 1, 1}),
+			cmp.AllowUnexported(ParentStruct{}, privateStruct{}, PublicStruct{}),
+		},
+		wantEqual: false,
+		reason:    "not equal because only ParentStruct.PublicStruct.private is ignored",
+	}, {
 		label:     "IgnoreTypes",
 		x:         []interface{}{5, "same"},
 		y:         []interface{}{6, "same"},
@@ -857,9 +891,41 @@ func TestPanic(t *testing.T) {
 	}, {
 		label:     "IgnoreFields",
 		fnc:       IgnoreFields,
-		args:      args(Foo1{}, "unexported"),
-		wantPanic: "name must be exported",
-		reason:    "unexported fields must not be specified",
+		args:      args(struct{ privateStruct }{}, "private"),
+		wantPanic: "does not exist",
+		reason:    "embedded unexported field must be fully qualified",
+	}, {
+		label:  "IgnoreFields",
+		fnc:    IgnoreFields,
+		args:   args(struct{ privateStruct }{}, "privateStruct.private"),
+		reason: "fully qualified embedded unexported field is valid",
+	}, {
+		label:     "IgnoreUnsetFields",
+		fnc:       IgnoreUnsetFields,
+		args:      args(&Foo1{}),
+		wantPanic: "must be a struct",
+		reason:    "the type must be a struct (not pointer to a struct)",
+	}, {
+		label:     "IgnoreUnsetFields",
+		fnc:       IgnoreUnsetFields,
+		args:      args(Foo1{}),
+		wantPanic: "all fields in template are unset",
+		reason:    "assume zero-value struct is user error",
+	}, {
+		label: "IgnoreUnsetFields",
+		fnc:   IgnoreUnsetFields,
+		args: args(Everything{
+			MyInt:    1,
+			MyFloat:  1,
+			MyTime:   MyTime{time.Now()},
+			MyStruct: MyStruct{[]int{1, 2, 3, 4, 5}, []int{}, nil, map[time.Time]string{}},
+			ParentStruct: ParentStruct{
+				&privateStruct{1, 0},
+				&PublicStruct{0, 1},
+				1, 0,
+			},
+		}),
+		reason: "any non-cyclic non-zero struct is valid",
 	}, {
 		label:  "IgnoreTypes",
 		fnc:    IgnoreTypes,

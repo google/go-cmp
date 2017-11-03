@@ -7,23 +7,61 @@ package cmpopts
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/internal/value"
 )
 
-// IgnoreFields returns an Option that ignores exported fields of the
-// given names on a single struct type.
+// IgnoreFields returns an Option that ignores fields of the given names
+// on a single struct type (and any immediate nested or embedded structs).
 // The struct type is specified by passing in a value of that type.
 //
 // The name may be a dot-delimited string (e.g., "Foo.Bar") to ignore a
 // specific sub-field that is embedded or nested within the parent struct.
-//
-// This does not handle unexported fields; use IgnoreUnexported instead.
 func IgnoreFields(typ interface{}, names ...string) cmp.Option {
 	sf := newStructFilter(typ, names...)
 	return cmp.FilterPath(sf.filter, cmp.Ignore())
+}
+
+// IgnoreUnsetFields return an Option that ignores struct fields
+// based on which fields (or sub-fields from nested or embedded structs) have
+// a zero value in the template struct.
+//
+// The fields of template must not contain self-referencing pointers.
+func IgnoreUnsetFields(template interface{}) cmp.Option {
+	v := reflect.ValueOf(template)
+	if value.IsZero(v) {
+		// This occurs if someone thinks IgnoreUnsetFields only ignores
+		// the unset fields of the two values being compared and that template
+		// is only provided to give type information.
+		panic("all fields in template are unset; consider using IgnoreTypes instead")
+	}
+	names := collectUnsetFields(v)
+	return IgnoreFields(template, names...)
+}
+
+// collectUnsetFields returns a slice of canonical names of unset fields.
+func collectUnsetFields(v reflect.Value, path ...string) (unset []string) {
+	if v.Kind() != reflect.Struct {
+		return unset
+	}
+	for i := 0; i < v.NumField(); i++ {
+		path = append(path, v.Type().Field(i).Name)
+		vf := v.Field(i)
+		if value.IsZero(vf) {
+			unset = append(unset, strings.Join(path, "."))
+		} else {
+			if vf.Kind() == reflect.Ptr {
+				vf = vf.Elem()
+			}
+			unset = append(unset, collectUnsetFields(vf, path...)...)
+		}
+		path = path[:len(path)-1]
+	}
+	return unset
 }
 
 // IgnoreTypes returns an Option that ignores all values assignable to
