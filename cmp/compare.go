@@ -304,7 +304,8 @@ func (s *state) tryOptions(vx, vy reflect.Value, t reflect.Type) bool {
 
 	// Evaluate all filters and apply the remaining options.
 	if opt := opts.filter(s, vx, vy, t); opt != nil {
-		return opt.apply(s, vx, vy)
+		opt.apply(s, vx, vy)
+		return true
 	}
 	return false
 }
