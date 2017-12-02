@@ -94,10 +94,21 @@ func (pa *Path) pop() {
 // Last returns the last PathStep in the Path.
 // If the path is empty, this returns a non-nil PathStep that reports a nil Type.
 func (pa Path) Last() PathStep {
-	if len(pa) > 0 {
-		return pa[len(pa)-1]
+	return pa.Index(-1)
+}
+
+// Index returns the ith step in the Path and supports negative indexing.
+// A negative index starts counting from the tail of the Path such that -1
+// refers to the last step, -2 refers to the second-to-last step, and so on.
+// If index is invalid, this returns a non-nil PathStep that reports a nil Type.
+func (pa Path) Index(i int) PathStep {
+	if i < 0 {
+		i = len(pa) + i
 	}
-	return pathStep{}
+	if i < 0 || i >= len(pa) {
+		return pathStep{}
+	}
+	return pa[i]
 }
 
 // String returns the simplified path to a node.
