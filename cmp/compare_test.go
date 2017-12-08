@@ -1849,7 +1849,7 @@ func project4Tests() []test {
 		var p ts.Poison
 		p.SetPoisonType(5)
 		p.SetExpiration(now)
-		p.SetManufactuer("acme")
+		p.SetManufacturer("acme")
 
 		var hq ts.Headquarter
 		hq.SetID(5)
@@ -1893,9 +1893,9 @@ func project4Tests() []test {
 			var p1, p2 ts.Poison
 			p1.SetPoisonType(1)
 			p1.SetExpiration(now)
-			p1.SetManufactuer("acme")
+			p1.SetManufacturer("acme")
 			p2.SetPoisonType(2)
-			p2.SetManufactuer("acme2")
+			p2.SetManufacturer("acme2")
 			d.SetPoisons([]*ts.Poison{&p1, &p2})
 			return d
 		}(),
@@ -1920,7 +1920,7 @@ func project4Tests() []test {
 	-: testprotos.PoisonType(1)
 	+: testprotos.PoisonType(5)
 {teststructs.Cartel}.poisons[1->?]:
-	-: &teststructs.Poison{poisonType: testprotos.PoisonType(2), manufactuer: "acme2"}
+	-: &teststructs.Poison{poisonType: testprotos.PoisonType(2), manufacturer: "acme2"}
 	+: <non-existent>`,
 	}}
 }
