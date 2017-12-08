@@ -160,13 +160,19 @@ func canonicalName(t reflect.Type, sel string) ([]string, error) {
 
 	// Find the canonical name for this current field name.
 	// If the field exists in an embedded struct, then it will be expanded.
+	var sf reflect.StructField
+	var ok bool
 	if !isExported(name) {
-		// Disallow unexported fields:
-		//	* To discourage people from actually touching unexported fields
-		//	* FieldByName is buggy (https://golang.org/issue/4876)
-		return []string{name}, fmt.Errorf("name must be exported")
+		// If unexported, require that identifiers be fully qualified
+		// by searching the current struct directly (ignores embedding).
+		// See https://golang.org/issue/4876.
+		for i := 0; i < t.NumField() && !ok; i++ {
+			sf = t.Field(i)
+			ok = sf.Name == name
+		}
+	} else {
+		sf, ok = t.FieldByName(name)
 	}
-	sf, ok := t.FieldByName(name)
 	if !ok {
 		return []string{name}, fmt.Errorf("does not exist")
 	}

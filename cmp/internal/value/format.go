@@ -146,7 +146,7 @@ func formatAny(v reflect.Value, conf formatConfig, visited map[uintptr]bool) str
 		subConf.printType = true
 		for i := 0; i < v.NumField(); i++ {
 			vv := v.Field(i)
-			if isZero(vv) {
+			if IsZero(vv) {
 				continue // Elide zero value fields
 			}
 			name := v.Type().Field(i).Name
@@ -234,9 +234,9 @@ func insertPointer(m map[uintptr]bool, p uintptr) map[uintptr]bool {
 	return m
 }
 
-// isZero reports whether v is the zero value.
+// IsZero reports whether v is the zero value.
 // This does not rely on Interface and so can be used on unexported fields.
-func isZero(v reflect.Value) bool {
+func IsZero(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Bool:
 		return v.Bool() == false
@@ -256,14 +256,14 @@ func isZero(v reflect.Value) bool {
 		return v.IsNil()
 	case reflect.Array:
 		for i := 0; i < v.Len(); i++ {
-			if !isZero(v.Index(i)) {
+			if !IsZero(v.Index(i)) {
 				return false
 			}
 		}
 		return true
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
-			if !isZero(v.Field(i)) {
+			if !IsZero(v.Field(i)) {
 				return false
 			}
 		}
