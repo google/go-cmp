@@ -79,6 +79,11 @@ type (
 		PathStep
 		Name() string
 		Func() reflect.Value
+
+		// Option returns the originally constructed Transformer option.
+		// The == operator can be used to detect the exact option used.
+		Option() Option
+
 		isTransform()
 	}
 )
@@ -260,6 +265,7 @@ func (sf structField) Name() string         { return sf.name }
 func (sf structField) Index() int           { return sf.idx }
 func (tf transform) Name() string           { return tf.trans.name }
 func (tf transform) Func() reflect.Value    { return tf.trans.fnc }
+func (tf transform) Option() Option         { return tf.trans }
 
 func (pathStep) isPathStep()           {}
 func (sliceIndex) isSliceIndex()       {}

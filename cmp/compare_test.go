@@ -457,9 +457,24 @@ root:
 }
 
 func transformerTests() []test {
-	type JSON string
+	type StringBytes struct {
+		String string
+		Bytes  []byte
+	}
 
 	const label = "Transformer"
+
+	transformOnce := func(name string, f interface{}) cmp.Option {
+		xform := cmp.Transformer(name, f)
+		return cmp.FilterPath(func(p cmp.Path) bool {
+			for _, ps := range p {
+				if tr, ok := ps.(cmp.Transform); ok && tr.Option() == xform {
+					return false
+				}
+			}
+			return true
+		}, xform)
+	}
 
 	return []test{{
 		label: label,
@@ -522,7 +537,7 @@ func transformerTests() []test {
 	+: 1`,
 	}, {
 		label: label,
-		x: JSON(`{
+		x: `{
 		  "firstName": "John",
 		  "lastName": "Smith",
 		  "age": 25,
@@ -544,14 +559,14 @@ func transformerTests() []test {
 		    "type": "mobile"
 		  }],
 		  "children": []
-		}`),
-		y: JSON(`{"firstName":"John","lastName":"Smith","isAlive":true,"age":25,
+		}`,
+		y: `{"firstName":"John","lastName":"Smith","isAlive":true,"age":25,
 			"address":{"streetAddress":"21 2nd Street","city":"New York",
 			"state":"NY","postalCode":"10021-3100"},"phoneNumbers":[{"type":"home",
 			"number":"212 555-1234"},{"type":"office","number":"646 555-4567"},{
-			"type":"mobile","number":"123 456-7890"}],"children":[],"spouse":null}`),
+			"type":"mobile","number":"123 456-7890"}],"children":[],"spouse":null}`,
 		opts: []cmp.Option{
-			cmp.Transformer("ParseJSON", func(s JSON) (m map[string]interface{}) {
+			transformOnce("ParseJSON", func(s string) (m map[string]interface{}) {
 				if err := json.Unmarshal([]byte(s), &m); err != nil {
 					panic(err)
 				}
@@ -559,18 +574,33 @@ func transformerTests() []test {
 			}),
 		},
 		wantDiff: `
-ParseJSON({cmp_test.JSON})["address"]["city"]:
+ParseJSON({string})["address"]["city"]:
 	-: "Los Angeles"
 	+: "New York"
-ParseJSON({cmp_test.JSON})["address"]["state"]:
+ParseJSON({string})["address"]["state"]:
 	-: "CA"
 	+: "NY"
-ParseJSON({cmp_test.JSON})["phoneNumbers"][0]["number"]:
+ParseJSON({string})["phoneNumbers"][0]["number"]:
 	-: "212 555-4321"
 	+: "212 555-1234"
-ParseJSON({cmp_test.JSON})["spouse"]:
+ParseJSON({string})["spouse"]:
 	-: <non-existent>
 	+: interface {}(nil)`,
+	}, {
+		label: label,
+		x:     StringBytes{String: "some\nmulti\nLine\nstring", Bytes: []byte("some\nmulti\nline\nbytes")},
+		y:     StringBytes{String: "some\nmulti\nline\nstring", Bytes: []byte("some\nmulti\nline\nBytes")},
+		opts: []cmp.Option{
+			transformOnce("SplitString", func(s string) []string { return strings.Split(s, "\n") }),
+			transformOnce("SplitBytes", func(b []byte) [][]byte { return bytes.Split(b, []byte("\n")) }),
+		},
+		wantDiff: `
+SplitString({cmp_test.StringBytes}.String)[2]:
+	-: "Line"
+	+: "line"
+SplitBytes({cmp_test.StringBytes}.Bytes)[3][0]:
+	-: 0x62
+	+: 0x42`,
 	}}
 }
 
