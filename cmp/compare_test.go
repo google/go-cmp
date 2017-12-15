@@ -1255,135 +1255,135 @@ func methodTests() []test {
 	// Since the method should be called, these are expected to be equal.
 	return []test{{
 		label: label + "StructA",
-		x:     ts.StructA{"NotEqual"},
-		y:     ts.StructA{"not_equal"},
+		x:     ts.StructA{X: "NotEqual"},
+		y:     ts.StructA{X: "not_equal"},
 	}, {
 		label: label + "StructA",
-		x:     &ts.StructA{"NotEqual"},
-		y:     &ts.StructA{"not_equal"},
+		x:     &ts.StructA{X: "NotEqual"},
+		y:     &ts.StructA{X: "not_equal"},
 	}, {
 		label: label + "StructB",
-		x:     ts.StructB{"NotEqual"},
-		y:     ts.StructB{"not_equal"},
+		x:     ts.StructB{X: "NotEqual"},
+		y:     ts.StructB{X: "not_equal"},
 		wantDiff: `
 {teststructs.StructB}.X:
 	-: "NotEqual"
 	+: "not_equal"`,
 	}, {
 		label: label + "StructB",
-		x:     ts.StructB{"NotEqual"},
-		y:     ts.StructB{"not_equal"},
+		x:     ts.StructB{X: "NotEqual"},
+		y:     ts.StructB{X: "not_equal"},
 		opts:  []cmp.Option{derefTransform},
 	}, {
 		label: label + "StructB",
-		x:     &ts.StructB{"NotEqual"},
-		y:     &ts.StructB{"not_equal"},
+		x:     &ts.StructB{X: "NotEqual"},
+		y:     &ts.StructB{X: "not_equal"},
 	}, {
 		label: label + "StructC",
-		x:     ts.StructC{"NotEqual"},
-		y:     ts.StructC{"not_equal"},
+		x:     ts.StructC{X: "NotEqual"},
+		y:     ts.StructC{X: "not_equal"},
 	}, {
 		label: label + "StructC",
-		x:     &ts.StructC{"NotEqual"},
-		y:     &ts.StructC{"not_equal"},
+		x:     &ts.StructC{X: "NotEqual"},
+		y:     &ts.StructC{X: "not_equal"},
 	}, {
 		label: label + "StructD",
-		x:     ts.StructD{"NotEqual"},
-		y:     ts.StructD{"not_equal"},
+		x:     ts.StructD{X: "NotEqual"},
+		y:     ts.StructD{X: "not_equal"},
 		wantDiff: `
 {teststructs.StructD}.X:
 	-: "NotEqual"
 	+: "not_equal"`,
 	}, {
 		label: label + "StructD",
-		x:     ts.StructD{"NotEqual"},
-		y:     ts.StructD{"not_equal"},
+		x:     ts.StructD{X: "NotEqual"},
+		y:     ts.StructD{X: "not_equal"},
 		opts:  []cmp.Option{derefTransform},
 	}, {
 		label: label + "StructD",
-		x:     &ts.StructD{"NotEqual"},
-		y:     &ts.StructD{"not_equal"},
+		x:     &ts.StructD{X: "NotEqual"},
+		y:     &ts.StructD{X: "not_equal"},
 	}, {
 		label: label + "StructE",
-		x:     ts.StructE{"NotEqual"},
-		y:     ts.StructE{"not_equal"},
+		x:     ts.StructE{X: "NotEqual"},
+		y:     ts.StructE{X: "not_equal"},
 		wantDiff: `
 {teststructs.StructE}.X:
 	-: "NotEqual"
 	+: "not_equal"`,
 	}, {
 		label: label + "StructE",
-		x:     ts.StructE{"NotEqual"},
-		y:     ts.StructE{"not_equal"},
+		x:     ts.StructE{X: "NotEqual"},
+		y:     ts.StructE{X: "not_equal"},
 		opts:  []cmp.Option{derefTransform},
 	}, {
 		label: label + "StructE",
-		x:     &ts.StructE{"NotEqual"},
-		y:     &ts.StructE{"not_equal"},
+		x:     &ts.StructE{X: "NotEqual"},
+		y:     &ts.StructE{X: "not_equal"},
 	}, {
 		label: label + "StructF",
-		x:     ts.StructF{"NotEqual"},
-		y:     ts.StructF{"not_equal"},
+		x:     ts.StructF{X: "NotEqual"},
+		y:     ts.StructF{X: "not_equal"},
 		wantDiff: `
 {teststructs.StructF}.X:
 	-: "NotEqual"
 	+: "not_equal"`,
 	}, {
 		label: label + "StructF",
-		x:     &ts.StructF{"NotEqual"},
-		y:     &ts.StructF{"not_equal"},
+		x:     &ts.StructF{X: "NotEqual"},
+		y:     &ts.StructF{X: "not_equal"},
 	}, {
 		label: label + "StructA1",
-		x:     ts.StructA1{ts.StructA{"NotEqual"}, "equal"},
-		y:     ts.StructA1{ts.StructA{"not_equal"}, "equal"},
+		x:     ts.StructA1{StructA: ts.StructA{X: "NotEqual"}, X: "equal"},
+		y:     ts.StructA1{StructA: ts.StructA{X: "not_equal"}, X: "equal"},
 	}, {
 		label:    label + "StructA1",
-		x:        ts.StructA1{ts.StructA{"NotEqual"}, "NotEqual"},
-		y:        ts.StructA1{ts.StructA{"not_equal"}, "not_equal"},
+		x:        ts.StructA1{StructA: ts.StructA{X: "NotEqual"}, X: "NotEqual"},
+		y:        ts.StructA1{StructA: ts.StructA{X: "not_equal"}, X: "not_equal"},
 		wantDiff: "{teststructs.StructA1}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
 	}, {
 		label: label + "StructA1",
-		x:     &ts.StructA1{ts.StructA{"NotEqual"}, "equal"},
-		y:     &ts.StructA1{ts.StructA{"not_equal"}, "equal"},
+		x:     &ts.StructA1{StructA: ts.StructA{X: "NotEqual"}, X: "equal"},
+		y:     &ts.StructA1{StructA: ts.StructA{X: "not_equal"}, X: "equal"},
 	}, {
 		label:    label + "StructA1",
-		x:        &ts.StructA1{ts.StructA{"NotEqual"}, "NotEqual"},
-		y:        &ts.StructA1{ts.StructA{"not_equal"}, "not_equal"},
+		x:        &ts.StructA1{StructA: ts.StructA{X: "NotEqual"}, X: "NotEqual"},
+		y:        &ts.StructA1{StructA: ts.StructA{X: "not_equal"}, X: "not_equal"},
 		wantDiff: "{*teststructs.StructA1}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
 	}, {
 		label: label + "StructB1",
-		x:     ts.StructB1{ts.StructB{"NotEqual"}, "equal"},
-		y:     ts.StructB1{ts.StructB{"not_equal"}, "equal"},
+		x:     ts.StructB1{StructB: ts.StructB{X: "NotEqual"}, X: "equal"},
+		y:     ts.StructB1{StructB: ts.StructB{X: "not_equal"}, X: "equal"},
 		opts:  []cmp.Option{derefTransform},
 	}, {
 		label:    label + "StructB1",
-		x:        ts.StructB1{ts.StructB{"NotEqual"}, "NotEqual"},
-		y:        ts.StructB1{ts.StructB{"not_equal"}, "not_equal"},
+		x:        ts.StructB1{StructB: ts.StructB{X: "NotEqual"}, X: "NotEqual"},
+		y:        ts.StructB1{StructB: ts.StructB{X: "not_equal"}, X: "not_equal"},
 		opts:     []cmp.Option{derefTransform},
 		wantDiff: "{teststructs.StructB1}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
 	}, {
 		label: label + "StructB1",
-		x:     &ts.StructB1{ts.StructB{"NotEqual"}, "equal"},
-		y:     &ts.StructB1{ts.StructB{"not_equal"}, "equal"},
+		x:     &ts.StructB1{StructB: ts.StructB{X: "NotEqual"}, X: "equal"},
+		y:     &ts.StructB1{StructB: ts.StructB{X: "not_equal"}, X: "equal"},
 		opts:  []cmp.Option{derefTransform},
 	}, {
 		label:    label + "StructB1",
-		x:        &ts.StructB1{ts.StructB{"NotEqual"}, "NotEqual"},
-		y:        &ts.StructB1{ts.StructB{"not_equal"}, "not_equal"},
+		x:        &ts.StructB1{StructB: ts.StructB{X: "NotEqual"}, X: "NotEqual"},
+		y:        &ts.StructB1{StructB: ts.StructB{X: "not_equal"}, X: "not_equal"},
 		opts:     []cmp.Option{derefTransform},
 		wantDiff: "{*teststructs.StructB1}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
 	}, {
 		label: label + "StructC1",
-		x:     ts.StructC1{ts.StructC{"NotEqual"}, "NotEqual"},
-		y:     ts.StructC1{ts.StructC{"not_equal"}, "not_equal"},
+		x:     ts.StructC1{StructC: ts.StructC{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructC1{StructC: ts.StructC{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructC1",
-		x:     &ts.StructC1{ts.StructC{"NotEqual"}, "NotEqual"},
-		y:     &ts.StructC1{ts.StructC{"not_equal"}, "not_equal"},
+		x:     &ts.StructC1{StructC: ts.StructC{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructC1{StructC: ts.StructC{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructD1",
-		x:     ts.StructD1{ts.StructD{"NotEqual"}, "NotEqual"},
-		y:     ts.StructD1{ts.StructD{"not_equal"}, "not_equal"},
+		x:     ts.StructD1{StructD: ts.StructD{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructD1{StructD: ts.StructD{X: "not_equal"}, X: "not_equal"},
 		wantDiff: `
 {teststructs.StructD1}.StructD.X:
 	-: "NotEqual"
@@ -1393,17 +1393,17 @@ func methodTests() []test {
 	+: "not_equal"`,
 	}, {
 		label: label + "StructD1",
-		x:     ts.StructD1{ts.StructD{"NotEqual"}, "NotEqual"},
-		y:     ts.StructD1{ts.StructD{"not_equal"}, "not_equal"},
+		x:     ts.StructD1{StructD: ts.StructD{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructD1{StructD: ts.StructD{X: "not_equal"}, X: "not_equal"},
 		opts:  []cmp.Option{derefTransform},
 	}, {
 		label: label + "StructD1",
-		x:     &ts.StructD1{ts.StructD{"NotEqual"}, "NotEqual"},
-		y:     &ts.StructD1{ts.StructD{"not_equal"}, "not_equal"},
+		x:     &ts.StructD1{StructD: ts.StructD{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructD1{StructD: ts.StructD{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructE1",
-		x:     ts.StructE1{ts.StructE{"NotEqual"}, "NotEqual"},
-		y:     ts.StructE1{ts.StructE{"not_equal"}, "not_equal"},
+		x:     ts.StructE1{StructE: ts.StructE{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructE1{StructE: ts.StructE{X: "not_equal"}, X: "not_equal"},
 		wantDiff: `
 {teststructs.StructE1}.StructE.X:
 	-: "NotEqual"
@@ -1413,17 +1413,17 @@ func methodTests() []test {
 	+: "not_equal"`,
 	}, {
 		label: label + "StructE1",
-		x:     ts.StructE1{ts.StructE{"NotEqual"}, "NotEqual"},
-		y:     ts.StructE1{ts.StructE{"not_equal"}, "not_equal"},
+		x:     ts.StructE1{StructE: ts.StructE{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructE1{StructE: ts.StructE{X: "not_equal"}, X: "not_equal"},
 		opts:  []cmp.Option{derefTransform},
 	}, {
 		label: label + "StructE1",
-		x:     &ts.StructE1{ts.StructE{"NotEqual"}, "NotEqual"},
-		y:     &ts.StructE1{ts.StructE{"not_equal"}, "not_equal"},
+		x:     &ts.StructE1{StructE: ts.StructE{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructE1{StructE: ts.StructE{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructF1",
-		x:     ts.StructF1{ts.StructF{"NotEqual"}, "NotEqual"},
-		y:     ts.StructF1{ts.StructF{"not_equal"}, "not_equal"},
+		x:     ts.StructF1{StructF: ts.StructF{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructF1{StructF: ts.StructF{X: "not_equal"}, X: "not_equal"},
 		wantDiff: `
 {teststructs.StructF1}.StructF.X:
 	-: "NotEqual"
@@ -1433,80 +1433,80 @@ func methodTests() []test {
 	+: "not_equal"`,
 	}, {
 		label: label + "StructF1",
-		x:     &ts.StructF1{ts.StructF{"NotEqual"}, "NotEqual"},
-		y:     &ts.StructF1{ts.StructF{"not_equal"}, "not_equal"},
+		x:     &ts.StructF1{StructF: ts.StructF{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructF1{StructF: ts.StructF{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructA2",
-		x:     ts.StructA2{&ts.StructA{"NotEqual"}, "equal"},
-		y:     ts.StructA2{&ts.StructA{"not_equal"}, "equal"},
+		x:     ts.StructA2{StructA: &ts.StructA{X: "NotEqual"}, X: "equal"},
+		y:     ts.StructA2{StructA: &ts.StructA{X: "not_equal"}, X: "equal"},
 	}, {
 		label:    label + "StructA2",
-		x:        ts.StructA2{&ts.StructA{"NotEqual"}, "NotEqual"},
-		y:        ts.StructA2{&ts.StructA{"not_equal"}, "not_equal"},
+		x:        ts.StructA2{StructA: &ts.StructA{X: "NotEqual"}, X: "NotEqual"},
+		y:        ts.StructA2{StructA: &ts.StructA{X: "not_equal"}, X: "not_equal"},
 		wantDiff: "{teststructs.StructA2}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
 	}, {
 		label: label + "StructA2",
-		x:     &ts.StructA2{&ts.StructA{"NotEqual"}, "equal"},
-		y:     &ts.StructA2{&ts.StructA{"not_equal"}, "equal"},
+		x:     &ts.StructA2{StructA: &ts.StructA{X: "NotEqual"}, X: "equal"},
+		y:     &ts.StructA2{StructA: &ts.StructA{X: "not_equal"}, X: "equal"},
 	}, {
 		label:    label + "StructA2",
-		x:        &ts.StructA2{&ts.StructA{"NotEqual"}, "NotEqual"},
-		y:        &ts.StructA2{&ts.StructA{"not_equal"}, "not_equal"},
+		x:        &ts.StructA2{StructA: &ts.StructA{X: "NotEqual"}, X: "NotEqual"},
+		y:        &ts.StructA2{StructA: &ts.StructA{X: "not_equal"}, X: "not_equal"},
 		wantDiff: "{*teststructs.StructA2}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
 	}, {
 		label: label + "StructB2",
-		x:     ts.StructB2{&ts.StructB{"NotEqual"}, "equal"},
-		y:     ts.StructB2{&ts.StructB{"not_equal"}, "equal"},
+		x:     ts.StructB2{StructB: &ts.StructB{X: "NotEqual"}, X: "equal"},
+		y:     ts.StructB2{StructB: &ts.StructB{X: "not_equal"}, X: "equal"},
 	}, {
 		label:    label + "StructB2",
-		x:        ts.StructB2{&ts.StructB{"NotEqual"}, "NotEqual"},
-		y:        ts.StructB2{&ts.StructB{"not_equal"}, "not_equal"},
+		x:        ts.StructB2{StructB: &ts.StructB{X: "NotEqual"}, X: "NotEqual"},
+		y:        ts.StructB2{StructB: &ts.StructB{X: "not_equal"}, X: "not_equal"},
 		wantDiff: "{teststructs.StructB2}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
 	}, {
 		label: label + "StructB2",
-		x:     &ts.StructB2{&ts.StructB{"NotEqual"}, "equal"},
-		y:     &ts.StructB2{&ts.StructB{"not_equal"}, "equal"},
+		x:     &ts.StructB2{StructB: &ts.StructB{X: "NotEqual"}, X: "equal"},
+		y:     &ts.StructB2{StructB: &ts.StructB{X: "not_equal"}, X: "equal"},
 	}, {
 		label:    label + "StructB2",
-		x:        &ts.StructB2{&ts.StructB{"NotEqual"}, "NotEqual"},
-		y:        &ts.StructB2{&ts.StructB{"not_equal"}, "not_equal"},
+		x:        &ts.StructB2{StructB: &ts.StructB{X: "NotEqual"}, X: "NotEqual"},
+		y:        &ts.StructB2{StructB: &ts.StructB{X: "not_equal"}, X: "not_equal"},
 		wantDiff: "{*teststructs.StructB2}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
 	}, {
 		label: label + "StructC2",
-		x:     ts.StructC2{&ts.StructC{"NotEqual"}, "NotEqual"},
-		y:     ts.StructC2{&ts.StructC{"not_equal"}, "not_equal"},
+		x:     ts.StructC2{StructC: &ts.StructC{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructC2{StructC: &ts.StructC{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructC2",
-		x:     &ts.StructC2{&ts.StructC{"NotEqual"}, "NotEqual"},
-		y:     &ts.StructC2{&ts.StructC{"not_equal"}, "not_equal"},
+		x:     &ts.StructC2{StructC: &ts.StructC{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructC2{StructC: &ts.StructC{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructD2",
-		x:     ts.StructD2{&ts.StructD{"NotEqual"}, "NotEqual"},
-		y:     ts.StructD2{&ts.StructD{"not_equal"}, "not_equal"},
+		x:     ts.StructD2{StructD: &ts.StructD{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructD2{StructD: &ts.StructD{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructD2",
-		x:     &ts.StructD2{&ts.StructD{"NotEqual"}, "NotEqual"},
-		y:     &ts.StructD2{&ts.StructD{"not_equal"}, "not_equal"},
+		x:     &ts.StructD2{StructD: &ts.StructD{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructD2{StructD: &ts.StructD{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructE2",
-		x:     ts.StructE2{&ts.StructE{"NotEqual"}, "NotEqual"},
-		y:     ts.StructE2{&ts.StructE{"not_equal"}, "not_equal"},
+		x:     ts.StructE2{StructE: &ts.StructE{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructE2{StructE: &ts.StructE{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructE2",
-		x:     &ts.StructE2{&ts.StructE{"NotEqual"}, "NotEqual"},
-		y:     &ts.StructE2{&ts.StructE{"not_equal"}, "not_equal"},
+		x:     &ts.StructE2{StructE: &ts.StructE{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructE2{StructE: &ts.StructE{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructF2",
-		x:     ts.StructF2{&ts.StructF{"NotEqual"}, "NotEqual"},
-		y:     ts.StructF2{&ts.StructF{"not_equal"}, "not_equal"},
+		x:     ts.StructF2{StructF: &ts.StructF{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructF2{StructF: &ts.StructF{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label: label + "StructF2",
-		x:     &ts.StructF2{&ts.StructF{"NotEqual"}, "NotEqual"},
-		y:     &ts.StructF2{&ts.StructF{"not_equal"}, "not_equal"},
+		x:     &ts.StructF2{StructF: &ts.StructF{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructF2{StructF: &ts.StructF{X: "not_equal"}, X: "not_equal"},
 	}, {
 		label:    label + "StructNo",
-		x:        ts.StructNo{"NotEqual"},
-		y:        ts.StructNo{"not_equal"},
+		x:        ts.StructNo{X: "NotEqual"},
+		y:        ts.StructNo{X: "not_equal"},
 		wantDiff: "{teststructs.StructNo}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
 	}, {
 		label: label + "AssignA",
@@ -1563,7 +1563,7 @@ func project1Tests() []test {
 			}},
 			Slaps: []ts.Slap{{
 				Name: "slapID",
-				Args: &pb.MetaData{Stringer: pb.Stringer{"metadata"}},
+				Args: &pb.MetaData{Stringer: pb.Stringer{X: "metadata"}},
 				Immutable: &ts.SlapImmutable{
 					ID:       "immutableSlap",
 					MildSlap: true,
@@ -1589,28 +1589,28 @@ func project1Tests() []test {
 	return []test{{
 		label: label,
 		x: ts.Eagle{Slaps: []ts.Slap{{
-			Args: &pb.MetaData{Stringer: pb.Stringer{"metadata"}},
+			Args: &pb.MetaData{Stringer: pb.Stringer{X: "metadata"}},
 		}}},
 		y: ts.Eagle{Slaps: []ts.Slap{{
-			Args: &pb.MetaData{Stringer: pb.Stringer{"metadata"}},
+			Args: &pb.MetaData{Stringer: pb.Stringer{X: "metadata"}},
 		}}},
 		wantPanic: "cannot handle unexported field",
 	}, {
 		label: label,
 		x: ts.Eagle{Slaps: []ts.Slap{{
-			Args: &pb.MetaData{Stringer: pb.Stringer{"metadata"}},
+			Args: &pb.MetaData{Stringer: pb.Stringer{X: "metadata"}},
 		}}},
 		y: ts.Eagle{Slaps: []ts.Slap{{
-			Args: &pb.MetaData{Stringer: pb.Stringer{"metadata"}},
+			Args: &pb.MetaData{Stringer: pb.Stringer{X: "metadata"}},
 		}}},
 		opts: []cmp.Option{cmp.Comparer(pb.Equal)},
 	}, {
 		label: label,
 		x: ts.Eagle{Slaps: []ts.Slap{{}, {}, {}, {}, {
-			Args: &pb.MetaData{Stringer: pb.Stringer{"metadata"}},
+			Args: &pb.MetaData{Stringer: pb.Stringer{X: "metadata"}},
 		}}},
 		y: ts.Eagle{Slaps: []ts.Slap{{}, {}, {}, {}, {
-			Args: &pb.MetaData{Stringer: pb.Stringer{"metadata2"}},
+			Args: &pb.MetaData{Stringer: pb.Stringer{X: "metadata2"}},
 		}}},
 		opts:     []cmp.Option{cmp.Comparer(pb.Equal)},
 		wantDiff: "{teststructs.Eagle}.Slaps[4].Args:\n\t-: s\"metadata\"\n\t+: s\"metadata2\"\n",
@@ -1685,22 +1685,22 @@ func project2Tests() []test {
 		return ts.GermBatch{
 			DirtyGerms: map[int32][]*pb.Germ{
 				17: {
-					{Stringer: pb.Stringer{"germ1"}},
+					{Stringer: pb.Stringer{X: "germ1"}},
 				},
 				18: {
-					{Stringer: pb.Stringer{"germ2"}},
-					{Stringer: pb.Stringer{"germ3"}},
-					{Stringer: pb.Stringer{"germ4"}},
+					{Stringer: pb.Stringer{X: "germ2"}},
+					{Stringer: pb.Stringer{X: "germ3"}},
+					{Stringer: pb.Stringer{X: "germ4"}},
 				},
 			},
 			GermMap: map[int32]*pb.Germ{
-				13: {Stringer: pb.Stringer{"germ13"}},
-				21: {Stringer: pb.Stringer{"germ21"}},
+				13: {Stringer: pb.Stringer{X: "germ13"}},
+				21: {Stringer: pb.Stringer{X: "germ21"}},
 			},
 			DishMap: map[int32]*ts.Dish{
 				0: ts.CreateDish(nil, io.EOF),
 				1: ts.CreateDish(nil, io.ErrUnexpectedEOF),
-				2: ts.CreateDish(&pb.Dish{Stringer: pb.Stringer{"dish"}}, nil),
+				2: ts.CreateDish(&pb.Dish{Stringer: pb.Stringer{X: "dish"}}, nil),
 			},
 			HasPreviousResult: true,
 			DirtyID:           10,
@@ -1801,10 +1801,10 @@ func project3Tests() []test {
 		d.SetTable(ts.CreateMockTable([]string{"a", "b", "c"}))
 		d.SetTimestamp(12345)
 		d.Discord = 554
-		d.Proto = pb.Dirt{Stringer: pb.Stringer{"proto"}}
+		d.Proto = pb.Dirt{Stringer: pb.Stringer{X: "proto"}}
 		d.SetWizard(map[string]*pb.Wizard{
-			"harry": {Stringer: pb.Stringer{"potter"}},
-			"albus": {Stringer: pb.Stringer{"dumbledore"}},
+			"harry": {Stringer: pb.Stringer{X: "potter"}},
+			"albus": {Stringer: pb.Stringer{X: "dumbledore"}},
 		})
 		d.SetLastTime(54321)
 		return d
@@ -1831,14 +1831,14 @@ func project3Tests() []test {
 		x: func() ts.Dirt {
 			d := createDirt()
 			d.SetTable(ts.CreateMockTable([]string{"a", "c"}))
-			d.Proto = pb.Dirt{Stringer: pb.Stringer{"blah"}}
+			d.Proto = pb.Dirt{Stringer: pb.Stringer{X: "blah"}}
 			return d
 		}(),
 		y: func() ts.Dirt {
 			d := createDirt()
 			d.Discord = 500
 			d.SetWizard(map[string]*pb.Wizard{
-				"harry": {Stringer: pb.Stringer{"otter"}},
+				"harry": {Stringer: pb.Stringer{X: "otter"}},
 			})
 			return d
 		}(),
@@ -1885,7 +1885,7 @@ func project4Tests() []test {
 		hq.SetID(5)
 		hq.SetLocation("moon")
 		hq.SetSubDivisions([]string{"alpha", "bravo", "charlie"})
-		hq.SetMetaData(&pb.MetaData{Stringer: pb.Stringer{"metadata"}})
+		hq.SetMetaData(&pb.MetaData{Stringer: pb.Stringer{X: "metadata"}})
 		hq.SetPublicMessage([]byte{1, 2, 3, 4, 5})
 		hq.SetHorseBack("abcdef")
 		hq.SetStatus(44)
