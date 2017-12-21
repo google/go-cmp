@@ -48,6 +48,7 @@ func TestDiff(t *testing.T) {
 	tests = append(tests, project2Tests()...)
 	tests = append(tests, project3Tests()...)
 	tests = append(tests, project4Tests()...)
+	tests = append(tests, nilEqualityTests()...)
 
 	for _, tt := range tests {
 		tt := tt
@@ -1953,6 +1954,60 @@ func project4Tests() []test {
 	-: &teststructs.Poison{poisonType: testprotos.PoisonType(2), manufacturer: "acme2"}
 	+: <non-existent>`,
 	}}
+}
+
+// withoutEqual does not have an Equal() method defined.
+type withoutEqual struct {
+	value int
+}
+
+// withEqual has an Equal() method defined, and Equal() does not handle nil
+// values well.
+type withEqual struct {
+	withoutEqual
+}
+
+func (f *withEqual) Equal(other *withEqual) bool {
+	// Calling with null values of f or other panics.
+	return f.value == other.value
+}
+
+// withRobustEqual is a struct with an Equal method that behaves sensibly if
+// called on a nil value.
+type withRobustEqual struct {
+	withoutEqual
+}
+
+func (f *withRobustEqual) Equal(other *withRobustEqual) bool {
+	if f == nil {
+		if other == nil {
+			return true
+		} else {
+			return false
+		}
+	}
+	return f.value == other.value
+}
+
+func nilEqualityTests() []test {
+	return []test{
+		{
+			label: "Comparing structs without Equal method.",
+			x:     (*withoutEqual)(nil),
+			y:     (*withoutEqual)(nil),
+		},
+		{
+			label: "Comparing structs with a robust Equal method.",
+			x:     (*withRobustEqual)(nil),
+			y:     (*withRobustEqual)(nil),
+		},
+		{
+			// This should not panic, but it currently does.
+			label: "Comparing structs with Equal method.",
+			x:     (*withEqual)(nil),
+			y:     (*withEqual)(nil),
+		},
+	}
 }
 
 // TODO: Delete this hack when we drop Go1.6 support.
