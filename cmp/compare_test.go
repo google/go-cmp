@@ -453,6 +453,17 @@ root:
 				return x == nil && y == nil
 			}, cmp.Ignore()),
 		},
+	}, {
+		label: label,
+		x:     []interface{}{map[string]interface{}{"avg": 0.278, "hr": 65, "name": "Mark McGwire"}, map[string]interface{}{"avg": 0.288, "hr": 63, "name": "Sammy Sosa"}},
+		y:     []interface{}{map[string]interface{}{"avg": 0.278, "hr": 65.0, "name": "Mark McGwire"}, map[string]interface{}{"avg": 0.288, "hr": 63.0, "name": "Sammy Sosa"}},
+		wantDiff: `
+root[0]["hr"]:
+	-: int(65)
+	+: float64(65)
+root[1]["hr"]:
+	-: int(63)
+	+: float64(63)`,
 	}}
 }
 
