@@ -85,7 +85,7 @@ func TestFormat(t *testing.T) {
 		// ensure the format logic does not depend on read-write access
 		// to the reflect.Value.
 		v := reflect.ValueOf(struct{ x interface{} }{tt.in}).Field(0)
-		got := formatAny(v, formatConfig{useStringer: true, printType: true, followPointers: true}, nil)
+		got := formatAny(v, FormatConfig{UseStringer: true, printType: true, followPointers: true}, nil)
 		if got != tt.want {
 			t.Errorf("test %d, Format():\ngot  %q\nwant %q", i, got, tt.want)
 		}
