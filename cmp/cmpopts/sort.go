@@ -6,14 +6,19 @@ package cmpopts
 
 import (
 	"fmt"
+	"math"
 	"reflect"
+	"strings"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/internal/function"
 )
 
 // SortSlices returns a Transformer option that sorts all []V.
-// The less function must be of the form "func(T, T) bool" which is used to
+//
+// If less is nil, GenericLess will be used, which works on any comparable element type.
+//
+// Otherwise, the less function must be of the form "func(T, T) bool" which is used to
 // sort any slice with element type V that is assignable to T.
 //
 // The less function must be:
@@ -26,6 +31,9 @@ import (
 //
 // SortSlices can be used in conjunction with EquateEmpty.
 func SortSlices(less interface{}) cmp.Option {
+	if less == nil {
+		less = GenericLess
+	}
 	vf := reflect.ValueOf(less)
 	if !function.IsType(vf.Type(), function.Less) || vf.IsNil() {
 		panic(fmt.Sprintf("invalid less function: %T", less))
@@ -97,6 +105,9 @@ func (ss sliceSorter) less(v reflect.Value, i, j int) bool {
 //
 // SortMaps can be used in conjunction with EquateEmpty.
 func SortMaps(less interface{}) cmp.Option {
+	if less == nil {
+		less = GenericLess
+	}
 	vf := reflect.ValueOf(less)
 	if !function.IsType(vf.Type(), function.Less) || vf.IsNil() {
 		panic(fmt.Sprintf("invalid less function: %T", less))
@@ -143,4 +154,127 @@ func (ms mapSorter) less(v reflect.Value, i, j int) bool {
 		vx, vy = vx.Elem(), vy.Elem()
 	}
 	return ms.fnc.Call([]reflect.Value{vx, vy})[0].Bool()
+}
+
+// GenericLess reports whether x is less than y, where both x and y must
+// be comparable types. For basic types, the values are compared by
+// value (pointer values are compared by pointer value, so ordering is
+// runtime-dependent in this case); for composite types, values are
+// compared lexicographically by component. Float and complex NaN values
+// will be compared as equal to avoid potential panics when sorting.
+//
+// GenericLess panics if provided with non-comparable values.
+func GenericLess(x, y interface{}) bool {
+	return cmpVal(reflect.ValueOf(x), reflect.ValueOf(y)) < 0
+}
+
+func cmpVal(xv, yv reflect.Value) int {
+	if xvalid, yvalid := xv.IsValid(), yv.IsValid(); !xvalid || !yvalid {
+		// nil sorts before anything else.
+		switch {
+		case yvalid:
+			return -1
+		case xvalid:
+			return 1
+		}
+		return 0
+	}
+	xt := xv.Type()
+	yt := yv.Type()
+	if xt != yt {
+		// Comparing by strings gives fairly predictable results
+		// in the majority of cases.
+		c := strings.Compare(xt.String(), yt.String())
+		if c != 0 || xt == yt {
+			return c
+		}
+		// String comparison has failed, so fall back to type-pointer comparison.
+		return cmpVal(reflect.ValueOf(xt), reflect.ValueOf(yt))
+	}
+	switch xt.Kind() {
+	case reflect.String:
+		return strings.Compare(xv.String(), yv.String())
+	case reflect.Bool:
+		xb, yb := xv.Bool(), yv.Bool()
+		switch {
+		case xb == yb:
+			return 0
+		case !xb:
+			return -1
+		}
+		return 1
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		xi, yi := xv.Int(), yv.Int()
+		switch {
+		case xi < yi:
+			return -1
+		case xi > yi:
+			return 1
+		}
+		return 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		xi, yi := xv.Uint(), yv.Uint()
+		switch {
+		case xi < yi:
+			return -1
+		case xi > yi:
+			return 1
+		}
+		return 0
+	case reflect.Float32, reflect.Float64:
+		xf, yf := xv.Float(), yv.Float()
+		if xnan, ynan := math.IsNaN(xf), math.IsNaN(yf); xnan || ynan {
+			switch {
+			case xnan && ynan:
+				return 0
+			case xnan && !ynan:
+				return -1
+			}
+			return 1
+		}
+		switch {
+		case xf < yf:
+			return -1
+		case xf > yf:
+			return 1
+		}
+		return 0
+	case reflect.Complex64, reflect.Complex128:
+		xc, yc := xv.Complex(), yv.Complex()
+		if c := cmpVal(reflect.ValueOf(real(xc)), reflect.ValueOf(real(yc))); c != 0 {
+			return c
+		}
+		return cmpVal(reflect.ValueOf(imag(xc)), reflect.ValueOf(imag(yc)))
+	case reflect.Struct:
+		nf := xt.NumField()
+		for i := 0; i < nf; i++ {
+			if c := cmpVal(xv.Field(i), yv.Field(i)); c != 0 {
+				return c
+			}
+		}
+		return 0
+	case reflect.Array:
+		len := xv.Len()
+		for i := 0; i < len; i++ {
+			if c := cmpVal(xv.Index(i), yv.Index(i)); c != 0 {
+				return c
+			}
+		}
+		return 0
+	case reflect.Ptr, reflect.Chan, reflect.UnsafePointer:
+		xi, yi := xv.Pointer(), yv.Pointer()
+		switch {
+		case xi < yi:
+			return -1
+		case xi > yi:
+			return 1
+		}
+		return 0
+	case reflect.Interface:
+		return cmpVal(xv.Elem(), yv.Elem())
+	case reflect.Func, reflect.Map, reflect.Slice:
+		panic(fmt.Errorf("cannot compare uncomparable type %v", xt))
+	default:
+		panic(fmt.Errorf("kind %v unimplemented", xt.Kind()))
+	}
 }

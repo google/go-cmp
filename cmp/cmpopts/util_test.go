@@ -10,6 +10,7 @@ import (
 	"io"
 	"math"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -168,6 +169,34 @@ func TestOptions(t *testing.T) {
 		},
 		wantEqual: true,
 		reason:    "no panics because SortSlices used with valid less function; equal because EquateNaNs is used",
+	}, {
+		label:     "SortSlices+nil less",
+		x:         []string{"a", "b"},
+		y:         []string{"b", "a"},
+		opts:      []cmp.Option{SortSlices(nil)},
+		wantEqual: true,
+		reason:    "GenericLess is used when no less func provided",
+	}, {
+		label:     "SortSlices+nil less+uncomparable type",
+		x:         []func(){func() {}, func() {}},
+		y:         []func(){func() {}, func() {}},
+		opts:      []cmp.Option{SortSlices(nil)},
+		wantPanic: true,
+		reason:    "GenericLess cannot compare functions",
+	}, {
+		label:     "SortSlices+nil less+uncomparable type",
+		x:         []map[int]int{{0: 0}, {0: 0}},
+		y:         []map[int]int{{0: 0}, {0: 0}},
+		opts:      []cmp.Option{SortSlices(nil)},
+		wantPanic: true,
+		reason:    "GenericLess cannot compare maps",
+	}, {
+		label:     "SortSlices+nil less+uncomparable type",
+		x:         [][]int{{0}, {0}},
+		y:         [][]int{{0}, {0}},
+		opts:      []cmp.Option{SortSlices(nil)},
+		wantPanic: true,
+		reason:    "GenericLess cannot compare slices",
 	}, {
 		label: "SortMaps",
 		x: map[time.Time]string{
@@ -979,6 +1008,178 @@ func TestPanic(t *testing.T) {
 			}
 		})
 	}
+}
+
+// genericValues holds a slice of values in the order we expect
+// GenericLess to sort them. It does not include pointer values
+// because their ordering is runtime-dependent, function-local
+// types (likewise), or uncomparable types (tested in TestOptions).
+var genericValues = []interface{}{
+	nil,
+	[2]int{0, 1},
+	[2]int{1, 0},
+	[2]int{1, 1},
+	[3]int{0, 0, 0},
+	[3]int{0, 0, 1},
+	false,
+	true,
+	2i,
+	1 + 2i,
+	1 + 3i,
+	float32(math.NaN()),
+	float32(0),
+	float32(1),
+	math.NaN(),
+	float64(0),
+	float64(1),
+	0,
+	1,
+	int16(1),
+	int16(2),
+	int32(1),
+	int32(2),
+	int64(math.MinInt64),
+	int64(math.MinInt64 + 1),
+	int64(math.MaxInt64 - 1),
+	int64(math.MaxInt64),
+	int8(1),
+	int8(2),
+	"a",
+	"b",
+	struct{ I interface{} }{1},
+	struct{ I interface{} }{2},
+	struct{ X, Y int }{0, 1},
+	struct{ X, Y int }{1, 0},
+	struct{ X, Y int }{1, 1},
+	uint16(1),
+	uint16(2),
+	uint32(1),
+	uint32(2),
+	uint64(math.MaxUint64 - 1),
+	uint64(math.MaxUint64),
+	uint8(1),
+	uint8(2),
+}
+
+func TestGenericLess(t *testing.T) {
+	// Put them all into reverse order and check that they
+	// end up in the original order when sorted with GenericLess.
+	ss := make([]interface{}, 0, len(genericValues))
+	for i := len(genericValues) - 1; i >= 0; i-- {
+		ss = append(ss, genericValues[i])
+	}
+	sort.Sort(sliceByGenericLess(ss))
+	if diff := cmp.Diff(ss, genericValues, EquateNaNs()); diff != "" {
+		t.Errorf("unexpected order: %s", diff)
+	}
+}
+
+func TestGenericLessRules(t *testing.T) {
+	// Irreflexive
+	for _, x := range genericValues {
+		if GenericLess(x, x) {
+			t.Errorf("irreflexive rule violation on %#v", x)
+		}
+	}
+	// Deterministic
+	for _, x := range genericValues {
+		for _, y := range genericValues {
+			if GenericLess(x, y) != GenericLess(x, y) {
+				t.Errorf("deterministic rule violation on %#v, %#v", x, y)
+			}
+		}
+	}
+	// Transitive
+	for _, x := range genericValues {
+		for _, y := range genericValues {
+			for _, z := range genericValues {
+				if !GenericLess(x, y) && !GenericLess(y, z) && GenericLess(x, z) {
+					t.Errorf("transitive rule violation on (%#v, %#v, %#v", x, y, z)
+				}
+			}
+		}
+	}
+	// Total
+	for _, x := range genericValues {
+		for _, y := range genericValues {
+			if x != y && !areNaNs(x, y) && !GenericLess(x, y) && !GenericLess(y, x) {
+				t.Errorf("total rule violation on %#v, %#v", x, y)
+			}
+		}
+	}
+}
+
+func TestGenericLessWithPointers(t *testing.T) {
+	// It would be nice to test unsafe.Pointer too, but
+	// we don't want to import unsafe.
+	values := []interface{}{
+		new(int),
+		new(int),
+		new(byte),
+		new(byte),
+		make(chan int),
+		make(chan int),
+		make(chan byte),
+		make(chan byte),
+	}
+	// Make a reversed version of values, then sort
+	// them both and check that the order is consistent.
+	values1 := make([]interface{}, 0, len(genericValues))
+	for i := len(values) - 1; i >= 0; i-- {
+		values1 = append(values1, values[i])
+	}
+	sort.Sort(sliceByGenericLess(values))
+	sort.Sort(sliceByGenericLess(values1))
+	if diff := cmp.Diff(values, values1); diff != "" {
+		t.Errorf("unexpected order: %s", diff)
+	}
+}
+
+func TestGenericLessWithSameNamedTypes(t *testing.T) {
+	z1 := func() interface{} {
+		type z int
+		return z(0)
+	}()
+	z2 := func() interface{} {
+		type z int
+		return z(0)
+	}()
+	if !GenericLess(z1, z2) && !GenericLess(z2, z1) {
+		t.Errorf("different types with same name compare equal")
+	}
+}
+
+func namedZero2() interface{} {
+	type z int
+	return z(0)
+}
+
+// areNaNs reports whether x and y are NaNs of the same type.
+func areNaNs(x, y interface{}) bool {
+	if reflect.TypeOf(x) != reflect.TypeOf(y) {
+		return false
+	}
+	switch x := x.(type) {
+	case float64:
+		return math.IsNaN(x) && math.IsNaN(y.(float64))
+	case float32:
+		return math.IsNaN(float64(x)) && math.IsNaN(float64(y.(float32)))
+	}
+	return false
+}
+
+type sliceByGenericLess []interface{}
+
+func (ss sliceByGenericLess) Len() int {
+	return len(ss)
+}
+
+func (ss sliceByGenericLess) Less(i, j int) bool {
+	return GenericLess(ss[i], ss[j])
+}
+
+func (ss sliceByGenericLess) Swap(i, j int) {
+	ss[i], ss[j] = ss[j], ss[i]
 }
 
 // TODO: Delete this hack when we drop Go1.6 support.
