@@ -380,8 +380,9 @@ func detectRaces(c chan<- reflect.Value, f reflect.Value, vs ...reflect.Value) {
 // assuming that T is assignable to R.
 // Otherwise, it returns the input value as is.
 func sanitizeValue(v reflect.Value, t reflect.Type) reflect.Value {
-	// TODO(dsnet): Remove this hacky workaround.
-	// See https://golang.org/issue/22143
+	// TODO(dsnet): Workaround for reflect bug (https://golang.org/issue/22143).
+	// The upstream fix landed in Go1.10, so we can remove this when drop support
+	// for Go1.9 and below.
 	if v.Kind() == reflect.Interface && v.IsNil() && v.Type() != t {
 		return reflect.New(t).Elem()
 	}
