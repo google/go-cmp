@@ -543,6 +543,13 @@ func TestOptions(t *testing.T) {
 		wantEqual: false,
 		reason:    "not equal because highest-level field is not ignored: Foo3",
 	}, {
+		label:     "FilterField",
+		x:         Foo1{Alpha: 2},
+		y:         Foo1{Alpha: 3},
+		wantEqual: true,
+		opts:      []cmp.Option{FilterField(Foo1{}, "Alpha", cmp.Ignore())},
+		reason:    "euqla because Alpha is ignored",
+	}, {
 		label:     "IgnoreTypes",
 		x:         []interface{}{5, "same"},
 		y:         []interface{}{6, "same"},
