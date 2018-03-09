@@ -12,17 +12,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// filterField returns a new Option where opt is only evaluated on paths that
+// FilterField returns a new Option where opt is only evaluated on paths that
 // include a specific exported field on a single struct type.
 // The struct type is specified by passing in a value of that type.
 //
 // The name may be a dot-delimited string (e.g., "Foo.Bar") to select a
 // specific sub-field that is embedded or nested within the parent struct.
-func filterField(typ interface{}, name string, opt cmp.Option) cmp.Option {
-	// TODO: This is currently unexported over concerns of how helper filters
-	// can be composed together easily.
-	// TODO: Add tests for FilterField.
-
+func FilterField(typ interface{}, name string, opt cmp.Option) cmp.Option {
 	sf := newStructFilter(typ, name)
 	return cmp.FilterPath(sf.filter, opt)
 }
