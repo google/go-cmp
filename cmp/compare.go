@@ -120,13 +120,14 @@ type state struct {
 	exporters map[reflect.Type]bool // Set of structs with unexported field visibility
 	opts      Options               // List of all fundamental and filter options
 
-	// detectCycles is set by the DetectCycles option, and it indicates to
-	// enable the cycles check when a pointer is compared.
-	detectCycles bool
+	// cycles is used for detecting cyclic structs
+	cycles cycles
 }
 
 func newState(opts []Option) *state {
 	s := new(state)
+	s.cycles.init()
+
 	for _, opt := range opts {
 		s.processOption(opt)
 	}
@@ -160,8 +161,6 @@ func (s *state) processOption(opt Option) {
 			panic("difference reporter already registered")
 		}
 		s.reporter = opt
-	case detectCycles:
-		s.detectCycles = true
 	default:
 		panic(fmt.Sprintf("unknown option %T", opt))
 	}
@@ -243,21 +242,29 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 			s.report(vx.IsNil() && vy.IsNil(), vx, vy)
 			return
 		}
-		s.curPath.push(&indirect{
-			pathStep: pathStep{t.Elem()},
-			xAddr:    vx.Elem().UnsafeAddr(),
-			yAddr:    vy.Elem().UnsafeAddr(),
-		})
+		s.curPath.push(&indirect{pathStep{t.Elem()}})
 		defer s.curPath.pop()
 
-		// If detectCycles is enabled, look in the path stack and search for
-		// pointer cycle. If one is find, compare the cycles.
-		if s.detectCycles {
-			if cyclesEqual, ok := compareCycles(s.curPath); ok {
-				s.report(cyclesEqual, vx, vy)
-				return
-			}
+		// When given a pointer, a cyclic searching might occur.
+		// Here we find this cycle and stop the search if needed.
+
+		// Get addresses pointed by vx and vy for cycle detections
+		xAddr := vx.Elem().UnsafeAddr()
+		yAddr := vy.Elem().UnsafeAddr()
+
+		// Check for cycles pointed by the addresses of vx or vy.
+		// If a cycle was found, report the equality of the cycle and return
+		// continuing into cycles will run forever
+		if equal, ok := s.cycles.compare(xAddr, yAddr); ok {
+			s.report(equal, vx, vy)
+			return
 		}
+
+		// If no cycle was found, push the addresses with the current stack length
+		// and defer "leaving" those addresses when returning from this position backwards.
+		pop := s.cycles.push(xAddr, yAddr, len(s.curPath))
+		defer pop()
+
 		s.compareAny(vx.Elem(), vy.Elem())
 		return
 	case reflect.Interface:
@@ -568,54 +575,4 @@ func makeAddressable(v reflect.Value) reflect.Value {
 	vc := reflect.New(v.Type()).Elem()
 	vc.Set(v)
 	return vc
-}
-
-// compareCycles calculates the cyclic pointer chain length by going
-// over the path stack.
-// It calculates both a cyclic chain of x values and for y values, and
-// compare them.
-// It returns:
-//      equals if detected cycles are equal.
-//      ok as true if cycles were detected.
-func compareCycles(p Path) (equals bool, ok bool) {
-	if len(p) == 0 {
-		return false, false
-	}
-
-	// Check the current path step for the address values.
-	// If it is not a cycleStep, there is no point to check the
-	// chains lengths
-	curStep, ok := p[len(p)-1].(*indirect)
-	if !ok || (curStep.xAddr == 0 && curStep.yAddr == 0) {
-		return false, false
-	}
-
-	// Find the next occurrence in the chain path of either xAddr or yAddr
-	// of the curStep.
-	var xLen, yLen, length int
-	for i := len(p) - 2; i > 0; i-- {
-		cs, ok := p[i].(*indirect)
-		if !ok || (curStep.xAddr == 0 && curStep.yAddr == 0) {
-			continue
-		}
-
-		// since this step is a pointer step, increase the chain length
-		length += 1
-
-		// Check for the same address. We want to return the smallest cycle,
-		// so we update only if the current length value is 0
-		if xLen == 0 && cs.xAddr == curStep.xAddr {
-			xLen = length
-		}
-		if yLen == 0 && cs.yAddr == curStep.yAddr {
-			yLen = length
-		}
-
-		// If we found lengths for both x and y, we can return, there is no
-		// need to go over the whole stack.
-		if xLen != 0 && yLen != 0 {
-			break
-		}
-	}
-	return xLen == yLen, yLen != 0 && xLen != 0
 }

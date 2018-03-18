@@ -213,9 +213,6 @@ type (
 	}
 	indirect struct {
 		pathStep
-		// xAddr and yAddr are set if the kind of the current step is Ptr.
-		// They contain the addresses pointing by vx an vy.
-		xAddr, yAddr uintptr
 	}
 	transform struct {
 		pathStep

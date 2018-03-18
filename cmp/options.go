@@ -451,17 +451,3 @@ func getFuncName(p uintptr) string {
 	}
 	return name
 }
-
-// DetectCycles is an option that prevents infinite searching in cyclic data structure.
-// It iterates the whole path stack every time a pointer is tested to check for
-// cycles thus it reduces the runtime performance.
-// It finds cycles by adding information to the path stack any time a pointer is tested.
-func DetectCycles() Option { return detectCycles{} }
-
-type detectCycles struct{}
-
-func (c detectCycles) filter(s *state, vx, vy reflect.Value, t reflect.Type) applicableOption {
-	return nil
-}
-
-func (c detectCycles) String() string { return "DetectCycles()" }

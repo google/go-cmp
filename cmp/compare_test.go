@@ -66,11 +66,6 @@ func TestDiff(t *testing.T) {
 						}
 					}
 				}()
-
-				// Add to all test the DetectCycles options: see if it breaks any test, and see that
-				// it works for the detectCycleTest
-				tt.opts = append(tt.opts, cmp.DetectCycles())
-
 				gotDiff = cmp.Diff(tt.x, tt.y, tt.opts...)
 			}()
 			if tt.wantPanic == "" {
@@ -78,7 +73,7 @@ func TestDiff(t *testing.T) {
 					t.Fatalf("unexpected panic message: %s", gotPanic)
 				}
 
-				// change all addresses in the diff to be 0x00, so they could be expected
+				// Change all addresses in the diff to be 0x00, so they could be expected
 				gotDiff = reAddress.ReplaceAllString(gotDiff, "(0x00)")
 
 				if got, want := strings.TrimSpace(gotDiff), strings.TrimSpace(tt.wantDiff); got != want {
@@ -2043,7 +2038,7 @@ func detectCyclesTest() []test {
 		x:     len21,
 		y:     len31,
 		wantDiff: `
-*{cmp_test.node}.Next.Next.Next.Next:
+*{cmp_test.node}.Next.Next.Next:
 	-: &cmp_test.node{Next: &cmp_test.node{Next: (*cmp_test.node)(0x00)}}
 	+: &cmp_test.node{Next: &cmp_test.node{Next: &cmp_test.node{Next: (*cmp_test.node)(0x00)}}}
 `,
