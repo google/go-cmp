@@ -239,6 +239,13 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 			s.report(vx.IsNil() && vy.IsNil(), vx, vy)
 			return
 		}
+
+		// If pointers are pointing on the same thing, we can report them as equal
+		if vx.Pointer() == vy.Pointer() {
+			s.report(true, vx, vy)
+			return
+		}
+
 		s.curPath.push(&indirect{pathStep{t.Elem()}})
 		defer s.curPath.pop()
 		s.compareAny(vx.Elem(), vy.Elem())
