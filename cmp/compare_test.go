@@ -464,6 +464,10 @@ root[0]["hr"]:
 root[1]["hr"]:
 	-: int(63)
 	+: float64(63)`,
+	}, {
+		label: label + "/types",
+		x:     reflect.TypeOf(1),
+		y:     reflect.TypeOf(2),
 	}}
 }
 
