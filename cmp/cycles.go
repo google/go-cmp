@@ -29,7 +29,9 @@ func (c cycles) compare(xAddr, yAddr uintptr) (equal, ok bool) {
 // It saves the search stack length so it can be later compared.
 // It returns a pop function that removes the pushed addresses, and it
 // should be invoked when the search stack is traversed backwards.
-func (c *cycles) push(xAddr, yAddr uintptr, depth int) (pop func()) {
+func (c *cycles) push(xAddr, yAddr uintptr) (pop func()) {
+	// depth is the current cycle depth
+	depth := len(c.xDepth) + 1
 	c.xDepth[xAddr] = depth
 	c.yDepth[yAddr] = depth
 	return func() {

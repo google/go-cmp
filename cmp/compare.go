@@ -260,9 +260,9 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 			return
 		}
 
-		// If no cycle was found, push the addresses with the current stack length
+		// If no cycle was found, push the addresses of the current compared structs
 		// and defer "leaving" those addresses when returning from this position backwards.
-		pop := s.cycles.push(xAddr, yAddr, len(s.curPath))
+		pop := s.cycles.push(xAddr, yAddr)
 		defer pop()
 
 		s.compareAny(vx.Elem(), vy.Elem())
