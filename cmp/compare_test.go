@@ -2013,6 +2013,30 @@ func detectCyclesTest() []test {
 	insideB3.Next = &insideB1
 	insideB2.Value = "b"
 
+	type treeNode struct {
+		Left, Right *treeNode
+	}
+
+	// diamond is diamond shaped tree:
+	//      *
+	//     / \
+	//    *   *
+	//     \ /
+	//      *
+	diamond := treeNode{Left: &treeNode{Right: &treeNode{}}, Right: &treeNode{}}
+	diamond.Right.Left = diamond.Left.Right
+
+	// diamondWithTail is diamond with tail shaped tree:
+	//      *
+	//     / \
+	//    *   *
+	//     \ /
+	//      *
+	//     /
+	//    *
+	diamondWithTail := treeNode{Left: &treeNode{Right: &treeNode{Left: &treeNode{}}}, Right: &treeNode{}}
+	diamondWithTail.Right.Left = diamondWithTail.Left.Right
+
 	type selfPointerType *selfPointerType
 	var selfPointer = new(selfPointerType)
 	*selfPointer = selfPointer
@@ -2066,6 +2090,26 @@ func detectCyclesTest() []test {
 {cmp_test.node}.Next.Value:
 	-: "a"
 	+: "b"
+`,
+	}, {
+		label: label + "diamonds are equal",
+		x:     diamond,
+		y:     diamond,
+	}, {
+		label: label + "diamonds with tail are equal",
+		x:     diamondWithTail,
+		y:     diamondWithTail,
+	}, {
+		label: label + "diamond is different from diamond with tail",
+		x:     diamond,
+		y:     diamondWithTail,
+		wantDiff: `
+{cmp_test.treeNode}.Left.Right.Left:
+	-: (*cmp_test.treeNode)(nil)
+	+: &cmp_test.treeNode{}
+{cmp_test.treeNode}.Right.Left.Left:
+	-: (*cmp_test.treeNode)(nil)
+	+: &cmp_test.treeNode{}
 `,
 	}, {
 		label: label + "self pointers",
