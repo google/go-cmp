@@ -245,24 +245,10 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 		s.curPath.push(&indirect{pathStep{t.Elem()}})
 		defer s.curPath.pop()
 
-		// When given a pointer, a cyclic searching might occur.
-		// Here we find this cycle and stop the search if needed.
-
-		// Get addresses pointed by vx and vy for cycle detections
-		xAddr := vx.Elem().UnsafeAddr()
-		yAddr := vy.Elem().UnsafeAddr()
-
-		// Check for cycles pointed by the addresses of vx or vy.
-		// If a cycle was found, report the equality of the cycle and return
-		// continuing into cycles will run forever
-		if equal, ok := s.cycles.compare(xAddr, yAddr); ok {
-			s.report(equal, vx, vy)
+		pop, detected := s.detectAndReportCycle(vx, vy)
+		if detected {
 			return
 		}
-
-		// If no cycle was found, push the addresses of the current compared structs
-		// and defer "leaving" those addresses when returning from this position backwards.
-		pop := s.cycles.push(xAddr, yAddr)
 		defer pop()
 
 		s.compareAny(vx.Elem(), vy.Elem())
@@ -287,9 +273,19 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 		}
 		fallthrough
 	case reflect.Array:
+		pop, detected := s.detectAndReportCycle(vx, vy)
+		if detected {
+			return
+		}
+		defer pop()
 		s.compareArray(vx, vy, t)
 		return
 	case reflect.Map:
+		pop, detected := s.detectAndReportCycle(vx, vy)
+		if detected {
+			return
+		}
+		defer pop()
 		s.compareMap(vx, vy, t)
 		return
 	case reflect.Struct:
@@ -298,6 +294,24 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 	default:
 		panic(fmt.Sprintf("%v kind not handled", t.Kind()))
 	}
+}
+
+// detectAndReportCycle detects cycles and when detected reports if they are equal.
+// Returned values:
+//      When a cycle is detected: detected=true
+//      When no cycle was detected: detect=false and pop contains a function that should
+//          be invoked when the comparison of this level returns.
+func (s *state) detectAndReportCycle(vx, vy reflect.Value) (pop func(), detected bool) {
+	xAddr, yAddr := valueAddress(vx, vy)
+	// Check for cycles pointed by the addresses of vx or vy.
+	if equal, ok := s.cycles.compare(xAddr, yAddr); ok {
+		s.report(equal, vx, vy)
+		return nil, true
+	}
+
+	// If no cycle was found, push the addresses to the cycles detection struct.
+	pop = s.cycles.push(xAddr, yAddr)
+	return pop, false
 }
 
 func (s *state) tryExporting(vx, vy reflect.Value) (reflect.Value, reflect.Value) {
@@ -575,4 +589,20 @@ func makeAddressable(v reflect.Value) reflect.Value {
 	vc := reflect.New(v.Type()).Elem()
 	vc.Set(v)
 	return vc
+}
+
+// valueAddress returns the addresses pointed by a couple of values
+// For efficiency reasons, this function gets two values and return two addresses.
+// It is assumed that the kinds of vx and vy are the same.
+func valueAddress(vx, vy reflect.Value) (uintptr, uintptr) {
+	switch vx.Kind() {
+	case reflect.Ptr:
+		return vx.Elem().UnsafeAddr(), vy.Elem().UnsafeAddr()
+	case reflect.Map, reflect.Slice:
+		return vx.Pointer(), vy.Pointer()
+	case reflect.Array:
+		return makeAddressable(vx).UnsafeAddr(), makeAddressable(vy).UnsafeAddr()
+	default:
+		panic(fmt.Sprintf("invalid kind %v for valueAddresses", vx.Kind()))
+	}
 }

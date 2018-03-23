@@ -2013,6 +2013,22 @@ func detectCyclesTest() []test {
 	insideB3.Next = &insideB1
 	insideB2.Value = "b"
 
+	type selfPointerType *selfPointerType
+	var selfPointer = new(selfPointerType)
+	*selfPointer = selfPointer
+
+	type selfListType []selfListType
+	selfList := selfListType{nil}
+	selfList[0] = selfList
+
+	type selfMapType map[int]selfMapType
+	selfMap := selfMapType{0: nil}
+	selfMap[0] = selfMap
+
+	type selfInterfaceType interface{}
+	var selfInterface selfInterfaceType
+	selfInterface = &selfInterface
+
 	return []test{{
 		label: label + "simple cycle/different",
 		x:     a,
@@ -2051,6 +2067,22 @@ func detectCyclesTest() []test {
 	-: "a"
 	+: "b"
 `,
+	}, {
+		label: label + "self pointers",
+		x:     selfPointer,
+		y:     selfPointer,
+	}, {
+		label: label + "self list",
+		x:     selfList,
+		y:     selfList,
+	}, {
+		label: label + "self map",
+		x:     selfMap,
+		y:     selfMap,
+	}, {
+		label: label + "self interface",
+		x:     selfInterface,
+		y:     selfInterface,
 	}}
 }
 
