@@ -731,6 +731,8 @@ func TestOptions(t *testing.T) {
 				gotEqual = cmp.Equal(tt.x, tt.y, tt.opts...)
 			}()
 			switch {
+			case tt.reason == "":
+				t.Errorf("reason must be provided")
 			case gotPanic == "" && tt.wantPanic:
 				t.Errorf("expected Equal panic\nreason: %s", tt.reason)
 			case gotPanic != "" && !tt.wantPanic:
@@ -972,6 +974,8 @@ func TestPanic(t *testing.T) {
 			}()
 
 			switch {
+			case tt.reason == "":
+				t.Errorf("reason must be provided")
 			case tt.wantPanic == "" && gotPanic != "":
 				t.Errorf("unexpected panic message: %s\nreason: %s", gotPanic, tt.reason)
 			case tt.wantPanic != "" && !strings.Contains(gotPanic, tt.wantPanic):
