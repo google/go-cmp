@@ -28,6 +28,8 @@ import (
 
 var now = time.Now()
 
+var reAddress = regexp.MustCompile(`\(0x[0-9a-f]+\)`)
+
 func intPtr(n int) *int { return &n }
 
 type test struct {
@@ -44,6 +46,7 @@ func TestDiff(t *testing.T) {
 	tests = append(tests, transformerTests()...)
 	tests = append(tests, embeddedTests()...)
 	tests = append(tests, methodTests()...)
+	tests = append(tests, detectCyclesTest()...)
 	tests = append(tests, project1Tests()...)
 	tests = append(tests, project2Tests()...)
 	tests = append(tests, project3Tests()...)
@@ -69,6 +72,10 @@ func TestDiff(t *testing.T) {
 				if gotPanic != "" {
 					t.Fatalf("unexpected panic message: %s", gotPanic)
 				}
+
+				// Change all addresses in the diff to be 0x00, so they could be expected
+				gotDiff = reAddress.ReplaceAllString(gotDiff, "(0x00)")
+
 				if got, want := strings.TrimSpace(gotDiff), strings.TrimSpace(tt.wantDiff); got != want {
 					t.Fatalf("difference message:\ngot:\n%s\n\nwant:\n%s", got, want)
 				}
@@ -1963,6 +1970,163 @@ func project4Tests() []test {
 {teststructs.Cartel}.poisons[1->?]:
 	-: &teststructs.Poison{poisonType: testprotos.PoisonType(2), manufacturer: "acme2"}
 	+: <non-existent>`,
+	}}
+}
+
+func detectCyclesTest() []test {
+	const label = "DetectCycles/"
+
+	type node struct {
+		Value string
+		Next  *node
+	}
+
+	var a = node{Value: "a"}
+	a.Next = &a
+
+	var anotherA = node{Value: "a"}
+	anotherA.Next = &anotherA
+
+	var b = node{Value: "b"}
+	b.Next = &b
+
+	// a cyclic link list in length 2
+	var len21, len22 node
+	len21.Next = &len22
+	len22.Next = &len21
+
+	// a cyclic link list in length 3
+	var len31, len32, len33 node
+	len31.Next = &len32
+	len32.Next = &len33
+	len33.Next = &len31
+
+	var insideA1, insideA2, insideA3 node
+	insideA1.Next = &insideA2
+	insideA2.Next = &insideA3
+	insideA3.Next = &insideA1
+	insideA2.Value = "a"
+
+	var insideB1, insideB2, insideB3 node
+	insideB1.Next = &insideB2
+	insideB2.Next = &insideB3
+	insideB3.Next = &insideB1
+	insideB2.Value = "b"
+
+	type treeNode struct {
+		Left, Right *treeNode
+	}
+
+	// diamond is diamond shaped tree:
+	//      *
+	//     / \
+	//    *   *
+	//     \ /
+	//      *
+	diamond := treeNode{Left: &treeNode{Right: &treeNode{}}, Right: &treeNode{}}
+	diamond.Right.Left = diamond.Left.Right
+
+	// diamondWithTail is diamond with tail shaped tree:
+	//      *
+	//     / \
+	//    *   *
+	//     \ /
+	//      *
+	//     /
+	//    *
+	diamondWithTail := treeNode{Left: &treeNode{Right: &treeNode{Left: &treeNode{}}}, Right: &treeNode{}}
+	diamondWithTail.Right.Left = diamondWithTail.Left.Right
+
+	type selfPointerType *selfPointerType
+	var selfPointer = new(selfPointerType)
+	*selfPointer = selfPointer
+
+	type selfListType []selfListType
+	selfList := selfListType{nil}
+	selfList[0] = selfList
+
+	type selfMapType map[int]selfMapType
+	selfMap := selfMapType{0: nil}
+	selfMap[0] = selfMap
+
+	type selfInterfaceType interface{}
+	var selfInterface selfInterfaceType
+	selfInterface = &selfInterface
+
+	return []test{{
+		label: label + "simple cycle/different",
+		x:     a,
+		y:     b,
+		wantDiff: `
+{cmp_test.node}.Value:
+	-: "a"
+	+: "b"
+{cmp_test.node}.Next.Value:
+	-: "a"
+	+: "b"
+`,
+	}, {
+		label: label + "simple cycle/equal",
+		x:     a,
+		y:     anotherA,
+	}, {
+		label: label + "simple cycle/equal identity",
+		x:     a,
+		y:     a,
+	}, {
+		label: label + "different size cycles",
+		x:     len21,
+		y:     len31,
+		wantDiff: `
+*{cmp_test.node}.Next.Next.Next:
+	-: &cmp_test.node{Next: &cmp_test.node{Next: (*cmp_test.node)(0x00)}}
+	+: &cmp_test.node{Next: &cmp_test.node{Next: &cmp_test.node{Next: (*cmp_test.node)(0x00)}}}
+`,
+	}, {
+		label: label + "value inside an equal cycle is different",
+		x:     insideA1,
+		y:     insideB1,
+		wantDiff: `
+{cmp_test.node}.Next.Value:
+	-: "a"
+	+: "b"
+`,
+	}, {
+		label: label + "diamonds are equal",
+		x:     diamond,
+		y:     diamond,
+	}, {
+		label: label + "diamonds with tail are equal",
+		x:     diamondWithTail,
+		y:     diamondWithTail,
+	}, {
+		label: label + "diamond is different from diamond with tail",
+		x:     diamond,
+		y:     diamondWithTail,
+		wantDiff: `
+{cmp_test.treeNode}.Left.Right.Left:
+	-: (*cmp_test.treeNode)(nil)
+	+: &cmp_test.treeNode{}
+{cmp_test.treeNode}.Right.Left.Left:
+	-: (*cmp_test.treeNode)(nil)
+	+: &cmp_test.treeNode{}
+`,
+	}, {
+		label: label + "self pointers",
+		x:     selfPointer,
+		y:     selfPointer,
+	}, {
+		label: label + "self list",
+		x:     selfList,
+		y:     selfList,
+	}, {
+		label: label + "self map",
+		x:     selfMap,
+		y:     selfMap,
+	}, {
+		label: label + "self interface",
+		x:     selfInterface,
+		y:     selfInterface,
 	}}
 }
 
