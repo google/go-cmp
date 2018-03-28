@@ -26,7 +26,7 @@ func Format(v reflect.Value, conf FormatConfig) string {
 	conf.printType = true
 	conf.followPointers = true
 	conf.realPointers = true
-	return formatAny(v, conf, nil)
+	return formatAny(v, conf, visited{})
 }
 
 type FormatConfig struct {
@@ -37,7 +37,7 @@ type FormatConfig struct {
 	realPointers       bool // Should we print the real address of pointers?
 }
 
-func formatAny(v reflect.Value, conf FormatConfig, visited map[uintptr]bool) string {
+func formatAny(v reflect.Value, conf FormatConfig, m visited) string {
 	// TODO: Should this be a multi-line printout in certain situations?
 
 	if !v.IsValid() {
@@ -79,11 +79,10 @@ func formatAny(v reflect.Value, conf FormatConfig, visited map[uintptr]bool) str
 			}
 			return "<nil>"
 		}
-		if visited[v.Pointer()] || !conf.followPointers {
+		if m.Visit(v) || !conf.followPointers {
 			return formatPointer(v, conf)
 		}
-		visited = insertPointer(visited, v.Pointer())
-		return "&" + formatAny(v.Elem(), conf, visited)
+		return "&" + formatAny(v.Elem(), conf, m)
 	case reflect.Interface:
 		if v.IsNil() {
 			if conf.printType {
@@ -91,7 +90,7 @@ func formatAny(v reflect.Value, conf FormatConfig, visited map[uintptr]bool) str
 			}
 			return "<nil>"
 		}
-		return formatAny(v.Elem(), conf, visited)
+		return formatAny(v.Elem(), conf, m)
 	case reflect.Slice:
 		if v.IsNil() {
 			if conf.printType {
@@ -99,18 +98,23 @@ func formatAny(v reflect.Value, conf FormatConfig, visited map[uintptr]bool) str
 			}
 			return "<nil>"
 		}
-		if visited[v.Pointer()] {
-			return formatPointer(v, conf)
-		}
-		visited = insertPointer(visited, v.Pointer())
 		fallthrough
 	case reflect.Array:
 		var ss []string
 		subConf := conf
 		subConf.printType = v.Type().Elem().Kind() == reflect.Interface
 		for i := 0; i < v.Len(); i++ {
-			s := formatAny(v.Index(i), subConf, visited)
-			ss = append(ss, s)
+			vi := v.Index(i)
+			if vi.CanAddr() { // Check for recursive elements
+				p := vi.Addr()
+				if m.Visit(p) {
+					subConf := conf
+					subConf.printType = true
+					ss = append(ss, "*"+formatPointer(p, subConf))
+					continue
+				}
+			}
+			ss = append(ss, formatAny(vi, subConf, m))
 		}
 		s := fmt.Sprintf("{%s}", strings.Join(ss, ", "))
 		if conf.printType {
@@ -124,10 +128,9 @@ func formatAny(v reflect.Value, conf FormatConfig, visited map[uintptr]bool) str
 			}
 			return "<nil>"
 		}
-		if visited[v.Pointer()] {
+		if m.Visit(v) {
 			return formatPointer(v, conf)
 		}
-		visited = insertPointer(visited, v.Pointer())
 
 		var ss []string
 		keyConf, valConf := conf, conf
@@ -135,8 +138,8 @@ func formatAny(v reflect.Value, conf FormatConfig, visited map[uintptr]bool) str
 		keyConf.followPointers = false
 		valConf.printType = v.Type().Elem().Kind() == reflect.Interface
 		for _, k := range SortKeys(v.MapKeys()) {
-			sk := formatAny(k, keyConf, visited)
-			sv := formatAny(v.MapIndex(k), valConf, visited)
+			sk := formatAny(k, keyConf, m)
+			sv := formatAny(v.MapIndex(k), valConf, m)
 			ss = append(ss, fmt.Sprintf("%s: %s", sk, sv))
 		}
 		s := fmt.Sprintf("{%s}", strings.Join(ss, ", "))
@@ -155,7 +158,7 @@ func formatAny(v reflect.Value, conf FormatConfig, visited map[uintptr]bool) str
 			}
 			name := v.Type().Field(i).Name
 			subConf.UseStringer = conf.UseStringer
-			s := formatAny(vv, subConf, visited)
+			s := formatAny(vv, subConf, m)
 			ss = append(ss, fmt.Sprintf("%s: %s", name, s))
 		}
 		s := fmt.Sprintf("{%s}", strings.Join(ss, ", "))
@@ -229,15 +232,6 @@ func formatHex(u uint64) string {
 	return fmt.Sprintf(f, u)
 }
 
-// insertPointer insert p into m, allocating m if necessary.
-func insertPointer(m map[uintptr]bool, p uintptr) map[uintptr]bool {
-	if m == nil {
-		m = make(map[uintptr]bool)
-	}
-	m[p] = true
-	return m
-}
-
 // isZero reports whether v is the zero value.
 // This does not rely on Interface and so can be used on unexported fields.
 func isZero(v reflect.Value) bool {
@@ -274,4 +268,13 @@ func isZero(v reflect.Value) bool {
 		return true
 	}
 	return false
+}
+
+type visited map[Pointer]bool
+
+func (m visited) Visit(v reflect.Value) bool {
+	p := PointerOf(v)
+	visited := m[p]
+	m[p] = true
+	return visited
 }
