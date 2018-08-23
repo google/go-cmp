@@ -92,12 +92,12 @@ func ExampleDiff_testing() {
 	for _, test := range tests {
 		AddCrew(test.before, test.name, test.title)
 		if diff := cmp.Diff(test.before, test.after); diff != "" {
-			t.Errorf("%s: after AddCrew, manifest differs: (-got +want)\n%s", test.desc, diff)
+			t.Errorf("%s: after AddCrew, manifest differs: (-want +got)\n%s", test.desc, diff)
 		}
 	}
 
 	// Output:
-	// add to empty: after AddCrew, manifest differs: (-got +want)
+	// add to empty: after AddCrew, manifest differs: (-want +got)
 	// {*cmp_test.ShipManifest}.Crew["Galactic President"]:
 	// 	-: "Zaphod Beeblebrox"
 	// 	+: <non-existent>
@@ -105,7 +105,7 @@ func ExampleDiff_testing() {
 	// 	-: <non-existent>
 	// 	+: "Galactic President"
 	//
-	// add another: after AddCrew, manifest differs: (-got +want)
+	// add another: after AddCrew, manifest differs: (-want +got)
 	// {*cmp_test.ShipManifest}.Crew["Human"]:
 	// 	-: "Trillian"
 	// 	+: <non-existent>
@@ -113,7 +113,7 @@ func ExampleDiff_testing() {
 	// 	-: <non-existent>
 	// 	+: "Human"
 	//
-	// overwrite: after AddCrew, manifest differs: (-got +want)
+	// overwrite: after AddCrew, manifest differs: (-want +got)
 	// {*cmp_test.ShipManifest}.Crew["Just this guy, you know?"]:
 	// 	-: "Zaphod Beeblebrox"
 	// 	+: <non-existent>
