@@ -26,28 +26,21 @@ func (r *defaultReporter) Report(x, y reflect.Value, eq bool, p Path) {
 	if eq {
 		return // Ignore equal results
 	}
-	const maxBytes = 4096
-	const maxLines = 256
-	r.ndiffs++
-	if r.nbytes < maxBytes && r.nlines < maxLines {
-		sx := value.Format(x, value.FormatConfig{UseStringer: true})
-		sy := value.Format(y, value.FormatConfig{UseStringer: true})
-		if sx == sy {
-			// Unhelpful output, so use more exact formatting.
-			sx = value.Format(x, value.FormatConfig{PrintPrimitiveType: true})
-			sy = value.Format(y, value.FormatConfig{PrintPrimitiveType: true})
-		}
-		s := fmt.Sprintf("%#v:\n\t-: %s\n\t+: %s\n", p, sx, sy)
-		r.diffs = append(r.diffs, s)
-		r.nbytes += len(s)
-		r.nlines += strings.Count(s, "\n")
+	sx := value.Format(x, value.FormatConfig{UseStringer: true})
+	sy := value.Format(y, value.FormatConfig{UseStringer: true})
+	if sx == sy {
+		// Unhelpful output, so use more exact formatting.
+		sx = value.Format(x, value.FormatConfig{PrintPrimitiveType: true})
+		sy = value.Format(y, value.FormatConfig{PrintPrimitiveType: true})
 	}
+	// Tab delimted output in the format of: Key,Value x,Value X,
+	s := fmt.Sprintf("%#v\t%s\t%s\t\n", p, sx, sy)
+	r.diffs = append(r.diffs, s)
+	r.nbytes += len(s)
+	r.nlines += strings.Count(s, "\n")
 }
 
 func (r *defaultReporter) String() string {
 	s := strings.Join(r.diffs, "")
-	if r.ndiffs == len(r.diffs) {
-		return s
-	}
-	return fmt.Sprintf("%s... %d more differences ...", s, r.ndiffs-len(r.diffs))
+	return s
 }
