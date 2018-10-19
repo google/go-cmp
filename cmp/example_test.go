@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/google/go-cmp/cmp"
+	"go-cmp/cmp"
 )
 
 // TODO: Re-write these examples in terms of how you actually use the

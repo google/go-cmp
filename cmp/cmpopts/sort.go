@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/internal/function"
+	"go-cmp/cmp"
+	"go-cmp/cmp/internal/function"
 )
 
 // SortSlices returns a Transformer option that sorts all []V.

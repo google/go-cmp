@@ -7,7 +7,7 @@ package teststructs
 import (
 	"sync"
 
-	pb "github.com/google/go-cmp/cmp/internal/testprotos"
+	pb "go-cmp/cmp/internal/testprotos"
 )
 
 // This is an sanitized example of equality from a real use-case.

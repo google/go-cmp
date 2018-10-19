@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	ts "github.com/google/go-cmp/cmp/internal/teststructs"
+	ts "go-cmp/cmp/internal/teststructs"
 )
 
 // Test that the creation of Option values with non-sensible inputs produces

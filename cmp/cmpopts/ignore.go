@@ -10,7 +10,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/google/go-cmp/cmp"
+	"go-cmp/cmp"
 )
 
 // IgnoreFields returns an Option that ignores exported fields of the

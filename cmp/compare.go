@@ -31,9 +31,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/google/go-cmp/cmp/internal/diff"
-	"github.com/google/go-cmp/cmp/internal/function"
-	"github.com/google/go-cmp/cmp/internal/value"
+	"go-cmp/cmp/internal/diff"
+	"go-cmp/cmp/internal/function"
+	"go-cmp/cmp/internal/value"
 )
 
 // BUG(dsnet): Maps with keys containing NaN values cannot be properly compared due to

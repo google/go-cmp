@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/internal/value"
+	"go-cmp/cmp"
+	"go-cmp/cmp/internal/value"
 )
 
 func TestSortKeys(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/google/go-cmp/cmp/internal/function"
+	"go-cmp/cmp/internal/function"
 )
 
 // Option configures for specific behavior of Equal and Diff. In particular,
