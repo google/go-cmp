@@ -185,7 +185,7 @@ func TestOptionPanic(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		tRun(t, tt.label, func(t *testing.T) {
+		t.Run(tt.label, func(t *testing.T) {
 			var gotPanic string
 			func() {
 				defer func() {
@@ -213,19 +213,5 @@ func TestOptionPanic(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-// TODO: Delete this hack when we drop Go1.6 support.
-func tRun(t *testing.T, name string, f func(t *testing.T)) {
-	type runner interface {
-		Run(string, func(t *testing.T)) bool
-	}
-	var ti interface{} = t
-	if r, ok := ti.(runner); ok {
-		r.Run(name, f)
-	} else {
-		t.Logf("Test: %s", name)
-		f(t)
 	}
 }
