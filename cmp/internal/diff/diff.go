@@ -191,9 +191,9 @@ func Difference(nx, ny int, f EqualFunc) (es EditScript) {
 	// that two lists commonly differ because elements were added to the front
 	// or end of the other list.
 	//
-	// Running the tests with the "debug" build tag prints a visualization of
-	// the algorithm running in real-time. This is educational for understanding
-	// how the algorithm works. See debug_enable.go.
+	// Running the tests with the "cmp_debug" build tag prints a visualization
+	// of the algorithm running in real-time. This is educational for
+	// understanding how the algorithm works. See debug_enable.go.
 	f = debug.Begin(nx, ny, f, &fwdPath.es, &revPath.es)
 	for {
 		// Forward search from the beginning.
