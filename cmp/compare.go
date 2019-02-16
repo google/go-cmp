@@ -346,8 +346,7 @@ func (s *state) callTRFunc(f, v reflect.Value) reflect.Value {
 		if !s.statelessCompare(want, want).Equal() {
 			return want
 		}
-		fn := getFuncName(f.Pointer())
-		panic(fmt.Sprintf("non-deterministic function detected: %s", fn))
+		panic(fmt.Sprintf("non-deterministic function detected: %s", function.NameOf(f)))
 	}
 	return want
 }
@@ -367,8 +366,7 @@ func (s *state) callTTBFunc(f, x, y reflect.Value) bool {
 	go detectRaces(c, f, y, x)
 	want := f.Call([]reflect.Value{x, y})[0].Bool()
 	if got := <-c; !got.IsValid() || got.Bool() != want {
-		fn := getFuncName(f.Pointer())
-		panic(fmt.Sprintf("non-deterministic or non-symmetric function detected: %s", fn))
+		panic(fmt.Sprintf("non-deterministic or non-symmetric function detected: %s", function.NameOf(f)))
 	}
 	return want
 }
