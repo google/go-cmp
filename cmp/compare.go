@@ -234,6 +234,21 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 	case reflect.Func:
 		s.report(vx.IsNil() && vy.IsNil(), vx, vy)
 		return
+	case reflect.Struct:
+		s.compareStruct(vx, vy, t)
+		return
+	case reflect.Slice:
+		if vx.IsNil() || vy.IsNil() {
+			s.report(vx.IsNil() && vy.IsNil(), vx, vy)
+			return
+		}
+		fallthrough
+	case reflect.Array:
+		s.compareSlice(vx, vy, t)
+		return
+	case reflect.Map:
+		s.compareMap(vx, vy, t)
+		return
 	case reflect.Ptr:
 		if vx.IsNil() || vy.IsNil() {
 			s.report(vx.IsNil() && vy.IsNil(), vx, vy)
@@ -255,21 +270,6 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 		s.curPath.push(&typeAssertion{pathStep{vx.Elem().Type()}})
 		defer s.curPath.pop()
 		s.compareAny(vx.Elem(), vy.Elem())
-		return
-	case reflect.Slice:
-		if vx.IsNil() || vy.IsNil() {
-			s.report(vx.IsNil() && vy.IsNil(), vx, vy)
-			return
-		}
-		fallthrough
-	case reflect.Array:
-		s.compareArray(vx, vy, t)
-		return
-	case reflect.Map:
-		s.compareMap(vx, vy, t)
-		return
-	case reflect.Struct:
-		s.compareStruct(vx, vy, t)
 		return
 	default:
 		panic(fmt.Sprintf("%v kind not handled", t.Kind()))
@@ -340,8 +340,7 @@ func (s *state) callTRFunc(f, v reflect.Value) reflect.Value {
 		if !s.statelessCompare(want, want).Equal() {
 			return want
 		}
-		fn := getFuncName(f.Pointer())
-		panic(fmt.Sprintf("non-deterministic function detected: %s", fn))
+		panic(fmt.Sprintf("non-deterministic function detected: %s", function.NameOf(f)))
 	}
 	return want
 }
@@ -361,8 +360,7 @@ func (s *state) callTTBFunc(f, x, y reflect.Value) bool {
 	go detectRaces(c, f, y, x)
 	want := f.Call([]reflect.Value{x, y})[0].Bool()
 	if got := <-c; !got.IsValid() || got.Bool() != want {
-		fn := getFuncName(f.Pointer())
-		panic(fmt.Sprintf("non-deterministic or non-symmetric function detected: %s", fn))
+		panic(fmt.Sprintf("non-deterministic or non-symmetric function detected: %s", function.NameOf(f)))
 	}
 	return want
 }
@@ -389,7 +387,42 @@ func sanitizeValue(v reflect.Value, t reflect.Type) reflect.Value {
 	return v
 }
 
-func (s *state) compareArray(vx, vy reflect.Value, t reflect.Type) {
+func (s *state) compareStruct(vx, vy reflect.Value, t reflect.Type) {
+	var vax, vay reflect.Value // Addressable versions of vx and vy
+
+	step := &structField{}
+	s.curPath.push(step)
+	defer s.curPath.pop()
+	for i := 0; i < t.NumField(); i++ {
+		vvx := vx.Field(i)
+		vvy := vy.Field(i)
+		step.typ = t.Field(i).Type
+		step.name = t.Field(i).Name
+		step.idx = i
+		step.unexported = !isExported(step.name)
+		if step.unexported {
+			if step.name == "_" {
+				continue
+			}
+			// Defer checking of unexported fields until later to give an
+			// Ignore a chance to ignore the field.
+			if !vax.IsValid() || !vay.IsValid() {
+				// For unsafeRetrieveField to work, the parent struct must
+				// be addressable. Create a new copy of the values if
+				// necessary to make them addressable.
+				vax = makeAddressable(vx)
+				vay = makeAddressable(vy)
+			}
+			step.force = s.exporters[t]
+			step.pvx = vax
+			step.pvy = vay
+			step.field = t.Field(i)
+		}
+		s.compareAny(vvx, vvy)
+	}
+}
+
+func (s *state) compareSlice(vx, vy reflect.Value, t reflect.Type) {
 	step := &sliceIndex{pathStep{t.Elem()}, 0, 0}
 	s.curPath.push(step)
 
@@ -481,38 +514,6 @@ func (s *state) compareMap(vx, vy reflect.Value, t reflect.Type) {
 			const help = "consider providing a Comparer to compare the map"
 			panic(fmt.Sprintf("%#v has map key with NaNs\n%s", s.curPath, help))
 		}
-	}
-}
-
-func (s *state) compareStruct(vx, vy reflect.Value, t reflect.Type) {
-	var vax, vay reflect.Value // Addressable versions of vx and vy
-
-	step := &structField{}
-	s.curPath.push(step)
-	defer s.curPath.pop()
-	for i := 0; i < t.NumField(); i++ {
-		vvx := vx.Field(i)
-		vvy := vy.Field(i)
-		step.typ = t.Field(i).Type
-		step.name = t.Field(i).Name
-		step.idx = i
-		step.unexported = !isExported(step.name)
-		if step.unexported {
-			// Defer checking of unexported fields until later to give an
-			// Ignore a chance to ignore the field.
-			if !vax.IsValid() || !vay.IsValid() {
-				// For unsafeRetrieveField to work, the parent struct must
-				// be addressable. Create a new copy of the values if
-				// necessary to make them addressable.
-				vax = makeAddressable(vx)
-				vay = makeAddressable(vy)
-			}
-			step.force = s.exporters[t]
-			step.pvx = vax
-			step.pvy = vay
-			step.field = t.Field(i)
-		}
-		s.compareAny(vvx, vvy)
 	}
 }
 

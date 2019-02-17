@@ -7,7 +7,7 @@ package cmp
 import (
 	"fmt"
 	"reflect"
-	"runtime"
+	"regexp"
 	"strings"
 
 	"github.com/google/go-cmp/cmp/internal/function"
@@ -132,8 +132,7 @@ func (f pathFilter) filter(s *state, vx, vy reflect.Value, t reflect.Type) appli
 }
 
 func (f pathFilter) String() string {
-	fn := getFuncName(reflect.ValueOf(f.fnc).Pointer())
-	return fmt.Sprintf("FilterPath(%s, %v)", fn, f.opt)
+	return fmt.Sprintf("FilterPath(%s, %v)", function.NameOf(reflect.ValueOf(f.fnc)), f.opt)
 }
 
 // FilterValues returns a new Option where opt is only evaluated if filter f,
@@ -182,8 +181,7 @@ func (f valuesFilter) filter(s *state, vx, vy reflect.Value, t reflect.Type) app
 }
 
 func (f valuesFilter) String() string {
-	fn := getFuncName(f.fnc.Pointer())
-	return fmt.Sprintf("FilterValues(%s, %v)", fn, f.opt)
+	return fmt.Sprintf("FilterValues(%s, %v)", function.NameOf(f.fnc), f.opt)
 }
 
 // Ignore is an Option that causes all comparisons to be ignored.
@@ -208,6 +206,11 @@ func (invalid) apply(s *state, _, _ reflect.Value) {
 	panic(fmt.Sprintf("cannot handle unexported field: %#v\n%s", s.curPath, help))
 }
 
+// identRx represents a valid identifier according to the Go specification.
+const identRx = `[_\p{L}][_\p{L}\p{N}]*`
+
+var identsRx = regexp.MustCompile(`^` + identRx + `(\.` + identRx + `)*$`)
+
 // Transformer returns an Option that applies a transformation function that
 // converts values of a certain type into that of another.
 //
@@ -225,7 +228,9 @@ func (invalid) apply(s *state, _, _ reflect.Value) {
 // to prevent the transformer from being recursively applied upon itself.
 //
 // The name is a user provided label that is used as the Transform.Name in the
-// transformation PathStep. If empty, an arbitrary name is used.
+// transformation PathStep (and eventually shown in the Diff output).
+// The name must be a valid identifier or qualified identifier in Go syntax.
+// If empty, an arbitrary name is used.
 func Transformer(name string, f interface{}) Option {
 	v := reflect.ValueOf(f)
 	if !function.IsType(v.Type(), function.Transformer) || v.IsNil() {
@@ -234,7 +239,7 @@ func Transformer(name string, f interface{}) Option {
 	if name == "" {
 		name = "λ" // Lambda-symbol as place-holder for anonymous transformer
 	}
-	if !isValid(name) {
+	if !identsRx.MatchString(name) {
 		panic(fmt.Sprintf("invalid name: %q", name))
 	}
 	tr := &transformer{name: name, fnc: reflect.ValueOf(f)}
@@ -279,7 +284,7 @@ func (tr *transformer) apply(s *state, vx, vy reflect.Value) {
 }
 
 func (tr transformer) String() string {
-	return fmt.Sprintf("Transformer(%s, %s)", tr.name, getFuncName(tr.fnc.Pointer()))
+	return fmt.Sprintf("Transformer(%s, %s)", tr.name, function.NameOf(tr.fnc))
 }
 
 // Comparer returns an Option that determines whether two values are equal
@@ -327,7 +332,7 @@ func (cm *comparer) apply(s *state, vx, vy reflect.Value) {
 }
 
 func (cm comparer) String() string {
-	return fmt.Sprintf("Comparer(%s)", getFuncName(cm.fnc.Pointer()))
+	return fmt.Sprintf("Comparer(%s)", function.NameOf(cm.fnc))
 }
 
 // AllowUnexported returns an Option that forcibly allows operations on
@@ -426,31 +431,4 @@ func flattenOptions(dst, src Options) Options {
 		}
 	}
 	return dst
-}
-
-// getFuncName returns a short function name from the pointer.
-// The string parsing logic works up until Go1.9.
-func getFuncName(p uintptr) string {
-	fnc := runtime.FuncForPC(p)
-	if fnc == nil {
-		return "<unknown>"
-	}
-	name := fnc.Name() // E.g., "long/path/name/mypkg.(mytype).(long/path/name/mypkg.myfunc)-fm"
-	if strings.HasSuffix(name, ")-fm") || strings.HasSuffix(name, ")·fm") {
-		// Strip the package name from method name.
-		name = strings.TrimSuffix(name, ")-fm")
-		name = strings.TrimSuffix(name, ")·fm")
-		if i := strings.LastIndexByte(name, '('); i >= 0 {
-			methodName := name[i+1:] // E.g., "long/path/name/mypkg.myfunc"
-			if j := strings.LastIndexByte(methodName, '.'); j >= 0 {
-				methodName = methodName[j+1:] // E.g., "myfunc"
-			}
-			name = name[:i] + methodName // E.g., "long/path/name/mypkg.(mytype)." + "myfunc"
-		}
-	}
-	if i := strings.LastIndexByte(name, '/'); i >= 0 {
-		// Strip the package name.
-		name = name[i+1:] // E.g., "mypkg.(mytype).myfunc"
-	}
-	return name
 }
