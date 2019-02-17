@@ -491,6 +491,9 @@ func (s *state) compareStruct(vx, vy reflect.Value, t reflect.Type) {
 		step.idx = i
 		step.unexported = !isExported(step.name)
 		if step.unexported {
+			if step.name == "_" {
+				continue
+			}
 			// Defer checking of unexported fields until later to give an
 			// Ignore a chance to ignore the field.
 			if !vax.IsValid() || !vay.IsValid() {

@@ -465,6 +465,10 @@ root[0]["hr"]:
 root[1]["hr"]:
 	-: int(63)
 	+: float64(63)`,
+	}, {
+		label: label,
+		x:     struct{ _ string }{},
+		y:     struct{ _ string }{},
 	}}
 }
 
