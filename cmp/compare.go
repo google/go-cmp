@@ -36,12 +36,6 @@ import (
 	"github.com/google/go-cmp/cmp/internal/value"
 )
 
-// BUG(dsnet): Maps with keys containing NaN values cannot be properly compared due to
-// the reflection package's inability to retrieve such entries. Equal will panic
-// anytime it comes across a NaN key, but this behavior may change.
-//
-// See https://golang.org/issue/11104 for more details.
-
 var nothing = reflect.Value{}
 
 // Equal reports whether x and y are equal by recursively applying the
@@ -240,6 +234,21 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 	case reflect.Func:
 		s.report(vx.IsNil() && vy.IsNil(), vx, vy)
 		return
+	case reflect.Struct:
+		s.compareStruct(vx, vy, t)
+		return
+	case reflect.Slice:
+		if vx.IsNil() || vy.IsNil() {
+			s.report(vx.IsNil() && vy.IsNil(), vx, vy)
+			return
+		}
+		fallthrough
+	case reflect.Array:
+		s.compareSlice(vx, vy, t)
+		return
+	case reflect.Map:
+		s.compareMap(vx, vy, t)
+		return
 	case reflect.Ptr:
 		if vx.IsNil() || vy.IsNil() {
 			s.report(vx.IsNil() && vy.IsNil(), vx, vy)
@@ -261,21 +270,6 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 		s.curPath.push(&typeAssertion{pathStep{vx.Elem().Type()}})
 		defer s.curPath.pop()
 		s.compareAny(vx.Elem(), vy.Elem())
-		return
-	case reflect.Slice:
-		if vx.IsNil() || vy.IsNil() {
-			s.report(vx.IsNil() && vy.IsNil(), vx, vy)
-			return
-		}
-		fallthrough
-	case reflect.Array:
-		s.compareArray(vx, vy, t)
-		return
-	case reflect.Map:
-		s.compareMap(vx, vy, t)
-		return
-	case reflect.Struct:
-		s.compareStruct(vx, vy, t)
 		return
 	default:
 		panic(fmt.Sprintf("%v kind not handled", t.Kind()))
@@ -346,8 +340,7 @@ func (s *state) callTRFunc(f, v reflect.Value) reflect.Value {
 		if !s.statelessCompare(want, want).Equal() {
 			return want
 		}
-		fn := getFuncName(f.Pointer())
-		panic(fmt.Sprintf("non-deterministic function detected: %s", fn))
+		panic(fmt.Sprintf("non-deterministic function detected: %s", function.NameOf(f)))
 	}
 	return want
 }
@@ -367,8 +360,7 @@ func (s *state) callTTBFunc(f, x, y reflect.Value) bool {
 	go detectRaces(c, f, y, x)
 	want := f.Call([]reflect.Value{x, y})[0].Bool()
 	if got := <-c; !got.IsValid() || got.Bool() != want {
-		fn := getFuncName(f.Pointer())
-		panic(fmt.Sprintf("non-deterministic or non-symmetric function detected: %s", fn))
+		panic(fmt.Sprintf("non-deterministic or non-symmetric function detected: %s", function.NameOf(f)))
 	}
 	return want
 }
@@ -395,7 +387,42 @@ func sanitizeValue(v reflect.Value, t reflect.Type) reflect.Value {
 	return v
 }
 
-func (s *state) compareArray(vx, vy reflect.Value, t reflect.Type) {
+func (s *state) compareStruct(vx, vy reflect.Value, t reflect.Type) {
+	var vax, vay reflect.Value // Addressable versions of vx and vy
+
+	step := &structField{}
+	s.curPath.push(step)
+	defer s.curPath.pop()
+	for i := 0; i < t.NumField(); i++ {
+		vvx := vx.Field(i)
+		vvy := vy.Field(i)
+		step.typ = t.Field(i).Type
+		step.name = t.Field(i).Name
+		step.idx = i
+		step.unexported = !isExported(step.name)
+		if step.unexported {
+			if step.name == "_" {
+				continue
+			}
+			// Defer checking of unexported fields until later to give an
+			// Ignore a chance to ignore the field.
+			if !vax.IsValid() || !vay.IsValid() {
+				// For unsafeRetrieveField to work, the parent struct must
+				// be addressable. Create a new copy of the values if
+				// necessary to make them addressable.
+				vax = makeAddressable(vx)
+				vay = makeAddressable(vy)
+			}
+			step.force = s.exporters[t]
+			step.pvx = vax
+			step.pvy = vay
+			step.field = t.Field(i)
+		}
+		s.compareAny(vvx, vvy)
+	}
+}
+
+func (s *state) compareSlice(vx, vy reflect.Value, t reflect.Type) {
 	step := &sliceIndex{pathStep{t.Elem()}, 0, 0}
 	s.curPath.push(step)
 
@@ -471,43 +498,22 @@ func (s *state) compareMap(vx, vy reflect.Value, t reflect.Type) {
 			s.report(false, nothing, vvy)
 		default:
 			// It is possible for both vvx and vvy to be invalid if the
-			// key contained a NaN value in it. There is no way in
-			// reflection to be able to retrieve these values.
-			// See https://golang.org/issue/11104
-			panic(fmt.Sprintf("%#v has map key with NaNs", s.curPath))
+			// key contained a NaN value in it.
+			//
+			// Even with the ability to retrieve NaN keys in Go 1.12,
+			// there still isn't a sensible way to compare the values since
+			// a NaN key may map to multiple unordered values.
+			// The most reasonable way to compare NaNs would be to compare the
+			// set of values. However, this is impossible to do efficiently
+			// since set equality is provably an O(n^2) operation given only
+			// an Equal function. If we had a Less function or Hash function,
+			// this could be done in O(n*log(n)) or O(n), respectively.
+			//
+			// Rather than adding complex logic to deal with NaNs, make it
+			// the user's responsibility to compare such obscure maps.
+			const help = "consider providing a Comparer to compare the map"
+			panic(fmt.Sprintf("%#v has map key with NaNs\n%s", s.curPath, help))
 		}
-	}
-}
-
-func (s *state) compareStruct(vx, vy reflect.Value, t reflect.Type) {
-	var vax, vay reflect.Value // Addressable versions of vx and vy
-
-	step := &structField{}
-	s.curPath.push(step)
-	defer s.curPath.pop()
-	for i := 0; i < t.NumField(); i++ {
-		vvx := vx.Field(i)
-		vvy := vy.Field(i)
-		step.typ = t.Field(i).Type
-		step.name = t.Field(i).Name
-		step.idx = i
-		step.unexported = !isExported(step.name)
-		if step.unexported {
-			// Defer checking of unexported fields until later to give an
-			// Ignore a chance to ignore the field.
-			if !vax.IsValid() || !vay.IsValid() {
-				// For unsafeRetrieveField to work, the parent struct must
-				// be addressable. Create a new copy of the values if
-				// necessary to make them addressable.
-				vax = makeAddressable(vx)
-				vay = makeAddressable(vy)
-			}
-			step.force = s.exporters[t]
-			step.pvx = vax
-			step.pvy = vay
-			step.field = t.Field(i)
-		}
-		s.compareAny(vvx, vvy)
 	}
 }
 

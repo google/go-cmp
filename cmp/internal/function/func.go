@@ -2,10 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE.md file.
 
-// Package function identifies function types.
+// Package function provides functionality for identifying function types.
 package function
 
-import "reflect"
+import (
+	"reflect"
+	"regexp"
+	"runtime"
+	"strings"
+)
 
 type funcType int
 
@@ -46,4 +51,37 @@ func IsType(t reflect.Type, ft funcType) bool {
 		}
 	}
 	return false
+}
+
+var lastIdentRx = regexp.MustCompile(`[_\p{L}][_\p{L}\p{N}]*$`)
+
+// NameOf returns the name of the function value.
+func NameOf(v reflect.Value) string {
+	fnc := runtime.FuncForPC(v.Pointer())
+	if fnc == nil {
+		return "<unknown>"
+	}
+	fullName := fnc.Name() // e.g., "long/path/name/mypkg.(*MyType).(long/path/name/mypkg.myMethod)-fm"
+
+	// Method closures have a "-fm" suffix.
+	fullName = strings.TrimSuffix(fullName, "-fm")
+
+	var name string
+	for len(fullName) > 0 {
+		inParen := strings.HasSuffix(fullName, ")")
+		fullName = strings.TrimSuffix(fullName, ")")
+
+		s := lastIdentRx.FindString(fullName)
+		if s == "" {
+			break
+		}
+		name = s + "." + name
+		fullName = strings.TrimSuffix(fullName, s)
+
+		if i := strings.LastIndexByte(fullName, '('); inParen && i >= 0 {
+			fullName = fullName[:i]
+		}
+		fullName = strings.TrimSuffix(fullName, ".")
+	}
+	return strings.TrimSuffix(name, ".")
 }

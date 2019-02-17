@@ -113,10 +113,9 @@ func TestOptionPanic(t *testing.T) {
 		args:      []interface{}{"/*", func(int) bool { return true }},
 		wantPanic: "invalid name",
 	}, {
-		label:     "Transformer",
-		fnc:       Transformer,
-		args:      []interface{}{"_", func(int) bool { return true }},
-		wantPanic: "invalid name",
+		label: "Transformer",
+		fnc:   Transformer,
+		args:  []interface{}{"_", func(int) bool { return true }},
 	}, {
 		label:     "FilterPath",
 		fnc:       FilterPath,
