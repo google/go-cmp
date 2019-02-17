@@ -7,6 +7,7 @@ package cmp
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/google/go-cmp/cmp/internal/function"
@@ -205,6 +206,11 @@ func (invalid) apply(s *state, _, _ reflect.Value) {
 	panic(fmt.Sprintf("cannot handle unexported field: %#v\n%s", s.curPath, help))
 }
 
+// identRx represents a valid identifier according to the Go specification.
+const identRx = `[_\p{L}][_\p{L}\p{N}]*`
+
+var identsRx = regexp.MustCompile(`^` + identRx + `(\.` + identRx + `)*$`)
+
 // Transformer returns an Option that applies a transformation function that
 // converts values of a certain type into that of another.
 //
@@ -222,7 +228,9 @@ func (invalid) apply(s *state, _, _ reflect.Value) {
 // to prevent the transformer from being recursively applied upon itself.
 //
 // The name is a user provided label that is used as the Transform.Name in the
-// transformation PathStep. If empty, an arbitrary name is used.
+// transformation PathStep (and eventually shown in the Diff output).
+// The name must be a valid identifier or qualified identifier in Go syntax.
+// If empty, an arbitrary name is used.
 func Transformer(name string, f interface{}) Option {
 	v := reflect.ValueOf(f)
 	if !function.IsType(v.Type(), function.Transformer) || v.IsNil() {
@@ -231,7 +239,7 @@ func Transformer(name string, f interface{}) Option {
 	if name == "" {
 		name = "λ" // Lambda-symbol as place-holder for anonymous transformer
 	}
-	if !isValid(name) {
+	if !identsRx.MatchString(name) {
 		panic(fmt.Sprintf("invalid name: %q", name))
 	}
 	tr := &transformer{name: name, fnc: reflect.ValueOf(f)}
