@@ -36,12 +36,6 @@ import (
 	"github.com/google/go-cmp/cmp/internal/value"
 )
 
-// BUG(dsnet): Maps with keys containing NaN values cannot be properly compared due to
-// the reflection package's inability to retrieve such entries. Equal will panic
-// anytime it comes across a NaN key, but this behavior may change.
-//
-// See https://golang.org/issue/11104 for more details.
-
 var nothing = reflect.Value{}
 
 // Equal reports whether x and y are equal by recursively applying the
@@ -471,10 +465,21 @@ func (s *state) compareMap(vx, vy reflect.Value, t reflect.Type) {
 			s.report(false, nothing, vvy)
 		default:
 			// It is possible for both vvx and vvy to be invalid if the
-			// key contained a NaN value in it. There is no way in
-			// reflection to be able to retrieve these values.
-			// See https://golang.org/issue/11104
-			panic(fmt.Sprintf("%#v has map key with NaNs", s.curPath))
+			// key contained a NaN value in it.
+			//
+			// Even with the ability to retrieve NaN keys in Go 1.12,
+			// there still isn't a sensible way to compare the values since
+			// a NaN key may map to multiple unordered values.
+			// The most reasonable way to compare NaNs would be to compare the
+			// set of values. However, this is impossible to do efficiently
+			// since set equality is provably an O(n^2) operation given only
+			// an Equal function. If we had a Less function or Hash function,
+			// this could be done in O(n*log(n)) or O(n), respectively.
+			//
+			// Rather than adding complex logic to deal with NaNs, make it
+			// the user's responsibility to compare such obscure maps.
+			const help = "consider providing a Comparer to compare the map"
+			panic(fmt.Sprintf("%#v has map key with NaNs\n%s", s.curPath, help))
 		}
 	}
 }
