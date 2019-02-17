@@ -296,14 +296,3 @@ func isExported(id string) bool {
 	r, _ := utf8.DecodeRuneInString(id)
 	return unicode.IsUpper(r)
 }
-
-// isValid reports whether the identifier is valid.
-// Empty and underscore-only strings are not valid.
-func isValid(id string) bool {
-	ok := id != "" && id != "_"
-	for j, c := range id {
-		ok = ok && (j > 0 || !unicode.IsDigit(c))
-		ok = ok && (c == '_' || unicode.IsLetter(c) || unicode.IsDigit(c))
-	}
-	return ok
-}
