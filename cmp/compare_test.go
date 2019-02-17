@@ -335,7 +335,7 @@ root:
 		x:     new(fmt.Stringer),
 		y:     nil,
 		wantDiff: `
-:
+root:
 	-: &<nil>
 	+: <non-existent>`,
 	}, {
@@ -426,7 +426,7 @@ root:
 		// Ensure Stringer avoids double-quote escaping if possible.
 		label:    label,
 		x:        []*pb.Stringer{{`multi\nline\nline\nline`}},
-		wantDiff: ":\n\t-: []*testprotos.Stringer{s`multi\\nline\\nline\\nline`}\n\t+: <non-existent>",
+		wantDiff: "root:\n\t-: []*testprotos.Stringer{s`multi\\nline\\nline\\nline`}\n\t+: <non-existent>",
 	}, {
 		label: label,
 		x:     struct{ I Iface2 }{},
