@@ -237,9 +237,11 @@ func Transformer(name string, f interface{}) Option {
 		panic(fmt.Sprintf("invalid transformer function: %T", f))
 	}
 	if name == "" {
-		name = "λ" // Lambda-symbol as place-holder for anonymous transformer
-	}
-	if !identsRx.MatchString(name) {
+		name = function.NameOf(v)
+		if !identsRx.MatchString(name) {
+			name = "λ" // Lambda-symbol as placeholder name
+		}
+	} else if !identsRx.MatchString(name) {
 		panic(fmt.Sprintf("invalid name: %q", name))
 	}
 	tr := &transformer{name: name, fnc: reflect.ValueOf(f)}

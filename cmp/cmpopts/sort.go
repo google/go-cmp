@@ -32,7 +32,7 @@ func SortSlices(less interface{}) cmp.Option {
 		panic(fmt.Sprintf("invalid less function: %T", less))
 	}
 	ss := sliceSorter{vf.Type().In(0), vf}
-	return cmp.FilterValues(ss.filter, cmp.Transformer("Sort", ss.sort))
+	return cmp.FilterValues(ss.filter, cmp.Transformer("cmpopts.SortSlices", ss.sort))
 }
 
 type sliceSorter struct {
@@ -103,7 +103,7 @@ func SortMaps(less interface{}) cmp.Option {
 		panic(fmt.Sprintf("invalid less function: %T", less))
 	}
 	ms := mapSorter{vf.Type().In(0), vf}
-	return cmp.FilterValues(ms.filter, cmp.Transformer("Sort", ms.sort))
+	return cmp.FilterValues(ms.filter, cmp.Transformer("cmpopts.SortMaps", ms.sort))
 }
 
 type mapSorter struct {
