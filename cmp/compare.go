@@ -44,11 +44,12 @@ var nothing = reflect.Value{}
 // • If two values are not of the same type, then they are never equal
 // and the overall result is false.
 //
-// • Let S be the set of all Ignore, Transformer, and Comparer options that
-// remain after applying all path filters, value filters, and type filters.
+// • Let S be the set of all Ignore, Transformer, Comparer, and Default options
+// that remain after applying all implicit and explicit filters.
 // If at least one Ignore exists in S, then the comparison is ignored.
-// If the number of Transformer and Comparer options in S is greater than one,
-// then Equal panics because it is ambiguous which option to use.
+// If S contains multiple Default options, they are coalesced into one Default.
+// If any Transformer, Comparer, or Default options coexist in S,
+// then Equal panics because it is ambiguous which to use.
 // If S contains a single Transformer, then use that to transform the current
 // values and recursively call Equal on the output values.
 // If S contains a single Comparer, then use that to compare the current values.
