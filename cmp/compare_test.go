@@ -12,6 +12,7 @@ import (
 	"io"
 	"math"
 	"math/rand"
+	"path"
 	"reflect"
 	"regexp"
 	"sort"
@@ -1219,6 +1220,31 @@ func embeddedTests() []test {
 		y:     createStructJ(0),
 		opts: []cmp.Option{
 			cmp.AllowUnexported(ts.ParentStructJ{}, ts.PublicStruct{}, privateStruct),
+		},
+	}, {
+		label: label + "ParentStructJ",
+		x:     createStructJ(0),
+		y:     createStructJ(0),
+		opts: []cmp.Option{
+			cmp.AllowUnexportedWithinModule(""),
+		},
+	}, {
+		label: label + "ParentStructJ",
+		x:     createStructJ(0),
+		y:     createStructJ(0),
+		opts: []cmp.Option{
+			cmp.AllowUnexportedWithinModule("wrong/package/prefix"),
+		},
+		wantPanic: "cannot handle unexported field",
+	}, {
+		label: label + "ParentStructJ",
+		x:     createStructJ(0),
+		y:     createStructJ(0),
+		opts: []cmp.Option{
+			cmp.AllowUnexportedWithinModule(func() string {
+				type X struct{}
+				return path.Dir(reflect.TypeOf(X{}).PkgPath())
+			}()),
 		},
 	}, {
 		label: label + "ParentStructJ",
