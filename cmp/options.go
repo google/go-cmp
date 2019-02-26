@@ -193,7 +193,7 @@ type ignore struct{ core }
 
 func (ignore) isFiltered() bool                                                     { return false }
 func (ignore) filter(_ *state, _, _ reflect.Value, _ reflect.Type) applicableOption { return ignore{} }
-func (ignore) apply(_ *state, _, _ reflect.Value)                                   { return }
+func (ignore) apply(s *state, _, _ reflect.Value)                                   { s.reportIgnore() }
 func (ignore) String() string                                                       { return "Ignore()" }
 
 // invalid is a sentinel Option type to indicate that some options could not
@@ -277,12 +277,15 @@ func (tr *transformer) filter(s *state, _, _ reflect.Value, t reflect.Type) appl
 func (tr *transformer) apply(s *state, vx, vy reflect.Value) {
 	// Update path before calling the Transformer so that dynamic checks
 	// will use the updated path.
-	s.curPath.push(&transform{pathStep{tr.fnc.Type().Out(0)}, tr})
-	defer s.curPath.pop()
+	step := &transform{pathStep{tr.fnc.Type().Out(0)}, tr}
+	s.curPath.push(step)
+	vvx := s.callTRFunc(tr.fnc, vx)
+	vvy := s.callTRFunc(tr.fnc, vy)
+	s.curPath.pop()
 
-	vx = s.callTRFunc(tr.fnc, vx)
-	vy = s.callTRFunc(tr.fnc, vy)
-	s.compareAny(vx, vy)
+	s.pushStep(step, vvx, vvy)
+	s.compareAny(vvx, vvy)
+	s.popStep()
 }
 
 func (tr transformer) String() string {
@@ -330,7 +333,7 @@ func (cm *comparer) filter(_ *state, _, _ reflect.Value, t reflect.Type) applica
 
 func (cm *comparer) apply(s *state, vx, vy reflect.Value) {
 	eq := s.callTTBFunc(cm.fnc, vx, vy)
-	s.report(eq, vx, vy)
+	s.report(eq)
 }
 
 func (cm comparer) String() string {
@@ -384,23 +387,61 @@ func (visibleStructs) filter(_ *state, _, _ reflect.Value, _ reflect.Type) appli
 	panic("not implemented")
 }
 
-// reporter is an Option that configures how differences are reported.
-type reporter interface {
-	// TODO: Not exported yet.
+type reportFlags uint64
+
+const (
+	_ reportFlags = (1 << iota) / 2
+
+	// reportEqual reports whether the node is equal.
+	// It may not be issued with reportIgnore or reportUnequal.
+	reportEqual
+	// reportUnequal reports whether the node is not equal.
+	// It may not be issued with reportIgnore or reportEqual.
+	reportUnequal
+	// reportIgnore reports whether the node was ignored.
+	// It may not be issued with reportEqual or reportUnequal.
+	reportIgnore
+)
+
+// reporter is an Option that can be passed to Equal. When Equal traverses
+// the value trees, it calls PushStep as it descends into each node in the
+// tree and PopStep as it ascend out of the node. The leaves of the tree are
+// either compared (determined to be equal or not equal) or ignored and reported
+// as such by calling the Report method.
+func reporter(r interface {
+	// TODO: Export this option.
+
+	// PushStep is called when a tree-traversal operation is performed
+	// and provides the sub-values of x and y after applying the operation.
+	// The PathStep is valid until the step is popped, while the reflect.Values
+	// are valid while the entire tree is still being traversed.
 	//
-	// Perhaps add PushStep and PopStep and change Report to only accept
-	// a PathStep instead of the full-path? Adding a PushStep and PopStep makes
-	// it clear that we are traversing the value tree in a depth-first-search
-	// manner, which has an effect on how values are printed.
+	// Equal and Diff always call PushStep at the start to provide an
+	// operation-less PathStep used to report the root values.
+	PushStep(ps PathStep, x, y reflect.Value)
 
-	Option
+	// Report is called at exactly once on leaf nodes to report whether the
+	// comparison identified the node as equal, unequal, or ignored.
+	// A leaf node is one that is immediately preceded by and followed by
+	// a pair of PushStep and PopStep calls.
+	Report(reportFlags)
 
-	// Report is called for every comparison made and will be provided with
-	// the two values being compared, the equality result, and the
-	// current path in the value tree. It is possible for x or y to be an
-	// invalid reflect.Value if one of the values is non-existent;
-	// which is possible with maps and slices.
-	Report(x, y reflect.Value, eq bool, p Path)
+	// PopStep ascends back up the value tree.
+	// There is always a matching pop call for every push call.
+	PopStep()
+}) Option {
+	return reporterOption{r}
+}
+
+type reporterOption struct{ reporterIface }
+type reporterIface interface {
+	PushStep(PathStep, reflect.Value, reflect.Value)
+	Report(reportFlags)
+	PopStep()
+}
+
+func (reporterOption) filter(_ *state, _, _ reflect.Value, _ reflect.Type) applicableOption {
+	panic("not implemented")
 }
 
 // normalizeOption normalizes the input options such that all Options groups
