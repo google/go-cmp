@@ -219,7 +219,7 @@ func (s *state) compareAny(step PathStep) {
 	// TODO: Removing this check allows us FilterPath to operate on missing
 	// slice elements and map entries.
 	if !vx.IsValid() || !vy.IsValid() {
-		s.report(vx.IsValid() == vy.IsValid())
+		s.report(vx.IsValid() == vy.IsValid(), 0)
 		return
 	}
 
@@ -236,35 +236,35 @@ func (s *state) compareAny(step PathStep) {
 	// Rule 3: Recursively descend into each value's underlying kind.
 	switch t.Kind() {
 	case reflect.Bool:
-		s.report(vx.Bool() == vy.Bool())
+		s.report(vx.Bool() == vy.Bool(), 0)
 		return
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		s.report(vx.Int() == vy.Int())
+		s.report(vx.Int() == vy.Int(), 0)
 		return
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		s.report(vx.Uint() == vy.Uint())
+		s.report(vx.Uint() == vy.Uint(), 0)
 		return
 	case reflect.Float32, reflect.Float64:
-		s.report(vx.Float() == vy.Float())
+		s.report(vx.Float() == vy.Float(), 0)
 		return
 	case reflect.Complex64, reflect.Complex128:
-		s.report(vx.Complex() == vy.Complex())
+		s.report(vx.Complex() == vy.Complex(), 0)
 		return
 	case reflect.String:
-		s.report(vx.String() == vy.String())
+		s.report(vx.String() == vy.String(), 0)
 		return
 	case reflect.Chan, reflect.UnsafePointer:
-		s.report(vx.Pointer() == vy.Pointer())
+		s.report(vx.Pointer() == vy.Pointer(), 0)
 		return
 	case reflect.Func:
-		s.report(vx.IsNil() && vy.IsNil())
+		s.report(vx.IsNil() && vy.IsNil(), 0)
 		return
 	case reflect.Struct:
 		s.compareStruct(t, vx, vy)
 		return
 	case reflect.Slice:
 		if vx.IsNil() || vy.IsNil() {
-			s.report(vx.IsNil() && vy.IsNil())
+			s.report(vx.IsNil() && vy.IsNil(), 0)
 			return
 		}
 		fallthrough
@@ -276,7 +276,7 @@ func (s *state) compareAny(step PathStep) {
 		return
 	case reflect.Ptr:
 		if vx.IsNil() || vy.IsNil() {
-			s.report(vx.IsNil() && vy.IsNil())
+			s.report(vx.IsNil() && vy.IsNil(), 0)
 			return
 		}
 		vx, vy = vx.Elem(), vy.Elem()
@@ -284,12 +284,12 @@ func (s *state) compareAny(step PathStep) {
 		return
 	case reflect.Interface:
 		if vx.IsNil() || vy.IsNil() {
-			s.report(vx.IsNil() && vy.IsNil())
+			s.report(vx.IsNil() && vy.IsNil(), 0)
 			return
 		}
 		vx, vy = vx.Elem(), vy.Elem()
 		if vx.Type() != vy.Type() {
-			s.report(false)
+			s.report(false, 0)
 			return
 		}
 		s.compareAny(&typeAssertion{pathStep{vx.Type(), vx, vy}})
@@ -324,7 +324,7 @@ func (s *state) tryMethod(t reflect.Type, vx, vy reflect.Value) bool {
 	}
 
 	eq := s.callTTBFunc(m.Func, vx, vy)
-	s.report(eq)
+	s.report(eq, reportByMethod)
 	return true
 }
 
@@ -470,7 +470,7 @@ func (s *state) compareSlice(t reflect.Type, vx, vy reflect.Value) {
 
 func (s *state) compareMap(t reflect.Type, vx, vy reflect.Value) {
 	if vx.IsNil() || vy.IsNil() {
-		s.report(vx.IsNil() && vy.IsNil())
+		s.report(vx.IsNil() && vy.IsNil(), 0)
 		return
 	}
 
@@ -503,24 +503,18 @@ func (s *state) compareMap(t reflect.Type, vx, vy reflect.Value) {
 	}
 }
 
-func (s *state) report(eq bool) {
-	if eq {
-		s.result.NumSame++
-	} else {
-		s.result.NumDiff++
-	}
-	for _, r := range s.reporters {
+func (s *state) report(eq bool, rf reportFlags) {
+	if rf&reportIgnored == 0 {
 		if eq {
-			r.Report(reportEqual)
+			s.result.NumSame++
+			rf |= reportEqual
 		} else {
-			r.Report(reportUnequal)
+			s.result.NumDiff++
+			rf |= reportUnequal
 		}
 	}
-}
-
-func (s *state) reportIgnore() {
 	for _, r := range s.reporters {
-		r.Report(reportIgnore)
+		r.Report(rf)
 	}
 }
 

@@ -194,7 +194,7 @@ type ignore struct{ core }
 
 func (ignore) isFiltered() bool                                                     { return false }
 func (ignore) filter(_ *state, _ reflect.Type, _, _ reflect.Value) applicableOption { return ignore{} }
-func (ignore) apply(s *state, _, _ reflect.Value)                                   { s.reportIgnore() }
+func (ignore) apply(s *state, _, _ reflect.Value)                                   { s.report(true, reportIgnored) }
 func (ignore) String() string                                                       { return "Ignore()" }
 
 // validator is a sentinel Option type to indicate that some options could not
@@ -213,7 +213,7 @@ func (validator) apply(s *state, vx, vy reflect.Value) {
 	}
 
 	// Implies missing slice element or map entry.
-	s.report(vx.IsValid() == vy.IsValid())
+	s.report(vx.IsValid() == vy.IsValid(), 0)
 }
 
 // identRx represents a valid identifier according to the Go specification.
@@ -337,7 +337,7 @@ func (cm *comparer) filter(_ *state, t reflect.Type, _, _ reflect.Value) applica
 
 func (cm *comparer) apply(s *state, vx, vy reflect.Value) {
 	eq := s.callTTBFunc(cm.fnc, vx, vy)
-	s.report(eq)
+	s.report(eq, reportByFunc)
 }
 
 func (cm comparer) String() string {
@@ -391,20 +391,27 @@ func (visibleStructs) filter(_ *state, _ reflect.Type, _, _ reflect.Value) appli
 	panic("not implemented")
 }
 
-type reportFlags uint64
+// reportFlags is a bit-set representing how a comparison was determined.
+type reportFlags uint
 
 const (
 	_ reportFlags = (1 << iota) / 2
 
 	// reportEqual reports whether the node is equal.
-	// It may not be issued with reportIgnore or reportUnequal.
+	// This may be ORed with reportByMethod or reportByFunc.
 	reportEqual
 	// reportUnequal reports whether the node is not equal.
-	// It may not be issued with reportIgnore or reportEqual.
+	// This may be ORed with reportByMethod or reportByFunc.
 	reportUnequal
-	// reportIgnore reports whether the node was ignored.
-	// It may not be issued with reportEqual or reportUnequal.
-	reportIgnore
+	// reportIgnored reports whether the node was ignored.
+	reportIgnored
+
+	// reportByMethod reports whether equality was determined by calling the
+	// Equal method. This may be ORed with reportEqual or reportUnequal.
+	reportByMethod
+	// reportByFunc reports whether equality was determined by calling a custom
+	// Comparer function. This may be ORed with reportEqual or reportUnequal.
+	reportByFunc
 )
 
 // reporter is an Option that can be passed to Equal. When Equal traverses
