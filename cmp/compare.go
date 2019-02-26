@@ -298,10 +298,9 @@ func (s *state) compareAny(vx, vy reflect.Value) {
 func (s *state) tryExporting(vx, vy reflect.Value) (reflect.Value, reflect.Value) {
 	if sf, ok := s.curPath[len(s.curPath)-1].(*structField); ok && sf.unexported {
 		if sf.force {
-			// Use unsafe pointer arithmetic to get read-write access to an
-			// unexported field in the struct.
-			vx = unsafeRetrieveField(sf.pvx, sf.field)
-			vy = unsafeRetrieveField(sf.pvy, sf.field)
+			// Forcibly obtain read-write access to an unexported struct field.
+			vx = retrieveUnexportedField(sf.pvx, sf.field)
+			vy = retrieveUnexportedField(sf.pvy, sf.field)
 		} else {
 			// We are not allowed to export the value, so invalidate them
 			// so that tryOptions can panic later if not explicitly ignored.
@@ -423,7 +422,7 @@ func (s *state) compareStruct(vx, vy reflect.Value, t reflect.Type) {
 			// Defer checking of unexported fields until later to give an
 			// Ignore a chance to ignore the field.
 			if !vax.IsValid() || !vay.IsValid() {
-				// For unsafeRetrieveField to work, the parent struct must
+				// For retrieveUnexportedField to work, the parent struct must
 				// be addressable. Create a new copy of the values if
 				// necessary to make them addressable.
 				vax = makeAddressable(vx)
