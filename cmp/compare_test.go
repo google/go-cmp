@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"reflect"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -124,6 +125,10 @@ func comparerTests() []test {
 	}
 
 	return []test{{
+		label: label,
+		x:     nil,
+		y:     nil,
+	}, {
 		label: label,
 		x:     1,
 		y:     1,
@@ -327,9 +332,57 @@ root:
 		x:     md5.Sum([]byte{'a'}),
 		y:     md5.Sum([]byte{'b'}),
 		wantDiff: `
-{[16]uint8}:
-	-: [16]uint8{0x0c, 0xc1, 0x75, 0xb9, 0xc0, 0xf1, 0xb6, 0xa8, 0x31, 0xc3, 0x99, 0xe2, 0x69, 0x77, 0x26, 0x61}
-	+: [16]uint8{0x92, 0xeb, 0x5f, 0xfe, 0xe6, 0xae, 0x2f, 0xec, 0x3a, 0xd7, 0x1c, 0x77, 0x75, 0x31, 0x57, 0x8f}`,
+{[16]uint8}[0]:
+	-: 0x0c
+	+: 0x92
+{[16]uint8}[1]:
+	-: 0xc1
+	+: 0xeb
+{[16]uint8}[2]:
+	-: 0x75
+	+: 0x5f
+{[16]uint8}[3]:
+	-: 0xb9
+	+: 0xfe
+{[16]uint8}[4]:
+	-: 0xc0
+	+: 0xe6
+{[16]uint8}[5]:
+	-: 0xf1
+	+: 0xae
+{[16]uint8}[6]:
+	-: 0xb6
+	+: 0x2f
+{[16]uint8}[7]:
+	-: 0xa8
+	+: 0xec
+{[16]uint8}[8]:
+	-: 0x31
+	+: 0x3a
+{[16]uint8}[9]:
+	-: 0xc3
+	+: 0xd7
+{[16]uint8}[10]:
+	-: 0x99
+	+: 0x1c
+{[16]uint8}[11->?]:
+	-: 0xe2
+	+: <non-existent>
+{[16]uint8}[12->?]:
+	-: 0x69
+	+: <non-existent>
+{[16]uint8}[?->12]:
+	-: <non-existent>
+	+: 0x75
+{[16]uint8}[?->13]:
+	-: <non-existent>
+	+: 0x31
+{[16]uint8}[14]:
+	-: 0x26
+	+: 0x57
+{[16]uint8}[15]:
+	-: 0x61
+	+: 0x8f`,
 	}, {
 		label: label,
 		x:     new(fmt.Stringer),
@@ -410,9 +463,36 @@ root:
 			}),
 		},
 		wantDiff: `
-{[]int}:
-	-: []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	+: []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}`,
+λ({[]int}[0]):
+	-: float64(NaN)
+	+: float64(NaN)
+λ({[]int}[1]):
+	-: float64(NaN)
+	+: float64(NaN)
+λ({[]int}[2]):
+	-: float64(NaN)
+	+: float64(NaN)
+λ({[]int}[3]):
+	-: float64(NaN)
+	+: float64(NaN)
+λ({[]int}[4]):
+	-: float64(NaN)
+	+: float64(NaN)
+λ({[]int}[5]):
+	-: float64(NaN)
+	+: float64(NaN)
+λ({[]int}[6]):
+	-: float64(NaN)
+	+: float64(NaN)
+λ({[]int}[7]):
+	-: float64(NaN)
+	+: float64(NaN)
+λ({[]int}[8]):
+	-: float64(NaN)
+	+: float64(NaN)
+λ({[]int}[9]):
+	-: float64(NaN)
+	+: float64(NaN)`,
 	}, {
 		// Ensure reasonable Stringer formatting of map keys.
 		label: label,
@@ -729,6 +809,16 @@ func embeddedTests() []test {
 		return s
 	}
 
+	// TODO(dsnet): Workaround for reflect bug (https://golang.org/issue/21122).
+	// The upstream fix landed in Go1.10, so we can remove this when dropping
+	// support for Go1.9 and below.
+	wantPanicNotGo110 := func(s string) string {
+		if v := runtime.Version(); strings.HasPrefix(v, "go1.8") || strings.HasPrefix(v, "go1.9") {
+			return ""
+		}
+		return s
+	}
+
 	return []test{{
 		label:     label + "ParentStructA",
 		x:         ts.ParentStructA{},
@@ -1041,7 +1131,7 @@ func embeddedTests() []test {
 		label:     label + "ParentStructG",
 		x:         ts.ParentStructG{},
 		y:         ts.ParentStructG{},
-		wantPanic: "cannot handle unexported field",
+		wantPanic: wantPanicNotGo110("cannot handle unexported field"),
 	}, {
 		label: label + "ParentStructG",
 		x:     ts.ParentStructG{},
@@ -1127,7 +1217,7 @@ func embeddedTests() []test {
 		label:     label + "ParentStructI",
 		x:         ts.ParentStructI{},
 		y:         ts.ParentStructI{},
-		wantPanic: "cannot handle unexported field",
+		wantPanic: wantPanicNotGo110("cannot handle unexported field"),
 	}, {
 		label: label + "ParentStructI",
 		x:     ts.ParentStructI{},
