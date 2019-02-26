@@ -341,17 +341,15 @@ func (cm comparer) String() string {
 }
 
 // AllowUnexported returns an Option that forcibly allows operations on
-// unexported fields in certain structs, which are specified by passing in a
-// value of each struct type.
+// unexported fields in certain structs. Struct types with permitted visibility
+// are specified by passing in a value of the struct type.
 //
-// Users of this option must understand that comparing on unexported fields
-// from external packages is not safe since changes in the internal
-// implementation of some external package may cause the result of Equal
-// to unexpectedly change. However, it may be valid to use this option on types
-// defined in an internal package where the semantic meaning of an unexported
-// field is in the control of the user.
+// Comparing unexported fields from packages that are not owned by the user
+// is unsafe since changes in the internal implementation may cause the result
+// of Equal to unexpectedly change. This option should only be used on types
+// where the semantic meaning of unexported fields is in full control of the user.
 //
-// For some cases, a custom Comparer should be used instead that defines
+// For most cases, a custom Comparer should be used instead that defines
 // equality as a function of the public API of a type rather than the underlying
 // unexported implementation.
 //
@@ -366,24 +364,90 @@ func (cm comparer) String() string {
 //
 // In other cases, the cmpopts.IgnoreUnexported option can be used to ignore
 // all unexported fields on specified struct types.
-func AllowUnexported(types ...interface{}) Option {
+func AllowUnexported(typs ...interface{}) Option {
 	if !supportAllowUnexported {
 		panic("AllowUnexported is not supported on purego builds, Google App Engine Standard, or GopherJS")
 	}
-	m := make(map[reflect.Type]bool)
-	for _, typ := range types {
-		t := reflect.TypeOf(typ)
+	var x fieldExporter
+	for _, v := range typs {
+		t := reflect.TypeOf(v)
 		if t.Kind() != reflect.Struct {
-			panic(fmt.Sprintf("invalid struct type: %T", typ))
+			panic(fmt.Sprintf("invalid struct type: %T", v))
 		}
-		m[t] = true
+		x.insertType(t)
 	}
-	return visibleStructs(m)
+	return x
 }
 
-type visibleStructs map[reflect.Type]bool
+// AllowUnexportedWithinModule returns an Option that forcibly allows
+// operations on unexported fields in certain structs.
+// See AllowUnexported for proper guidance on comparing unexported fields.
+//
+// Unexported visibility is permitted for any struct type declared within a
+// module where the pkgPrefix is a path prefix match of the full package path.
+// A path prefix match is defined as a string prefix match where the next
+// character is either the first character, a forward slash,
+// or the end of the string.
+//
+// For example, the package path "example.com/foo/bar" is matched by:
+//	• "example.com/foo/bar"
+//	• "example.com/foo"
+//	• "example.com"
+// and is not matched by:
+//	• "example.com/foo/ba"
+//	• "example.com/fizz"
+//	• "example.org"
+func AllowUnexportedWithinModule(pkgPrefix string) Option {
+	if !supportAllowUnexported {
+		panic("AllowUnexported is not supported on purego builds, Google App Engine Standard, or GopherJS")
+	}
+	var x fieldExporter
+	x.insertPrefix(pkgPrefix)
+	return x
+}
 
-func (visibleStructs) filter(_ *state, _, _ reflect.Value, _ reflect.Type) applicableOption {
+type fieldExporter struct {
+	typs map[reflect.Type]struct{}
+	pkgs map[string]struct{}
+}
+
+func (x *fieldExporter) insertType(t reflect.Type) {
+	if x.typs == nil {
+		x.typs = make(map[reflect.Type]struct{})
+	}
+	x.typs[t] = struct{}{}
+}
+
+func (x *fieldExporter) insertPrefix(p string) {
+	if x.pkgs == nil {
+		x.pkgs = make(map[string]struct{})
+	}
+	x.pkgs[p] = struct{}{}
+}
+
+func (x fieldExporter) mayExport(t reflect.Type, sf reflect.StructField) bool {
+	// TODO(dsnet): Workaround for reflect bug (https://golang.org/issue/21122).
+	// The upstream fix landed in Go1.10, so we can remove this when dropping
+	// support for Go1.9 and below.
+	if len(x.pkgs) > 0 && sf.PkgPath == "" {
+		return true // Liberally allow exporting since we lack path information
+	}
+
+	if _, ok := x.typs[t]; ok {
+		return true
+	}
+	for pkgPrefix := range x.pkgs {
+		if !strings.HasPrefix(sf.PkgPath, string(pkgPrefix)) {
+			continue
+		}
+		if len(sf.PkgPath) == len(pkgPrefix) || sf.PkgPath[len(pkgPrefix)] == '/' || len(pkgPrefix) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (fieldExporter) filter(_ *state, _, _ reflect.Value, _ reflect.Type) applicableOption {
 	panic("not implemented")
 }
 

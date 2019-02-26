@@ -140,8 +140,8 @@ type state struct {
 	dynChecker dynChecker
 
 	// These fields, once set by processOption, will not change.
-	exporters map[reflect.Type]bool // Set of structs with unexported field visibility
-	opts      Options               // List of all fundamental and filter options
+	exporters fieldExporter // Set of structs with unexported field visibility
+	opts      Options       // List of all fundamental and filter options
 }
 
 func newState(opts []Option) *state {
@@ -167,12 +167,12 @@ func (s *state) processOption(opt Option) {
 			panic(fmt.Sprintf("cannot use an unfiltered option: %v", opt))
 		}
 		s.opts = append(s.opts, opt)
-	case visibleStructs:
-		if s.exporters == nil {
-			s.exporters = make(map[reflect.Type]bool)
+	case fieldExporter:
+		for t := range opt.typs {
+			s.exporters.insertType(t)
 		}
-		for t := range opt {
-			s.exporters[t] = true
+		for p := range opt.pkgs {
+			s.exporters.insertPrefix(p)
 		}
 	case reporterOption:
 		s.reporters = append(s.reporters, opt)
@@ -397,8 +397,8 @@ func detectRaces(c chan<- reflect.Value, f reflect.Value, vs ...reflect.Value) {
 // Otherwise, it returns the input value as is.
 func sanitizeValue(v reflect.Value, t reflect.Type) reflect.Value {
 	// TODO(dsnet): Workaround for reflect bug (https://golang.org/issue/22143).
-	// The upstream fix landed in Go1.10, so we can remove this when drop support
-	// for Go1.9 and below.
+	// The upstream fix landed in Go1.10, so we can remove this when dropping
+	// support for Go1.9 and below.
 	if v.Kind() == reflect.Interface && v.IsNil() && v.Type() != t {
 		return reflect.New(t).Elem()
 	}
@@ -428,7 +428,7 @@ func (s *state) compareStruct(vx, vy reflect.Value, t reflect.Type) {
 				vax = makeAddressable(vx)
 				vay = makeAddressable(vy)
 			}
-			step.force = s.exporters[t]
+			step.force = s.exporters.mayExport(t, t.Field(i))
 			step.pvx = vax
 			step.pvy = vay
 			step.field = t.Field(i)

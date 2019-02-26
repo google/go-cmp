@@ -45,6 +45,10 @@ func TestOptionPanic(t *testing.T) {
 		args:      []interface{}{ts.StructA{}, &ts.StructB{}, ts.StructA{}},
 		wantPanic: "invalid struct type",
 	}, {
+		label: "AllowUnexportedWithinModule",
+		fnc:   AllowUnexportedWithinModule,
+		args:  []interface{}{""},
+	}, {
 		label:     "Comparer",
 		fnc:       Comparer,
 		args:      []interface{}{5},
