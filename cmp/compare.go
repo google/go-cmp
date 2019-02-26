@@ -558,9 +558,9 @@ func (s *state) popStep() {
 
 func (s *state) report(eq bool) {
 	if eq {
-		s.result.NSame++
+		s.result.NumSame++
 	} else {
-		s.result.NDiff++
+		s.result.NumDiff++
 	}
 	for _, r := range s.reporters {
 		if eq {
