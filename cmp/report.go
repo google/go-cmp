@@ -13,8 +13,6 @@ import (
 )
 
 type defaultReporter struct {
-	Option
-
 	curPath Path
 
 	diffs  []string // List of differences, possibly truncated
@@ -27,7 +25,7 @@ func (r *defaultReporter) PushStep(ps PathStep) {
 	r.curPath.push(ps)
 }
 func (r *defaultReporter) Report(f reportFlags) {
-	if f == reportUnequal {
+	if f&reportUnequal > 0 {
 		vx, vy := r.curPath.Last().Values()
 		r.report(vx, vy, r.curPath)
 	}
