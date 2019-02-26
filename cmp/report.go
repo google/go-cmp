@@ -16,7 +16,6 @@ type defaultReporter struct {
 	Option
 
 	curPath Path
-	curVals [][2]reflect.Value
 
 	diffs  []string // List of differences, possibly truncated
 	ndiffs int      // Total number of differences
@@ -24,19 +23,17 @@ type defaultReporter struct {
 	nlines int      // Number of lines in diffs
 }
 
-func (r *defaultReporter) PushStep(ps PathStep, x, y reflect.Value) {
+func (r *defaultReporter) PushStep(ps PathStep) {
 	r.curPath.push(ps)
-	r.curVals = append(r.curVals, [2]reflect.Value{x, y})
 }
 func (r *defaultReporter) Report(f reportFlags) {
 	if f == reportUnequal {
-		vs := r.curVals[len(r.curVals)-1]
-		r.report(vs[0], vs[1], r.curPath)
+		vx, vy := r.curPath.Last().Values()
+		r.report(vx, vy, r.curPath)
 	}
 }
 func (r *defaultReporter) PopStep() {
 	r.curPath.pop()
-	r.curVals = r.curVals[:len(r.curVals)-1]
 }
 
 func (r *defaultReporter) report(x, y reflect.Value, p Path) {
