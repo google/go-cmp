@@ -387,9 +387,9 @@ func compareByte(x, y byte) (r Result) {
 }
 
 var (
-	equalResult     = Result{NDiff: 0}
-	similarResult   = Result{NDiff: 1}
-	differentResult = Result{NDiff: 2}
+	equalResult     = Result{NumDiff: 0}
+	similarResult   = Result{NumDiff: 1}
+	differentResult = Result{NumDiff: 2}
 )
 
 func TestResult(t *testing.T) {
@@ -398,39 +398,39 @@ func TestResult(t *testing.T) {
 		wantEqual   bool
 		wantSimilar bool
 	}{
-		// equalResult is equal since NDiff == 0, by definition of Equal method.
+		// equalResult is equal since NumDiff == 0, by definition of Equal method.
 		{equalResult, true, true},
 		// similarResult is similar since it is a binary result where only one
-		// element was compared (i.e., Either NSame==1 or NDiff==1).
+		// element was compared (i.e., Either NumSame==1 or NumDiff==1).
 		{similarResult, false, true},
 		// differentResult is different since there are enough differences that
 		// it isn't even considered similar.
 		{differentResult, false, false},
 
 		// Zero value is always equal.
-		{Result{NSame: 0, NDiff: 0}, true, true},
+		{Result{NumSame: 0, NumDiff: 0}, true, true},
 
-		// Binary comparisons (where NSame+NDiff == 1) are always similar.
-		{Result{NSame: 1, NDiff: 0}, true, true},
-		{Result{NSame: 0, NDiff: 1}, false, true},
+		// Binary comparisons (where NumSame+NumDiff == 1) are always similar.
+		{Result{NumSame: 1, NumDiff: 0}, true, true},
+		{Result{NumSame: 0, NumDiff: 1}, false, true},
 
 		// More complex ratios. The exact ratio for similarity may change,
 		// and may require updates to these test cases.
-		{Result{NSame: 1, NDiff: 1}, false, true},
-		{Result{NSame: 1, NDiff: 2}, false, true},
-		{Result{NSame: 1, NDiff: 3}, false, false},
-		{Result{NSame: 2, NDiff: 1}, false, true},
-		{Result{NSame: 2, NDiff: 2}, false, true},
-		{Result{NSame: 2, NDiff: 3}, false, true},
-		{Result{NSame: 3, NDiff: 1}, false, true},
-		{Result{NSame: 3, NDiff: 2}, false, true},
-		{Result{NSame: 3, NDiff: 3}, false, true},
-		{Result{NSame: 1000, NDiff: 0}, true, true},
-		{Result{NSame: 1000, NDiff: 1}, false, true},
-		{Result{NSame: 1000, NDiff: 2}, false, true},
-		{Result{NSame: 0, NDiff: 1000}, false, false},
-		{Result{NSame: 1, NDiff: 1000}, false, false},
-		{Result{NSame: 2, NDiff: 1000}, false, false},
+		{Result{NumSame: 1, NumDiff: 1}, false, true},
+		{Result{NumSame: 1, NumDiff: 2}, false, true},
+		{Result{NumSame: 1, NumDiff: 3}, false, false},
+		{Result{NumSame: 2, NumDiff: 1}, false, true},
+		{Result{NumSame: 2, NumDiff: 2}, false, true},
+		{Result{NumSame: 2, NumDiff: 3}, false, true},
+		{Result{NumSame: 3, NumDiff: 1}, false, true},
+		{Result{NumSame: 3, NumDiff: 2}, false, true},
+		{Result{NumSame: 3, NumDiff: 3}, false, true},
+		{Result{NumSame: 1000, NumDiff: 0}, true, true},
+		{Result{NumSame: 1000, NumDiff: 1}, false, true},
+		{Result{NumSame: 1000, NumDiff: 2}, false, true},
+		{Result{NumSame: 0, NumDiff: 1000}, false, false},
+		{Result{NumSame: 1, NumDiff: 1000}, false, false},
+		{Result{NumSame: 2, NumDiff: 1000}, false, false},
 	}
 
 	for _, tt := range tests {
