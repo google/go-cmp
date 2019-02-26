@@ -32,11 +32,12 @@ var now = time.Now()
 func intPtr(n int) *int { return &n }
 
 type test struct {
-	label     string       // Test description
+	label     string       // Test name
 	x, y      interface{}  // Input values to compare
 	opts      []cmp.Option // Input options
 	wantDiff  string       // The exact difference string
 	wantPanic string       // Sub-string of an expected panic message
+	reason    string       // The reason for the expected outcome
 }
 
 func TestDiff(t *testing.T) {
@@ -67,16 +68,17 @@ func TestDiff(t *testing.T) {
 				}()
 				gotDiff = cmp.Diff(tt.x, tt.y, tt.opts...)
 			}()
+			// TODO: Require every test case to provide a reason.
 			if tt.wantPanic == "" {
 				if gotPanic != "" {
-					t.Fatalf("unexpected panic message: %s", gotPanic)
+					t.Fatalf("unexpected panic message: %s\nreason: %v", gotPanic, tt.reason)
 				}
 				if got, want := strings.TrimSpace(gotDiff), strings.TrimSpace(tt.wantDiff); got != want {
-					t.Fatalf("difference message:\ngot:\n%s\n\nwant:\n%s", got, want)
+					t.Fatalf("difference message:\ngot:\n%s\nwant:\n%s\nreason: %v", gotDiff, tt.wantDiff, tt.reason)
 				}
 			} else {
 				if !strings.Contains(gotPanic, tt.wantPanic) {
-					t.Fatalf("panic message:\ngot:  %s\nwant: %s", gotPanic, tt.wantPanic)
+					t.Fatalf("panic message:\ngot:  %s\nwant: %s\nreason: %v", gotPanic, tt.wantPanic, tt.reason)
 				}
 			}
 		})
@@ -549,6 +551,60 @@ root[1]["hr"]:
 		label: label,
 		x:     struct{ _ string }{},
 		y:     struct{ _ string }{},
+	}, {
+		label: label,
+		x: [2][]int{
+			{0, 0, 0, 1, 2, 3, 0, 0, 4, 5, 6, 7, 8, 0, 9, 0, 0},
+			{0, 1, 0, 0, 0, 20},
+		},
+		y: [2][]int{
+			{1, 2, 3, 0, 4, 5, 6, 7, 0, 8, 9, 0, 0, 0},
+			{0, 0, 1, 2, 0, 0, 0},
+		},
+		opts: []cmp.Option{
+			cmp.FilterPath(func(p cmp.Path) bool {
+				vx, vy := p.Last().Values()
+				if vx.IsValid() && vx.Kind() == reflect.Int && vx.Int() == 0 {
+					return true
+				}
+				if vy.IsValid() && vy.Kind() == reflect.Int && vy.Int() == 0 {
+					return true
+				}
+				return false
+			}, cmp.Ignore()),
+		},
+		wantDiff: `
+{[2][]int}[1][5->3]:
+	-: 20
+	+: 2`,
+		reason: "all zero slice elements are ignored (even if missing)",
+	}, {
+		label: label,
+		x: [2]map[string]int{
+			{"ignore1": 0, "ignore2": 0, "keep1": 1, "keep2": 2, "KEEP3": 3, "IGNORE3": 0},
+			{"keep1": 1, "ignore1": 0},
+		},
+		y: [2]map[string]int{
+			{"ignore1": 0, "ignore3": 0, "ignore4": 0, "keep1": 1, "keep2": 2, "KEEP3": 3},
+			{"keep1": 1, "keep2": 2, "ignore2": 0},
+		},
+		opts: []cmp.Option{
+			cmp.FilterPath(func(p cmp.Path) bool {
+				vx, vy := p.Last().Values()
+				if vx.IsValid() && vx.Kind() == reflect.Int && vx.Int() == 0 {
+					return true
+				}
+				if vy.IsValid() && vy.Kind() == reflect.Int && vy.Int() == 0 {
+					return true
+				}
+				return false
+			}, cmp.Ignore()),
+		},
+		wantDiff: `
+{[2]map[string]int}[1]["keep2"]:
+	-: <non-existent>
+	+: 2`,
+		reason: "all zero map entries are ignored (even if missing)",
 	}}
 }
 

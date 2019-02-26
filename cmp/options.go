@@ -106,6 +106,11 @@ func (opts Options) String() string {
 // FilterPath returns a new Option where opt is only evaluated if filter f
 // returns true for the current Path in the value tree.
 //
+// This filter is called even if a slice element or map entry is missing and
+// provides an opportunity to ignore such cases. The filter function must be
+// symmetric such that the filter result is identical regardless of whether the
+// missing value is from x or y.
+//
 // The option passed in may be an Ignore, Transformer, Comparer, Options, or
 // a previously filtered Option.
 func FilterPath(f func(Path) bool, opt Option) Option {

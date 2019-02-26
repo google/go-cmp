@@ -65,12 +65,12 @@ import (
 // option explicitly permits comparing the unexported field.
 //
 // Slices are equal if they are both nil or both non-nil, where recursively
-// calling Equal on all slice or array elements report equal.
+// calling Equal on all non-ignored slice or array elements report equal.
 // Empty non-nil slices and nil slices are not equal; to equate empty slices,
 // consider using cmpopts.EquateEmpty.
 //
 // Maps are equal if they are both nil or both non-nil, where recursively
-// calling Equal on all map entries report equal.
+// calling Equal on all non-ignored map entries report equal.
 // Map keys are equal according to the == operator.
 // To use custom comparisons for map keys, consider using cmpopts.SortMaps.
 // Empty non-nil maps and nil maps are not equal; to equate empty maps,
@@ -215,13 +215,6 @@ func (s *state) compareAny(step PathStep) {
 	// Obtain the current type and values.
 	t := step.Type()
 	vx, vy := step.Values()
-
-	// TODO: Removing this check allows us FilterPath to operate on missing
-	// slice elements and map entries.
-	if !vx.IsValid() || !vy.IsValid() {
-		s.report(vx.IsValid() == vy.IsValid(), 0)
-		return
-	}
 
 	// Rule 1: Check whether an option applies on this node in the value tree.
 	if s.tryOptions(t, vx, vy) {
@@ -444,14 +437,47 @@ func (s *state) compareSlice(t reflect.Type, vx, vy reflect.Value) {
 		return step
 	}
 
-	// Compute an edit-script for slices vx and vy.
-	edits := diff.Difference(vx.Len(), vy.Len(), func(ix, iy int) diff.Result {
-		return s.statelessCompare(withIndexes(ix, iy))
+	// Ignore options are able to ignore missing elements in a slice.
+	// However, detecting these reliably requires an optimal differencing
+	// algorithm, for which diff.Difference is not.
+	//
+	// Instead, we first iterate through both slices to detect which elements
+	// would be ignored if standing alone. The index of non-discarded elements
+	// are stored in a separate slice, which diffing is then performed on.
+	var indexesX, indexesY []int
+	var ignoredX, ignoredY []bool
+	for ix := 0; ix < vx.Len(); ix++ {
+		ignored := s.statelessCompare(withIndexes(ix, -1)).NumDiff == 0
+		if !ignored {
+			indexesX = append(indexesX, ix)
+		}
+		ignoredX = append(ignoredX, ignored)
+	}
+	for iy := 0; iy < vy.Len(); iy++ {
+		ignored := s.statelessCompare(withIndexes(-1, iy)).NumDiff == 0
+		if !ignored {
+			indexesY = append(indexesY, iy)
+		}
+		ignoredY = append(ignoredY, ignored)
+	}
+
+	// Compute an edit-script for slices vx and vy (excluding ignored elements).
+	edits := diff.Difference(len(indexesX), len(indexesY), func(ix, iy int) diff.Result {
+		return s.statelessCompare(withIndexes(indexesX[ix], indexesY[iy]))
 	})
 
-	// Replay the edit-script.
+	// Replay the ignore-scripts and the edit-script.
 	var ix, iy int
-	for _, e := range edits {
+	for ix < vx.Len() || iy < vy.Len() {
+		var e diff.EditType
+		switch {
+		case ix < len(ignoredX) && ignoredX[ix]:
+			e = diff.UniqueX
+		case iy < len(ignoredY) && ignoredY[iy]:
+			e = diff.UniqueY
+		default:
+			e, edits = edits[0], edits[1:]
+		}
 		switch e {
 		case diff.UniqueX:
 			s.compareAny(withIndexes(ix, -1))
