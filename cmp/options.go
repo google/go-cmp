@@ -288,7 +288,7 @@ func (tr *transformer) isFiltered() bool { return tr.typ != nil }
 
 func (tr *transformer) filter(s *state, t reflect.Type, _, _ reflect.Value) applicableOption {
 	for i := len(s.curPath) - 1; i >= 0; i-- {
-		if t, ok := s.curPath[i].(*transform); !ok {
+		if t, ok := s.curPath[i].(Transform); !ok {
 			break // Hit most recent non-Transform step
 		} else if tr == t.trans {
 			return nil // Cannot directly use same Transform
@@ -301,7 +301,7 @@ func (tr *transformer) filter(s *state, t reflect.Type, _, _ reflect.Value) appl
 }
 
 func (tr *transformer) apply(s *state, vx, vy reflect.Value) {
-	step := &transform{pathStep{typ: tr.fnc.Type().Out(0)}, tr}
+	step := Transform{&transform{pathStep{typ: tr.fnc.Type().Out(0)}, tr}}
 	vvx := s.callTRFunc(tr.fnc, vx, step)
 	vvy := s.callTRFunc(tr.fnc, vy, step)
 	step.vx, step.vy = vvx, vvy
