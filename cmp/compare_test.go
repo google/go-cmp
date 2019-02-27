@@ -2132,3 +2132,53 @@ func project4Tests() []test {
 	+: <non-existent>`,
 	}}
 }
+
+// BenchmarkBytes benchmarks the performance of performing Equal or Diff on
+// large slices of bytes.
+func BenchmarkBytes(b *testing.B) {
+	// Create a list of PathFilters that never apply, but are evaluated.
+	const maxFilters = 5
+	var filters cmp.Options
+	errorIface := reflect.TypeOf((*error)(nil)).Elem()
+	for i := 0; i <= maxFilters; i++ {
+		filters = append(filters, cmp.FilterPath(func(p cmp.Path) bool {
+			return p.Last().Type().AssignableTo(errorIface) // Never true
+		}, cmp.Ignore()))
+	}
+
+	type benchSize struct {
+		label string
+		size  int64
+	}
+	for _, ts := range []benchSize{
+		{"4KiB", 1 << 12},
+		{"64KiB", 1 << 16},
+		{"1MiB", 1 << 20},
+		{"16MiB", 1 << 24},
+	} {
+		bx := append(append(make([]byte, ts.size/2), 'x'), make([]byte, ts.size/2)...)
+		by := append(append(make([]byte, ts.size/2), 'y'), make([]byte, ts.size/2)...)
+		b.Run(ts.label, func(b *testing.B) {
+			// Iteratively add more filters that never apply, but are evaluated
+			// to measure the cost of simply evaluating each filter.
+			for i := 0; i <= maxFilters; i++ {
+				b.Run(fmt.Sprintf("EqualFilter%d", i), func(b *testing.B) {
+					b.ReportAllocs()
+					b.SetBytes(2 * ts.size)
+					for j := 0; j < b.N; j++ {
+						cmp.Equal(bx, by, filters[:i]...)
+					}
+				})
+			}
+			for i := 0; i <= maxFilters; i++ {
+				b.Run(fmt.Sprintf("DiffFilter%d", i), func(b *testing.B) {
+					b.ReportAllocs()
+					b.SetBytes(2 * ts.size)
+					for j := 0; j < b.N; j++ {
+						cmp.Diff(bx, by, filters[:i]...)
+					}
+				})
+			}
+		})
+	}
+}
