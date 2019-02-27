@@ -17,15 +17,19 @@ type funcType int
 const (
 	_ funcType = iota
 
+	tbFunc  // func(T) bool
 	ttbFunc // func(T, T) bool
+	trbFunc // func(T, R) bool
 	tibFunc // func(T, I) bool
 	trFunc  // func(T) R
 
-	Equal           = ttbFunc // func(T, T) bool
-	EqualAssignable = tibFunc // func(T, I) bool; encapsulates func(T, T) bool
-	Transformer     = trFunc  // func(T) R
-	ValueFilter     = ttbFunc // func(T, T) bool
-	Less            = ttbFunc // func(T, T) bool
+	Equal             = ttbFunc // func(T, T) bool
+	EqualAssignable   = tibFunc // func(T, I) bool; encapsulates func(T, T) bool
+	Transformer       = trFunc  // func(T) R
+	ValueFilter       = ttbFunc // func(T, T) bool
+	Less              = ttbFunc // func(T, T) bool
+	ValuePredicate    = tbFunc  // func(T) bool
+	KeyValuePredicate = trbFunc // func(T, R) bool
 )
 
 var boolType = reflect.TypeOf(true)
@@ -37,8 +41,16 @@ func IsType(t reflect.Type, ft funcType) bool {
 	}
 	ni, no := t.NumIn(), t.NumOut()
 	switch ft {
+	case tbFunc: // func(T) bool
+		if ni == 1 && no == 1 && t.Out(0) == boolType {
+			return true
+		}
 	case ttbFunc: // func(T, T) bool
 		if ni == 2 && no == 1 && t.In(0) == t.In(1) && t.Out(0) == boolType {
+			return true
+		}
+	case trbFunc: // func(T, R) bool
+		if ni == 2 && no == 1 && t.Out(0) == boolType {
 			return true
 		}
 	case tibFunc: // func(T, I) bool
