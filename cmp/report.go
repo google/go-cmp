@@ -4,59 +4,48 @@
 
 package cmp
 
-import (
-	"fmt"
-	"reflect"
-	"strings"
-
-	"github.com/google/go-cmp/cmp/internal/value"
-)
-
+// defaultReporter implements the reporter interface.
+//
+// As Equal serially calls the PushStep, Report, and PopStep methods, the
+// defaultReporter constructs a tree-based representation of the compared value
+// and the result of each comparison (see valueNode).
+//
+// When the String method is called, the FormatDiff method transforms the
+// valueNode tree into a textNode tree, which is a tree-based representation
+// of the textual output (see textNode).
+//
+// Lastly, the textNode.String method produces the final report as a string.
 type defaultReporter struct {
-	curPath Path
-
-	diffs  []string // List of differences, possibly truncated
-	ndiffs int      // Total number of differences
-	nbytes int      // Number of bytes in diffs
-	nlines int      // Number of lines in diffs
+	root *valueNode
+	curr *valueNode
 }
 
 func (r *defaultReporter) PushStep(ps PathStep) {
-	r.curPath.push(ps)
+	r.curr = r.curr.PushStep(ps)
+	if r.root == nil {
+		r.root = r.curr
+	}
 }
 func (r *defaultReporter) Report(f reportFlags) {
-	if f&reportUnequal > 0 {
-		vx, vy := r.curPath.Last().Values()
-		r.report(vx, vy, r.curPath)
-	}
+	r.curr.Report(f)
 }
 func (r *defaultReporter) PopStep() {
-	r.curPath.pop()
+	r.curr = r.curr.PopStep()
 }
 
-func (r *defaultReporter) report(x, y reflect.Value, p Path) {
-	const maxBytes = 4096
-	const maxLines = 256
-	r.ndiffs++
-	if r.nbytes < maxBytes && r.nlines < maxLines {
-		sx := value.Format(x, value.FormatConfig{UseStringer: true})
-		sy := value.Format(y, value.FormatConfig{UseStringer: true})
-		if sx == sy {
-			// Unhelpful output, so use more exact formatting.
-			sx = value.Format(x, value.FormatConfig{PrintPrimitiveType: true})
-			sy = value.Format(y, value.FormatConfig{PrintPrimitiveType: true})
-		}
-		s := fmt.Sprintf("%#v:\n\t-: %s\n\t+: %s\n", p, sx, sy)
-		r.diffs = append(r.diffs, s)
-		r.nbytes += len(s)
-		r.nlines += strings.Count(s, "\n")
-	}
-}
-
+// String provides a full report of the differences detected as a structured
+// literal in pseudo-Go syntax. String may only be called after the entire tree
+// has been traversed.
 func (r *defaultReporter) String() string {
-	s := strings.Join(r.diffs, "")
-	if r.ndiffs == len(r.diffs) {
-		return s
+	assert(r.root != nil && r.curr == nil)
+	if r.root.NumDiff == 0 {
+		return ""
 	}
-	return fmt.Sprintf("%s... %d more differences ...", s, r.ndiffs-len(r.diffs))
+	return formatOptions{}.FormatDiff(r.root).String()
+}
+
+func assert(ok bool) {
+	if !ok {
+		panic("assertion failure")
+	}
 }

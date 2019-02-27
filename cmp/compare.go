@@ -32,6 +32,7 @@ import (
 	"strings"
 
 	"github.com/google/go-cmp/cmp/internal/diff"
+	"github.com/google/go-cmp/cmp/internal/flags"
 	"github.com/google/go-cmp/cmp/internal/function"
 	"github.com/google/go-cmp/cmp/internal/value"
 )
@@ -109,9 +110,15 @@ func Equal(x, y interface{}, opts ...Option) bool {
 
 // Diff returns a human-readable report of the differences between two values.
 // It returns an empty string if and only if Equal returns true for the same
-// input values and options. The output string will use the "-" symbol to
-// indicate elements removed from x, and the "+" symbol to indicate elements
-// added to y.
+// input values and options.
+//
+// The output is displayed as a literal in pseudo-Go syntax.
+// At the start of each line, a "-" prefix indicates an element removed from x,
+// a "+" prefix to indicates an element added to y, and the lack of a prefix
+// indicates an element common to both x and y. If possible, the output
+// uses fmt.Stringer.String or error.Error methods to produce more humanly
+// readable outputs. In such cases, the string is prefixed with either an
+// 's' or 'e' character, respectively, to indicate that the method was called.
 //
 // Do not depend on this output being stable.
 func Diff(x, y interface{}, opts ...Option) string {
@@ -373,10 +380,10 @@ func detectRaces(c chan<- reflect.Value, f reflect.Value, vs ...reflect.Value) {
 // Otherwise, it returns the input value as is.
 func sanitizeValue(v reflect.Value, t reflect.Type) reflect.Value {
 	// TODO(dsnet): Workaround for reflect bug (https://golang.org/issue/22143).
-	// The upstream fix landed in Go1.10, so we can remove this when drop support
-	// for Go1.9 and below.
-	if v.Kind() == reflect.Interface && v.IsNil() && v.Type() != t {
-		return reflect.New(t).Elem()
+	if !flags.AtLeastGo110 {
+		if v.Kind() == reflect.Interface && v.IsNil() && v.Type() != t {
+			return reflect.New(t).Elem()
+		}
 	}
 	return v
 }

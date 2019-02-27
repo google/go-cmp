@@ -7,9 +7,11 @@ package cmp_test
 import (
 	"fmt"
 	"math"
+	"net"
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -18,108 +20,41 @@ import (
 // fundamental options and filters and not in terms of what cool things you can
 // do with them since that overlaps with cmp/cmpopts.
 
-// Use Diff for printing out human-readable errors for test cases comparing
-// nested or structured data.
+// Use Diff to print out a human-readable report of differences for tests
+// comparing nested or structured data.
 func ExampleDiff_testing() {
-	// Code under test:
-	type ShipManifest struct {
-		Name     string
-		Crew     map[string]string
-		Androids int
-		Stolen   bool
-	}
+	// Let got be the hypothetical value obtained from some logic under test
+	// and want be the expected golden data.
+	got, want := MakeGatewayInfo()
 
-	// AddCrew tries to add the given crewmember to the manifest.
-	AddCrew := func(m *ShipManifest, name, title string) {
-		if m.Crew == nil {
-			m.Crew = make(map[string]string)
-		}
-		m.Crew[title] = name
-	}
-
-	// Test function:
-	tests := []struct {
-		desc        string
-		before      *ShipManifest
-		name, title string
-		after       *ShipManifest
-	}{
-		{
-			desc:   "add to empty",
-			before: &ShipManifest{},
-			name:   "Zaphod Beeblebrox",
-			title:  "Galactic President",
-			after: &ShipManifest{
-				Crew: map[string]string{
-					"Zaphod Beeblebrox": "Galactic President",
-				},
-			},
-		},
-		{
-			desc: "add another",
-			before: &ShipManifest{
-				Crew: map[string]string{
-					"Zaphod Beeblebrox": "Galactic President",
-				},
-			},
-			name:  "Trillian",
-			title: "Human",
-			after: &ShipManifest{
-				Crew: map[string]string{
-					"Zaphod Beeblebrox": "Galactic President",
-					"Trillian":          "Human",
-				},
-			},
-		},
-		{
-			desc: "overwrite",
-			before: &ShipManifest{
-				Crew: map[string]string{
-					"Zaphod Beeblebrox": "Galactic President",
-				},
-			},
-			name:  "Zaphod Beeblebrox",
-			title: "Just this guy, you know?",
-			after: &ShipManifest{
-				Crew: map[string]string{
-					"Zaphod Beeblebrox": "Just this guy, you know?",
-				},
-			},
-		},
-	}
-
-	var t fakeT
-	for _, test := range tests {
-		AddCrew(test.before, test.name, test.title)
-		if diff := cmp.Diff(test.before, test.after); diff != "" {
-			t.Errorf("%s: after AddCrew, manifest differs: (-want +got)\n%s", test.desc, diff)
-		}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("MakeGatewayInfo() mismatch (-want +got):\n%s", diff)
 	}
 
 	// Output:
-	// add to empty: after AddCrew, manifest differs: (-want +got)
-	// {*cmp_test.ShipManifest}.Crew["Galactic President"]:
-	// 	-: "Zaphod Beeblebrox"
-	// 	+: <non-existent>
-	// {*cmp_test.ShipManifest}.Crew["Zaphod Beeblebrox"]:
-	// 	-: <non-existent>
-	// 	+: "Galactic President"
-	//
-	// add another: after AddCrew, manifest differs: (-want +got)
-	// {*cmp_test.ShipManifest}.Crew["Human"]:
-	// 	-: "Trillian"
-	// 	+: <non-existent>
-	// {*cmp_test.ShipManifest}.Crew["Trillian"]:
-	// 	-: <non-existent>
-	// 	+: "Human"
-	//
-	// overwrite: after AddCrew, manifest differs: (-want +got)
-	// {*cmp_test.ShipManifest}.Crew["Just this guy, you know?"]:
-	// 	-: "Zaphod Beeblebrox"
-	// 	+: <non-existent>
-	// {*cmp_test.ShipManifest}.Crew["Zaphod Beeblebrox"]:
-	// 	-: "Galactic President"
-	// 	+: "Just this guy, you know?"
+	// MakeGatewayInfo() mismatch (-want +got):
+	//   cmp_test.Gateway{
+	//   	SSID:      "CoffeeShopWiFi",
+	// - 	IPAddress: s"192.168.0.2",
+	// + 	IPAddress: s"192.168.0.1",
+	//   	NetMask:   net.IPMask{0xff, 0xff, 0x00, 0x00},
+	//   	Clients: []cmp_test.Client{
+	//   		... // 2 identical elements
+	//   		{Hostname: "macchiato", IPAddress: s"192.168.0.153", LastSeen: s"2009-11-10 23:39:43 +0000 UTC"},
+	//   		{Hostname: "espresso", IPAddress: s"192.168.0.121"},
+	//   		{
+	//   			Hostname:  "latte",
+	// - 			IPAddress: s"192.168.0.221",
+	// + 			IPAddress: s"192.168.0.219",
+	//   			LastSeen:  s"2009-11-10 23:00:23 +0000 UTC",
+	//   		},
+	// + 		{
+	// + 			Hostname:  "americano",
+	// + 			IPAddress: s"192.168.0.188",
+	// + 			LastSeen:  s"2009-11-10 23:03:05 +0000 UTC",
+	// + 		},
+	//   	},
+	//   }
 }
 
 // Approximate equality for floats can be handled by defining a custom
@@ -363,6 +298,78 @@ func ExampleOption_transformComplex() {
 	// false
 	// false
 }
+
+type (
+	Gateway struct {
+		SSID      string
+		IPAddress net.IP
+		NetMask   net.IPMask
+		Clients   []Client
+	}
+	Client struct {
+		Hostname  string
+		IPAddress net.IP
+		LastSeen  time.Time
+	}
+)
+
+func MakeGatewayInfo() (x, y Gateway) {
+	x = Gateway{
+		SSID:      "CoffeeShopWiFi",
+		IPAddress: net.IPv4(192, 168, 0, 1),
+		NetMask:   net.IPv4Mask(255, 255, 0, 0),
+		Clients: []Client{{
+			Hostname:  "ristretto",
+			IPAddress: net.IPv4(192, 168, 0, 116),
+		}, {
+			Hostname:  "aribica",
+			IPAddress: net.IPv4(192, 168, 0, 104),
+			LastSeen:  time.Date(2009, time.November, 10, 23, 6, 32, 0, time.UTC),
+		}, {
+			Hostname:  "macchiato",
+			IPAddress: net.IPv4(192, 168, 0, 153),
+			LastSeen:  time.Date(2009, time.November, 10, 23, 39, 43, 0, time.UTC),
+		}, {
+			Hostname:  "espresso",
+			IPAddress: net.IPv4(192, 168, 0, 121),
+		}, {
+			Hostname:  "latte",
+			IPAddress: net.IPv4(192, 168, 0, 219),
+			LastSeen:  time.Date(2009, time.November, 10, 23, 0, 23, 0, time.UTC),
+		}, {
+			Hostname:  "americano",
+			IPAddress: net.IPv4(192, 168, 0, 188),
+			LastSeen:  time.Date(2009, time.November, 10, 23, 3, 5, 0, time.UTC),
+		}},
+	}
+	y = Gateway{
+		SSID:      "CoffeeShopWiFi",
+		IPAddress: net.IPv4(192, 168, 0, 2),
+		NetMask:   net.IPv4Mask(255, 255, 0, 0),
+		Clients: []Client{{
+			Hostname:  "ristretto",
+			IPAddress: net.IPv4(192, 168, 0, 116),
+		}, {
+			Hostname:  "aribica",
+			IPAddress: net.IPv4(192, 168, 0, 104),
+			LastSeen:  time.Date(2009, time.November, 10, 23, 6, 32, 0, time.UTC),
+		}, {
+			Hostname:  "macchiato",
+			IPAddress: net.IPv4(192, 168, 0, 153),
+			LastSeen:  time.Date(2009, time.November, 10, 23, 39, 43, 0, time.UTC),
+		}, {
+			Hostname:  "espresso",
+			IPAddress: net.IPv4(192, 168, 0, 121),
+		}, {
+			Hostname:  "latte",
+			IPAddress: net.IPv4(192, 168, 0, 221),
+			LastSeen:  time.Date(2009, time.November, 10, 23, 0, 23, 0, time.UTC),
+		}},
+	}
+	return x, y
+}
+
+var t fakeT
 
 type fakeT struct{}
 
