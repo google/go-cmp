@@ -112,6 +112,10 @@ func (tf ifaceFilter) filter(p cmp.Path) bool {
 // In particular, unexported fields within the struct's exported fields
 // of struct types, including anonymous fields, will not be ignored unless the
 // type of the field itself is also passed to IgnoreUnexported.
+//
+// Avoid ignoring unexported fields of a type which you do not control (i.e. a
+// type from another repository), as changes to the implementation of such types
+// may change how the comparison behaves. Prefer a custom Comparer instead.
 func IgnoreUnexported(typs ...interface{}) cmp.Option {
 	ux := newUnexportedFilter(typs...)
 	return cmp.FilterPath(ux.filter, cmp.Ignore())

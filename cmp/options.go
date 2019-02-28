@@ -225,7 +225,7 @@ func (validator) apply(s *state, vx, vy reflect.Value) {
 
 	// Unable to Interface implies unexported field without visibility access.
 	if !vx.CanInterface() || !vy.CanInterface() {
-		const help = "consider using AllowUnexported or cmpopts.IgnoreUnexported"
+		const help = "consider using a custom Comparer; if you control the implementation of type, you can also consider AllowUnexported or cmpopts.IgnoreUnexported"
 		panic(fmt.Sprintf("cannot handle unexported field: %#v\n%s", s.curPath, help))
 	}
 
@@ -371,7 +371,7 @@ func (cm comparer) String() string {
 // defined in an internal package where the semantic meaning of an unexported
 // field is in the control of the user.
 //
-// For some cases, a custom Comparer should be used instead that defines
+// In many cases, a custom Comparer should be used instead that defines
 // equality as a function of the public API of a type rather than the underlying
 // unexported implementation.
 //
