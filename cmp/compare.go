@@ -146,7 +146,8 @@ type state struct {
 }
 
 func newState(opts []Option) *state {
-	s := new(state)
+	// Always ensure a validator option exists to validate the inputs.
+	s := &state{opts: Options{validator{}}}
 	for _, opt := range opts {
 		s.processOption(opt)
 	}
@@ -293,16 +294,8 @@ func (s *state) compareAny(step PathStep) {
 }
 
 func (s *state) tryOptions(t reflect.Type, vx, vy reflect.Value) bool {
-	// If there were no FilterValues, we will not detect invalid inputs,
-	// so manually check for them and append a validator if necessary.
-	// We still evaluate the options since an ignore can override invalid.
-	opts := s.opts
-	if !vx.IsValid() || !vx.CanInterface() || !vy.IsValid() || !vy.CanInterface() {
-		opts = Options{opts, validator{}}
-	}
-
 	// Evaluate all filters and apply the remaining options.
-	if opt := opts.filter(s, t, vx, vy); opt != nil {
+	if opt := s.opts.filter(s, t, vx, vy); opt != nil {
 		opt.apply(s, vx, vy)
 		return true
 	}

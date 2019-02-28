@@ -178,7 +178,7 @@ type valuesFilter struct {
 
 func (f valuesFilter) filter(s *state, t reflect.Type, vx, vy reflect.Value) applicableOption {
 	if !vx.IsValid() || !vx.CanInterface() || !vy.IsValid() || !vy.CanInterface() {
-		return validator{}
+		return nil
 	}
 	if (f.typ == nil || t.AssignableTo(f.typ)) && s.callTTBFunc(f.fnc, vx, vy) {
 		return f.opt.filter(s, t, vx, vy)
@@ -207,18 +207,29 @@ func (ignore) String() string                                                   
 // missing map entries. Both values are validator only for unexported fields.
 type validator struct{ core }
 
-func (validator) filter(_ *state, _ reflect.Type, _, _ reflect.Value) applicableOption {
-	return validator{}
+func (validator) filter(_ *state, _ reflect.Type, vx, vy reflect.Value) applicableOption {
+	if !vx.IsValid() || !vy.IsValid() {
+		return validator{}
+	}
+	if !vx.CanInterface() || !vy.CanInterface() {
+		return validator{}
+	}
+	return nil
 }
 func (validator) apply(s *state, vx, vy reflect.Value) {
+	// Implies missing slice element or map entry.
+	if !vx.IsValid() || !vy.IsValid() {
+		s.report(vx.IsValid() == vy.IsValid(), 0)
+		return
+	}
+
 	// Unable to Interface implies unexported field without visibility access.
-	if (vx.IsValid() && !vx.CanInterface()) || (vy.IsValid() && !vy.CanInterface()) {
+	if !vx.CanInterface() || !vy.CanInterface() {
 		const help = "consider using AllowUnexported or cmpopts.IgnoreUnexported"
 		panic(fmt.Sprintf("cannot handle unexported field: %#v\n%s", s.curPath, help))
 	}
 
-	// Implies missing slice element or map entry.
-	s.report(vx.IsValid() == vy.IsValid(), 0)
+	panic("not reachable")
 }
 
 // identRx represents a valid identifier according to the Go specification.
