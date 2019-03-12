@@ -75,7 +75,11 @@ func (opts formatOptions) WithTypeMode(t typeMode) formatOptions {
 // FormatDiff converts a valueNode tree into a textNode tree, where the later
 // is a textual representation of the differences detected in the former.
 func (opts formatOptions) FormatDiff(v *valueNode) textNode {
-	// TODO: Add specialized formatting for slices of primitives.
+	// Check whether we have specialized formatting for this node.
+	// This is not necessary, but helpful for producing more readable outputs.
+	if opts.CanFormatDiffSlice(v) {
+		return opts.FormatDiffSlice(v)
+	}
 
 	// For leaf nodes, format the value based on the reflect.Values alone.
 	if v.MaxDepth == 0 {
@@ -240,7 +244,9 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 		// Handle unequal records.
 		for _, r := range recs[:ds.NumDiff()] {
 			switch {
-			// TODO: Add specialized formatting for slices of primitives.
+			case opts.CanFormatDiffSlice(r.Value):
+				out := opts.FormatDiffSlice(r.Value)
+				list = append(list, textRecord{Key: formatKey(r.Key), Value: out})
 			case r.Value.NumChildren == r.Value.MaxDepth:
 				outx := opts.WithDiffMode(diffRemoved).FormatDiff(r.Value)
 				outy := opts.WithDiffMode(diffInserted).FormatDiff(r.Value)
