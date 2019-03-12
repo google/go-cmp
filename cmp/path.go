@@ -198,15 +198,6 @@ func (pa Path) GoString() string {
 			ssPre = append(ssPre, s.trans.name+"(")
 			ssPost = append(ssPost, ")")
 			continue
-		case *typeAssertion:
-			// As a special-case, elide type assertions on anonymous types
-			// since they are typically generated dynamically and can be very
-			// verbose. For example, some transforms return interface{} because
-			// of Go's lack of generics, but typically take in and return the
-			// exact same concrete type.
-			if s.Type().PkgPath() == "" {
-				continue
-			}
 		}
 		ssPost = append(ssPost, s.String())
 	}

@@ -14,7 +14,6 @@ import (
 	"math/rand"
 	"reflect"
 	"regexp"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -23,11 +22,17 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/google/go-cmp/cmp/internal/flags"
+
 	pb "github.com/google/go-cmp/cmp/internal/testprotos"
 	ts "github.com/google/go-cmp/cmp/internal/teststructs"
 )
 
-var now = time.Now()
+func init() {
+	flags.Deterministic = true
+}
+
+var now = time.Date(2009, time.November, 10, 23, 00, 00, 00, time.UTC)
 
 func intPtr(n int) *int { return &n }
 
@@ -73,7 +78,8 @@ func TestDiff(t *testing.T) {
 				if gotPanic != "" {
 					t.Fatalf("unexpected panic message: %s\nreason: %v", gotPanic, tt.reason)
 				}
-				if got, want := strings.TrimSpace(gotDiff), strings.TrimSpace(tt.wantDiff); got != want {
+				tt.wantDiff = strings.TrimPrefix(tt.wantDiff, "\n")
+				if gotDiff != tt.wantDiff {
 					t.Fatalf("difference message:\ngot:\n%s\nwant:\n%s\nreason: %v", gotDiff, tt.wantDiff, tt.reason)
 				}
 			} else {
@@ -181,10 +187,17 @@ func comparerTests() []test {
 		x:     struct{ A, B, C int }{1, 2, 3},
 		y:     struct{ A, B, C int }{1, 2, 3},
 	}, {
-		label:    label,
-		x:        struct{ A, B, C int }{1, 2, 3},
-		y:        struct{ A, B, C int }{1, 2, 4},
-		wantDiff: "root.C:\n\t-: 3\n\t+: 4\n",
+		label: label,
+		x:     struct{ A, B, C int }{1, 2, 3},
+		y:     struct{ A, B, C int }{1, 2, 4},
+		wantDiff: `
+  struct{ A int; B int; C int }{
+  	A: 1,
+  	B: 2,
+- 	C: 3,
++ 	C: 4,
+  }
+`,
 	}, {
 		label:     label,
 		x:         struct{ a, b, c int }{1, 2, 3},
@@ -195,10 +208,15 @@ func comparerTests() []test {
 		x:     &struct{ A *int }{intPtr(4)},
 		y:     &struct{ A *int }{intPtr(4)},
 	}, {
-		label:    label,
-		x:        &struct{ A *int }{intPtr(4)},
-		y:        &struct{ A *int }{intPtr(5)},
-		wantDiff: "*root.A:\n\t-: 4\n\t+: 5\n",
+		label: label,
+		x:     &struct{ A *int }{intPtr(4)},
+		y:     &struct{ A *int }{intPtr(5)},
+		wantDiff: `
+  &struct{ A *int }{
+- 	A: &4,
++ 	A: &5,
+  }
+`,
 	}, {
 		label: label,
 		x:     &struct{ A *int }{intPtr(4)},
@@ -218,10 +236,15 @@ func comparerTests() []test {
 		x:     &struct{ R *bytes.Buffer }{},
 		y:     &struct{ R *bytes.Buffer }{},
 	}, {
-		label:    label,
-		x:        &struct{ R *bytes.Buffer }{new(bytes.Buffer)},
-		y:        &struct{ R *bytes.Buffer }{},
-		wantDiff: "root.R:\n\t-: s\"\"\n\t+: <nil>\n",
+		label: label,
+		x:     &struct{ R *bytes.Buffer }{new(bytes.Buffer)},
+		y:     &struct{ R *bytes.Buffer }{},
+		wantDiff: `
+  &struct{ R *bytes.Buffer }{
+- 	R: s"",
++ 	R: nil,
+  }
+`,
 	}, {
 		label: label,
 		x:     &struct{ R *bytes.Buffer }{new(bytes.Buffer)},
@@ -276,9 +299,12 @@ func comparerTests() []test {
 			return x.String() == y.String()
 		})},
 		wantDiff: `
-{[]*regexp.Regexp}[1]:
-	-: s"a*b*c*"
-	+: s"a*b*d*"`,
+  []*regexp.Regexp{
+  	nil,
+- 	s"a*b*c*",
++ 	s"a*b*d*",
+  }
+`,
 	}, {
 		label: label,
 		x: func() ***int {
@@ -308,9 +334,11 @@ func comparerTests() []test {
 			return &c
 		}(),
 		wantDiff: `
-***{***int}:
-	-: 0
-	+: 1`,
+  &&&int(
+- 	0,
++ 	1,
+  )
+`,
 	}, {
 		label: label,
 		x:     []int{1, 2, 3, 4, 5}[:3],
@@ -326,93 +354,117 @@ func comparerTests() []test {
 		y:     struct{ fmt.Stringer }{regexp.MustCompile("hello2")},
 		opts:  []cmp.Option{cmp.Comparer(func(x, y fmt.Stringer) bool { return x.String() == y.String() })},
 		wantDiff: `
-root:
-	-: s"hello"
-	+: s"hello2"`,
+  struct{ fmt.Stringer }(
+- 	s"hello",
++ 	s"hello2",
+  )
+`,
 	}, {
 		label: label,
 		x:     md5.Sum([]byte{'a'}),
 		y:     md5.Sum([]byte{'b'}),
 		wantDiff: `
-{[16]uint8}[0]:
-	-: 0x0c
-	+: 0x92
-{[16]uint8}[1]:
-	-: 0xc1
-	+: 0xeb
-{[16]uint8}[2]:
-	-: 0x75
-	+: 0x5f
-{[16]uint8}[3]:
-	-: 0xb9
-	+: 0xfe
-{[16]uint8}[4]:
-	-: 0xc0
-	+: 0xe6
-{[16]uint8}[5]:
-	-: 0xf1
-	+: 0xae
-{[16]uint8}[6]:
-	-: 0xb6
-	+: 0x2f
-{[16]uint8}[7]:
-	-: 0xa8
-	+: 0xec
-{[16]uint8}[8]:
-	-: 0x31
-	+: 0x3a
-{[16]uint8}[9]:
-	-: 0xc3
-	+: 0xd7
-{[16]uint8}[10]:
-	-: 0x99
-	+: 0x1c
-{[16]uint8}[11->?]:
-	-: 0xe2
-	+: <non-existent>
-{[16]uint8}[12->?]:
-	-: 0x69
-	+: <non-existent>
-{[16]uint8}[?->12]:
-	-: <non-existent>
-	+: 0x75
-{[16]uint8}[?->13]:
-	-: <non-existent>
-	+: 0x31
-{[16]uint8}[14]:
-	-: 0x26
-	+: 0x57
-{[16]uint8}[15]:
-	-: 0x61
-	+: 0x8f`,
+  [16]uint8{
+- 	0x0c,
++ 	0x92,
+- 	0xc1,
++ 	0xeb,
+- 	0x75,
++ 	0x5f,
+- 	0xb9,
++ 	0xfe,
+- 	0xc0,
++ 	0xe6,
+- 	0xf1,
++ 	0xae,
+- 	0xb6,
++ 	0x2f,
+- 	0xa8,
++ 	0xec,
+- 	0x31,
++ 	0x3a,
+- 	0xc3,
++ 	0xd7,
+- 	0x99,
++ 	0x1c,
+- 	0xe2,
+- 	0x69,
+  	0x77,
++ 	0x75,
++ 	0x31,
+- 	0x26,
++ 	0x57,
+- 	0x61,
++ 	0x8f,
+  }
+`,
 	}, {
 		label: label,
 		x:     new(fmt.Stringer),
 		y:     nil,
 		wantDiff: `
-root:
-	-: &<nil>
-	+: <non-existent>`,
+  interface{}(
+- 	&fmt.Stringer(nil),
+  )
+`,
 	}, {
 		label: label,
 		x:     makeTarHeaders('0'),
 		y:     makeTarHeaders('\x00'),
 		wantDiff: `
-{[]cmp_test.tarHeader}[0].Typeflag:
-	-: 0x30
-	+: 0x00
-{[]cmp_test.tarHeader}[1].Typeflag:
-	-: 0x30
-	+: 0x00
-{[]cmp_test.tarHeader}[2].Typeflag:
-	-: 0x30
-	+: 0x00
-{[]cmp_test.tarHeader}[3].Typeflag:
-	-: 0x30
-	+: 0x00
-{[]cmp_test.tarHeader}[4].Typeflag:
-	-: 0x30
-	+: 0x00`,
+  []cmp_test.tarHeader{
+  	{
+  		... // 4 identical fields
+  		Size:     1,
+  		ModTime:  s"2009-11-10 23:00:00 +0000 UTC",
+- 		Typeflag: 0x30,
++ 		Typeflag: 0x00,
+  		Linkname: "",
+  		Uname:    "user",
+  		... // 6 identical fields
+  	},
+  	{
+  		... // 4 identical fields
+  		Size:     2,
+  		ModTime:  s"2009-11-11 00:00:00 +0000 UTC",
+- 		Typeflag: 0x30,
++ 		Typeflag: 0x00,
+  		Linkname: "",
+  		Uname:    "user",
+  		... // 6 identical fields
+  	},
+  	{
+  		... // 4 identical fields
+  		Size:     4,
+  		ModTime:  s"2009-11-11 01:00:00 +0000 UTC",
+- 		Typeflag: 0x30,
++ 		Typeflag: 0x00,
+  		Linkname: "",
+  		Uname:    "user",
+  		... // 6 identical fields
+  	},
+  	{
+  		... // 4 identical fields
+  		Size:     8,
+  		ModTime:  s"2009-11-11 02:00:00 +0000 UTC",
+- 		Typeflag: 0x30,
++ 		Typeflag: 0x00,
+  		Linkname: "",
+  		Uname:    "user",
+  		... // 6 identical fields
+  	},
+  	{
+  		... // 4 identical fields
+  		Size:     16,
+  		ModTime:  s"2009-11-11 03:00:00 +0000 UTC",
+- 		Typeflag: 0x30,
++ 		Typeflag: 0x00,
+  		Linkname: "",
+  		Uname:    "user",
+  		... // 6 identical fields
+  	},
+  }
+`,
 	}, {
 		label: label,
 		x:     make([]int, 1000),
@@ -465,50 +517,49 @@ root:
 			}),
 		},
 		wantDiff: `
-λ({[]int}[0]):
-	-: float64(NaN)
-	+: float64(NaN)
-λ({[]int}[1]):
-	-: float64(NaN)
-	+: float64(NaN)
-λ({[]int}[2]):
-	-: float64(NaN)
-	+: float64(NaN)
-λ({[]int}[3]):
-	-: float64(NaN)
-	+: float64(NaN)
-λ({[]int}[4]):
-	-: float64(NaN)
-	+: float64(NaN)
-λ({[]int}[5]):
-	-: float64(NaN)
-	+: float64(NaN)
-λ({[]int}[6]):
-	-: float64(NaN)
-	+: float64(NaN)
-λ({[]int}[7]):
-	-: float64(NaN)
-	+: float64(NaN)
-λ({[]int}[8]):
-	-: float64(NaN)
-	+: float64(NaN)
-λ({[]int}[9]):
-	-: float64(NaN)
-	+: float64(NaN)`,
+  []int{
+- 	Inverse(λ, float64(NaN)),
++ 	Inverse(λ, float64(NaN)),
+- 	Inverse(λ, float64(NaN)),
++ 	Inverse(λ, float64(NaN)),
+- 	Inverse(λ, float64(NaN)),
++ 	Inverse(λ, float64(NaN)),
+- 	Inverse(λ, float64(NaN)),
++ 	Inverse(λ, float64(NaN)),
+- 	Inverse(λ, float64(NaN)),
++ 	Inverse(λ, float64(NaN)),
+- 	Inverse(λ, float64(NaN)),
++ 	Inverse(λ, float64(NaN)),
+- 	Inverse(λ, float64(NaN)),
++ 	Inverse(λ, float64(NaN)),
+- 	Inverse(λ, float64(NaN)),
++ 	Inverse(λ, float64(NaN)),
+- 	Inverse(λ, float64(NaN)),
++ 	Inverse(λ, float64(NaN)),
+- 	Inverse(λ, float64(NaN)),
++ 	Inverse(λ, float64(NaN)),
+  }
+`,
 	}, {
 		// Ensure reasonable Stringer formatting of map keys.
 		label: label,
 		x:     map[*pb.Stringer]*pb.Stringer{{"hello"}: {"world"}},
 		y:     map[*pb.Stringer]*pb.Stringer(nil),
 		wantDiff: `
-{map[*testprotos.Stringer]*testprotos.Stringer}:
-	-: map[*testprotos.Stringer]*testprotos.Stringer{s"hello": s"world"}
-	+: map[*testprotos.Stringer]*testprotos.Stringer(nil)`,
+  map[*testprotos.Stringer]*testprotos.Stringer(
+- 	{⟪0xdeadf00f⟫: s"world"},
++ 	nil,
+  )
+`,
 	}, {
 		// Ensure Stringer avoids double-quote escaping if possible.
-		label:    label,
-		x:        []*pb.Stringer{{`multi\nline\nline\nline`}},
-		wantDiff: "root:\n\t-: []*testprotos.Stringer{s`multi\\nline\\nline\\nline`}\n\t+: <non-existent>",
+		label: label,
+		x:     []*pb.Stringer{{`multi\nline\nline\nline`}},
+		wantDiff: strings.Replace(`
+  interface{}(
+- 	[]*testprotos.Stringer{s'multi\nline\nline\nline'},
+  )
+`, "'", "`", -1),
 	}, {
 		label: label,
 		x:     struct{ I Iface2 }{},
@@ -541,16 +592,49 @@ root:
 		x:     []interface{}{map[string]interface{}{"avg": 0.278, "hr": 65, "name": "Mark McGwire"}, map[string]interface{}{"avg": 0.288, "hr": 63, "name": "Sammy Sosa"}},
 		y:     []interface{}{map[string]interface{}{"avg": 0.278, "hr": 65.0, "name": "Mark McGwire"}, map[string]interface{}{"avg": 0.288, "hr": 63.0, "name": "Sammy Sosa"}},
 		wantDiff: `
-root[0]["hr"]:
-	-: int(65)
-	+: float64(65)
-root[1]["hr"]:
-	-: int(63)
-	+: float64(63)`,
+  []interface{}{
+  	map[string]interface{}{
+  		"avg":  float64(0.278),
+- 		"hr":   int(65),
++ 		"hr":   float64(65),
+  		"name": string("Mark McGwire"),
+  	},
+  	map[string]interface{}{
+  		"avg":  float64(0.288),
+- 		"hr":   int(63),
++ 		"hr":   float64(63),
+  		"name": string("Sammy Sosa"),
+  	},
+  }
+`,
 	}, {
 		label: label,
-		x:     struct{ _ string }{},
-		y:     struct{ _ string }{},
+		x: map[*int]string{
+			new(int): "hello",
+		},
+		y: map[*int]string{
+			new(int): "world",
+		},
+		wantDiff: `
+  map[*int]string{
+- 	⟪0xdeadf00f⟫: "hello",
++ 	⟪0xdeadf00f⟫: "world",
+  }
+`,
+	}, {
+		label: label,
+		x:     intPtr(0),
+		y:     intPtr(0),
+		opts: []cmp.Option{
+			cmp.Comparer(func(x, y *int) bool { return x == y }),
+		},
+		// TODO: This output is unhelpful and should show the address.
+		wantDiff: `
+  (*int)(
+- 	&0,
++ 	&0,
+  )
+`,
 	}, {
 		label: label,
 		x: [2][]int{
@@ -574,9 +658,16 @@ root[1]["hr"]:
 			}, cmp.Ignore()),
 		},
 		wantDiff: `
-{[2][]int}[1][5->3]:
-	-: 20
-	+: 2`,
+  [2][]int{
+  	{..., 1, 2, 3, ..., 4, 5, 6, 7, ..., 8, ..., 9, ...},
+  	{
+  		... // 6 ignored and 1 identical elements
+- 		20,
++ 		2,
+  		... // 3 ignored elements
+  	},
+  }
+`,
 		reason: "all zero slice elements are ignored (even if missing)",
 	}, {
 		label: label,
@@ -601,9 +692,15 @@ root[1]["hr"]:
 			}, cmp.Ignore()),
 		},
 		wantDiff: `
-{[2]map[string]int}[1]["keep2"]:
-	-: <non-existent>
-	+: 2`,
+  [2]map[string]int{
+  	{"KEEP3": 3, "keep1": 1, "keep2": 2, ...},
+  	{
+  		... // 2 ignored entries
+  		"keep1": 1,
++ 		"keep2": 2,
+  	},
+  }
+`,
 		reason: "all zero map entries are ignored (even if missing)",
 	}}
 }
@@ -638,9 +735,11 @@ func transformerTests() []test {
 			cmp.Transformer("λ", func(in uint32) uint64 { return uint64(in) }),
 		},
 		wantDiff: `
-λ(λ(λ({uint8}))):
-	-: 0x00
-	+: 0x01`,
+  uint8(Inverse(λ, uint16(Inverse(λ, uint32(Inverse(λ, uint64(
+- 	0x00,
++ 	0x01,
+  )))))))
+`,
 	}, {
 		label: label,
 		x:     0,
@@ -665,12 +764,15 @@ func transformerTests() []test {
 			),
 		},
 		wantDiff: `
-λ({[]int}[1]):
-	-: -5
-	+: 3
-λ({[]int}[3]):
-	-: -1
-	+: -5`,
+  []int{
+  	Inverse(λ, int64(0)),
+- 	Inverse(λ, int64(-5)),
++ 	Inverse(λ, int64(3)),
+  	Inverse(λ, int64(0)),
+- 	Inverse(λ, int64(-1)),
++ 	Inverse(λ, int64(-5)),
+  }
+`,
 	}, {
 		label: label,
 		x:     0,
@@ -678,15 +780,17 @@ func transformerTests() []test {
 		opts: []cmp.Option{
 			cmp.Transformer("λ", func(in int) interface{} {
 				if in == 0 {
-					return "string"
+					return "zero"
 				}
 				return float64(in)
 			}),
 		},
 		wantDiff: `
-λ({int}):
-	-: "string"
-	+: 1`,
+  int(Inverse(λ, interface{}(
+- 	string("zero"),
++ 	float64(1),
+  )))
+`,
 	}, {
 		label: label,
 		x: `{
@@ -726,18 +830,32 @@ func transformerTests() []test {
 			}),
 		},
 		wantDiff: `
-ParseJSON({string})["address"]["city"]:
-	-: "Los Angeles"
-	+: "New York"
-ParseJSON({string})["address"]["state"]:
-	-: "CA"
-	+: "NY"
-ParseJSON({string})["phoneNumbers"][0]["number"]:
-	-: "212 555-4321"
-	+: "212 555-1234"
-ParseJSON({string})["spouse"]:
-	-: <non-existent>
-	+: interface {}(nil)`,
+  string(Inverse(ParseJSON, map[string]interface{}{
+  	"address": map[string]interface{}{
+- 		"city":          string("Los Angeles"),
++ 		"city":          string("New York"),
+  		"postalCode":    string("10021-3100"),
+- 		"state":         string("CA"),
++ 		"state":         string("NY"),
+  		"streetAddress": string("21 2nd Street"),
+  	},
+  	"age":       float64(25),
+  	"children":  []interface{}{},
+  	"firstName": string("John"),
+  	"isAlive":   bool(true),
+  	"lastName":  string("Smith"),
+  	"phoneNumbers": []interface{}{
+  		map[string]interface{}{
+- 			"number": string("212 555-4321"),
++ 			"number": string("212 555-1234"),
+  			"type":   string("home"),
+  		},
+  		map[string]interface{}{"number": string("646 555-4567"), "type": string("office")},
+  		map[string]interface{}{"number": string("123 456-7890"), "type": string("mobile")},
+  	},
++ 	"spouse": nil,
+  }))
+`,
 	}, {
 		label: label,
 		x:     StringBytes{String: "some\nmulti\nLine\nstring", Bytes: []byte("some\nmulti\nline\nbytes")},
@@ -747,12 +865,28 @@ ParseJSON({string})["spouse"]:
 			transformOnce("SplitBytes", func(b []byte) [][]byte { return bytes.Split(b, []byte("\n")) }),
 		},
 		wantDiff: `
-SplitString({cmp_test.StringBytes}.String)[2]:
-	-: "Line"
-	+: "line"
-SplitBytes({cmp_test.StringBytes}.Bytes)[3][0]:
-	-: 0x62
-	+: 0x42`,
+  cmp_test.StringBytes{
+  	String: Inverse(SplitString, []string{
+  		"some",
+  		"multi",
+- 		"Line",
++ 		"line",
+  		"string",
+  	}),
+  	Bytes: []uint8(Inverse(SplitBytes, [][]uint8{
+  		{0x73, 0x6f, 0x6d, 0x65},
+  		{0x6d, 0x75, 0x6c, 0x74, 0x69},
+  		{0x6c, 0x69, 0x6e, 0x65},
+  		{
+- 			0x62,
++ 			0x42,
+  			0x79,
+  			0x74,
+  			... // 2 identical elements
+  		},
+  	})),
+  }
+`,
 	}, {
 		x: "a\nb\nc\n",
 		y: "a\nb\nc\n",
@@ -866,10 +1000,8 @@ func embeddedTests() []test {
 	}
 
 	// TODO(dsnet): Workaround for reflect bug (https://golang.org/issue/21122).
-	// The upstream fix landed in Go1.10, so we can remove this when dropping
-	// support for Go1.9 and below.
 	wantPanicNotGo110 := func(s string) string {
-		if v := runtime.Version(); strings.HasPrefix(v, "go1.8") || strings.HasPrefix(v, "go1.9") {
+		if !flags.AtLeastGo110 {
 			return ""
 		}
 		return s
@@ -910,12 +1042,15 @@ func embeddedTests() []test {
 			cmp.AllowUnexported(ts.ParentStructA{}, privateStruct),
 		},
 		wantDiff: `
-{teststructs.ParentStructA}.privateStruct.Public:
-	-: 1
-	+: 2
-{teststructs.ParentStructA}.privateStruct.private:
-	-: 2
-	+: 3`,
+  teststructs.ParentStructA{
+  	privateStruct: teststructs.privateStruct{
+- 		Public:  1,
++ 		Public:  2,
+- 		private: 2,
++ 		private: 3,
+  	},
+  }
+`,
 	}, {
 		label: label + "ParentStructB",
 		x:     ts.ParentStructB{},
@@ -955,12 +1090,15 @@ func embeddedTests() []test {
 			cmp.AllowUnexported(ts.ParentStructB{}, ts.PublicStruct{}),
 		},
 		wantDiff: `
-{teststructs.ParentStructB}.PublicStruct.Public:
-	-: 1
-	+: 2
-{teststructs.ParentStructB}.PublicStruct.private:
-	-: 2
-	+: 3`,
+  teststructs.ParentStructB{
+  	PublicStruct: teststructs.PublicStruct{
+- 		Public:  1,
++ 		Public:  2,
+- 		private: 2,
++ 		private: 3,
+  	},
+  }
+`,
 	}, {
 		label:     label + "ParentStructC",
 		x:         ts.ParentStructC{},
@@ -996,18 +1134,19 @@ func embeddedTests() []test {
 			cmp.AllowUnexported(ts.ParentStructC{}, privateStruct),
 		},
 		wantDiff: `
-{teststructs.ParentStructC}.privateStruct.Public:
-	-: 1
-	+: 2
-{teststructs.ParentStructC}.privateStruct.private:
-	-: 2
-	+: 3
-{teststructs.ParentStructC}.Public:
-	-: 3
-	+: 4
-{teststructs.ParentStructC}.private:
-	-: 4
-	+: 5`,
+  teststructs.ParentStructC{
+  	privateStruct: teststructs.privateStruct{
+- 		Public:  1,
++ 		Public:  2,
+- 		private: 2,
++ 		private: 3,
+  	},
+- 	Public:  3,
++ 	Public:  4,
+- 	private: 4,
++ 	private: 5,
+  }
+`,
 	}, {
 		label: label + "ParentStructD",
 		x:     ts.ParentStructD{},
@@ -1047,18 +1186,19 @@ func embeddedTests() []test {
 			cmp.AllowUnexported(ts.ParentStructD{}, ts.PublicStruct{}),
 		},
 		wantDiff: `
-{teststructs.ParentStructD}.PublicStruct.Public:
-	-: 1
-	+: 2
-{teststructs.ParentStructD}.PublicStruct.private:
-	-: 2
-	+: 3
-{teststructs.ParentStructD}.Public:
-	-: 3
-	+: 4
-{teststructs.ParentStructD}.private:
-	-: 4
-	+: 5`,
+  teststructs.ParentStructD{
+  	PublicStruct: teststructs.PublicStruct{
+- 		Public:  1,
++ 		Public:  2,
+- 		private: 2,
++ 		private: 3,
+  	},
+- 	Public:  3,
++ 	Public:  4,
+- 	private: 4,
++ 	private: 5,
+  }
+`,
 	}, {
 		label: label + "ParentStructE",
 		x:     ts.ParentStructE{},
@@ -1106,18 +1246,21 @@ func embeddedTests() []test {
 			cmp.AllowUnexported(ts.ParentStructE{}, ts.PublicStruct{}, privateStruct),
 		},
 		wantDiff: `
-{teststructs.ParentStructE}.privateStruct.Public:
-	-: 1
-	+: 2
-{teststructs.ParentStructE}.privateStruct.private:
-	-: 2
-	+: 3
-{teststructs.ParentStructE}.PublicStruct.Public:
-	-: 3
-	+: 4
-{teststructs.ParentStructE}.PublicStruct.private:
-	-: 4
-	+: 5`,
+  teststructs.ParentStructE{
+  	privateStruct: teststructs.privateStruct{
+- 		Public:  1,
++ 		Public:  2,
+- 		private: 2,
++ 		private: 3,
+  	},
+  	PublicStruct: teststructs.PublicStruct{
+- 		Public:  3,
++ 		Public:  4,
+- 		private: 4,
++ 		private: 5,
+  	},
+  }
+`,
 	}, {
 		label: label + "ParentStructF",
 		x:     ts.ParentStructF{},
@@ -1165,24 +1308,25 @@ func embeddedTests() []test {
 			cmp.AllowUnexported(ts.ParentStructF{}, ts.PublicStruct{}, privateStruct),
 		},
 		wantDiff: `
-{teststructs.ParentStructF}.privateStruct.Public:
-	-: 1
-	+: 2
-{teststructs.ParentStructF}.privateStruct.private:
-	-: 2
-	+: 3
-{teststructs.ParentStructF}.PublicStruct.Public:
-	-: 3
-	+: 4
-{teststructs.ParentStructF}.PublicStruct.private:
-	-: 4
-	+: 5
-{teststructs.ParentStructF}.Public:
-	-: 5
-	+: 6
-{teststructs.ParentStructF}.private:
-	-: 6
-	+: 7`,
+  teststructs.ParentStructF{
+  	privateStruct: teststructs.privateStruct{
+- 		Public:  1,
++ 		Public:  2,
+- 		private: 2,
++ 		private: 3,
+  	},
+  	PublicStruct: teststructs.PublicStruct{
+- 		Public:  3,
++ 		Public:  4,
+- 		private: 4,
++ 		private: 5,
+  	},
+- 	Public:  5,
++ 	Public:  6,
+- 	private: 6,
++ 	private: 7,
+  }
+`,
 	}, {
 		label:     label + "ParentStructG",
 		x:         ts.ParentStructG{},
@@ -1218,12 +1362,15 @@ func embeddedTests() []test {
 			cmp.AllowUnexported(ts.ParentStructG{}, privateStruct),
 		},
 		wantDiff: `
-{*teststructs.ParentStructG}.privateStruct.Public:
-	-: 1
-	+: 2
-{*teststructs.ParentStructG}.privateStruct.private:
-	-: 2
-	+: 3`,
+  &teststructs.ParentStructG{
+  	privateStruct: &teststructs.privateStruct{
+- 		Public:  1,
++ 		Public:  2,
+- 		private: 2,
++ 		private: 3,
+  	},
+  }
+`,
 	}, {
 		label: label + "ParentStructH",
 		x:     ts.ParentStructH{},
@@ -1263,12 +1410,15 @@ func embeddedTests() []test {
 			cmp.AllowUnexported(ts.ParentStructH{}, ts.PublicStruct{}),
 		},
 		wantDiff: `
-{*teststructs.ParentStructH}.PublicStruct.Public:
-	-: 1
-	+: 2
-{*teststructs.ParentStructH}.PublicStruct.private:
-	-: 2
-	+: 3`,
+  &teststructs.ParentStructH{
+  	PublicStruct: &teststructs.PublicStruct{
+- 		Public:  1,
++ 		Public:  2,
+- 		private: 2,
++ 		private: 3,
+  	},
+  }
+`,
 	}, {
 		label:     label + "ParentStructI",
 		x:         ts.ParentStructI{},
@@ -1319,18 +1469,21 @@ func embeddedTests() []test {
 			cmp.AllowUnexported(ts.ParentStructI{}, ts.PublicStruct{}, privateStruct),
 		},
 		wantDiff: `
-{*teststructs.ParentStructI}.privateStruct.Public:
-	-: 1
-	+: 2
-{*teststructs.ParentStructI}.privateStruct.private:
-	-: 2
-	+: 3
-{*teststructs.ParentStructI}.PublicStruct.Public:
-	-: 3
-	+: 4
-{*teststructs.ParentStructI}.PublicStruct.private:
-	-: 4
-	+: 5`,
+  &teststructs.ParentStructI{
+  	privateStruct: &teststructs.privateStruct{
+- 		Public:  1,
++ 		Public:  2,
+- 		private: 2,
++ 		private: 3,
+  	},
+  	PublicStruct: &teststructs.PublicStruct{
+- 		Public:  3,
++ 		Public:  4,
+- 		private: 4,
++ 		private: 5,
+  	},
+  }
+`,
 	}, {
 		label:     label + "ParentStructJ",
 		x:         ts.ParentStructJ{},
@@ -1374,30 +1527,33 @@ func embeddedTests() []test {
 			cmp.AllowUnexported(ts.ParentStructJ{}, ts.PublicStruct{}, privateStruct),
 		},
 		wantDiff: `
-{*teststructs.ParentStructJ}.privateStruct.Public:
-	-: 1
-	+: 2
-{*teststructs.ParentStructJ}.privateStruct.private:
-	-: 2
-	+: 3
-{*teststructs.ParentStructJ}.PublicStruct.Public:
-	-: 3
-	+: 4
-{*teststructs.ParentStructJ}.PublicStruct.private:
-	-: 4
-	+: 5
-{*teststructs.ParentStructJ}.Public.Public:
-	-: 7
-	+: 8
-{*teststructs.ParentStructJ}.Public.private:
-	-: 8
-	+: 9
-{*teststructs.ParentStructJ}.private.Public:
-	-: 5
-	+: 6
-{*teststructs.ParentStructJ}.private.private:
-	-: 6
-	+: 7`,
+  &teststructs.ParentStructJ{
+  	privateStruct: &teststructs.privateStruct{
+- 		Public:  1,
++ 		Public:  2,
+- 		private: 2,
++ 		private: 3,
+  	},
+  	PublicStruct: &teststructs.PublicStruct{
+- 		Public:  3,
++ 		Public:  4,
+- 		private: 4,
++ 		private: 5,
+  	},
+  	Public: teststructs.PublicStruct{
+- 		Public:  7,
++ 		Public:  8,
+- 		private: 8,
++ 		private: 9,
+  	},
+  	private: teststructs.privateStruct{
+- 		Public:  5,
++ 		Public:  6,
+- 		private: 6,
++ 		private: 7,
+  	},
+  }
+`,
 	}}
 }
 
@@ -1444,9 +1600,11 @@ func methodTests() []test {
 		x:     ts.StructB{X: "NotEqual"},
 		y:     ts.StructB{X: "not_equal"},
 		wantDiff: `
-{teststructs.StructB}.X:
-	-: "NotEqual"
-	+: "not_equal"`,
+  teststructs.StructB{
+- 	X: "NotEqual",
++ 	X: "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructB",
 		x:     ts.StructB{X: "NotEqual"},
@@ -1469,9 +1627,11 @@ func methodTests() []test {
 		x:     ts.StructD{X: "NotEqual"},
 		y:     ts.StructD{X: "not_equal"},
 		wantDiff: `
-{teststructs.StructD}.X:
-	-: "NotEqual"
-	+: "not_equal"`,
+  teststructs.StructD{
+- 	X: "NotEqual",
++ 	X: "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructD",
 		x:     ts.StructD{X: "NotEqual"},
@@ -1486,9 +1646,11 @@ func methodTests() []test {
 		x:     ts.StructE{X: "NotEqual"},
 		y:     ts.StructE{X: "not_equal"},
 		wantDiff: `
-{teststructs.StructE}.X:
-	-: "NotEqual"
-	+: "not_equal"`,
+  teststructs.StructE{
+- 	X: "NotEqual",
++ 	X: "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructE",
 		x:     ts.StructE{X: "NotEqual"},
@@ -1503,9 +1665,11 @@ func methodTests() []test {
 		x:     ts.StructF{X: "NotEqual"},
 		y:     ts.StructF{X: "not_equal"},
 		wantDiff: `
-{teststructs.StructF}.X:
-	-: "NotEqual"
-	+: "not_equal"`,
+  teststructs.StructF{
+- 	X: "NotEqual",
++ 	X: "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructF",
 		x:     &ts.StructF{X: "NotEqual"},
@@ -1515,41 +1679,65 @@ func methodTests() []test {
 		x:     ts.StructA1{StructA: ts.StructA{X: "NotEqual"}, X: "equal"},
 		y:     ts.StructA1{StructA: ts.StructA{X: "not_equal"}, X: "equal"},
 	}, {
-		label:    label + "StructA1",
-		x:        ts.StructA1{StructA: ts.StructA{X: "NotEqual"}, X: "NotEqual"},
-		y:        ts.StructA1{StructA: ts.StructA{X: "not_equal"}, X: "not_equal"},
-		wantDiff: "{teststructs.StructA1}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
+		label: label + "StructA1",
+		x:     ts.StructA1{StructA: ts.StructA{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructA1{StructA: ts.StructA{X: "not_equal"}, X: "not_equal"},
+		wantDiff: `
+  teststructs.StructA1{
+  	StructA: teststructs.StructA{X: "NotEqual"},
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructA1",
 		x:     &ts.StructA1{StructA: ts.StructA{X: "NotEqual"}, X: "equal"},
 		y:     &ts.StructA1{StructA: ts.StructA{X: "not_equal"}, X: "equal"},
 	}, {
-		label:    label + "StructA1",
-		x:        &ts.StructA1{StructA: ts.StructA{X: "NotEqual"}, X: "NotEqual"},
-		y:        &ts.StructA1{StructA: ts.StructA{X: "not_equal"}, X: "not_equal"},
-		wantDiff: "{*teststructs.StructA1}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
+		label: label + "StructA1",
+		x:     &ts.StructA1{StructA: ts.StructA{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructA1{StructA: ts.StructA{X: "not_equal"}, X: "not_equal"},
+		wantDiff: `
+  &teststructs.StructA1{
+  	StructA: teststructs.StructA{X: "NotEqual"},
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructB1",
 		x:     ts.StructB1{StructB: ts.StructB{X: "NotEqual"}, X: "equal"},
 		y:     ts.StructB1{StructB: ts.StructB{X: "not_equal"}, X: "equal"},
 		opts:  []cmp.Option{derefTransform},
 	}, {
-		label:    label + "StructB1",
-		x:        ts.StructB1{StructB: ts.StructB{X: "NotEqual"}, X: "NotEqual"},
-		y:        ts.StructB1{StructB: ts.StructB{X: "not_equal"}, X: "not_equal"},
-		opts:     []cmp.Option{derefTransform},
-		wantDiff: "{teststructs.StructB1}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
+		label: label + "StructB1",
+		x:     ts.StructB1{StructB: ts.StructB{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructB1{StructB: ts.StructB{X: "not_equal"}, X: "not_equal"},
+		opts:  []cmp.Option{derefTransform},
+		wantDiff: `
+  teststructs.StructB1{
+  	StructB: teststructs.StructB(Inverse(Ref, &teststructs.StructB{X: "NotEqual"})),
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructB1",
 		x:     &ts.StructB1{StructB: ts.StructB{X: "NotEqual"}, X: "equal"},
 		y:     &ts.StructB1{StructB: ts.StructB{X: "not_equal"}, X: "equal"},
 		opts:  []cmp.Option{derefTransform},
 	}, {
-		label:    label + "StructB1",
-		x:        &ts.StructB1{StructB: ts.StructB{X: "NotEqual"}, X: "NotEqual"},
-		y:        &ts.StructB1{StructB: ts.StructB{X: "not_equal"}, X: "not_equal"},
-		opts:     []cmp.Option{derefTransform},
-		wantDiff: "{*teststructs.StructB1}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
+		label: label + "StructB1",
+		x:     &ts.StructB1{StructB: ts.StructB{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructB1{StructB: ts.StructB{X: "not_equal"}, X: "not_equal"},
+		opts:  []cmp.Option{derefTransform},
+		wantDiff: `
+  &teststructs.StructB1{
+  	StructB: teststructs.StructB(Inverse(Ref, &teststructs.StructB{X: "NotEqual"})),
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructC1",
 		x:     ts.StructC1{StructC: ts.StructC{X: "NotEqual"}, X: "NotEqual"},
@@ -1563,12 +1751,13 @@ func methodTests() []test {
 		x:     ts.StructD1{StructD: ts.StructD{X: "NotEqual"}, X: "NotEqual"},
 		y:     ts.StructD1{StructD: ts.StructD{X: "not_equal"}, X: "not_equal"},
 		wantDiff: `
-{teststructs.StructD1}.StructD.X:
-	-: "NotEqual"
-	+: "not_equal"
-{teststructs.StructD1}.X:
-	-: "NotEqual"
-	+: "not_equal"`,
+  teststructs.StructD1{
+- 	StructD: teststructs.StructD{X: "NotEqual"},
++ 	StructD: teststructs.StructD{X: "not_equal"},
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructD1",
 		x:     ts.StructD1{StructD: ts.StructD{X: "NotEqual"}, X: "NotEqual"},
@@ -1583,12 +1772,13 @@ func methodTests() []test {
 		x:     ts.StructE1{StructE: ts.StructE{X: "NotEqual"}, X: "NotEqual"},
 		y:     ts.StructE1{StructE: ts.StructE{X: "not_equal"}, X: "not_equal"},
 		wantDiff: `
-{teststructs.StructE1}.StructE.X:
-	-: "NotEqual"
-	+: "not_equal"
-{teststructs.StructE1}.X:
-	-: "NotEqual"
-	+: "not_equal"`,
+  teststructs.StructE1{
+- 	StructE: teststructs.StructE{X: "NotEqual"},
++ 	StructE: teststructs.StructE{X: "not_equal"},
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructE1",
 		x:     ts.StructE1{StructE: ts.StructE{X: "NotEqual"}, X: "NotEqual"},
@@ -1603,12 +1793,13 @@ func methodTests() []test {
 		x:     ts.StructF1{StructF: ts.StructF{X: "NotEqual"}, X: "NotEqual"},
 		y:     ts.StructF1{StructF: ts.StructF{X: "not_equal"}, X: "not_equal"},
 		wantDiff: `
-{teststructs.StructF1}.StructF.X:
-	-: "NotEqual"
-	+: "not_equal"
-{teststructs.StructF1}.X:
-	-: "NotEqual"
-	+: "not_equal"`,
+  teststructs.StructF1{
+- 	StructF: teststructs.StructF{X: "NotEqual"},
++ 	StructF: teststructs.StructF{X: "not_equal"},
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructF1",
 		x:     &ts.StructF1{StructF: ts.StructF{X: "NotEqual"}, X: "NotEqual"},
@@ -1618,37 +1809,61 @@ func methodTests() []test {
 		x:     ts.StructA2{StructA: &ts.StructA{X: "NotEqual"}, X: "equal"},
 		y:     ts.StructA2{StructA: &ts.StructA{X: "not_equal"}, X: "equal"},
 	}, {
-		label:    label + "StructA2",
-		x:        ts.StructA2{StructA: &ts.StructA{X: "NotEqual"}, X: "NotEqual"},
-		y:        ts.StructA2{StructA: &ts.StructA{X: "not_equal"}, X: "not_equal"},
-		wantDiff: "{teststructs.StructA2}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
+		label: label + "StructA2",
+		x:     ts.StructA2{StructA: &ts.StructA{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructA2{StructA: &ts.StructA{X: "not_equal"}, X: "not_equal"},
+		wantDiff: `
+  teststructs.StructA2{
+  	StructA: &teststructs.StructA{X: "NotEqual"},
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructA2",
 		x:     &ts.StructA2{StructA: &ts.StructA{X: "NotEqual"}, X: "equal"},
 		y:     &ts.StructA2{StructA: &ts.StructA{X: "not_equal"}, X: "equal"},
 	}, {
-		label:    label + "StructA2",
-		x:        &ts.StructA2{StructA: &ts.StructA{X: "NotEqual"}, X: "NotEqual"},
-		y:        &ts.StructA2{StructA: &ts.StructA{X: "not_equal"}, X: "not_equal"},
-		wantDiff: "{*teststructs.StructA2}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
+		label: label + "StructA2",
+		x:     &ts.StructA2{StructA: &ts.StructA{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructA2{StructA: &ts.StructA{X: "not_equal"}, X: "not_equal"},
+		wantDiff: `
+  &teststructs.StructA2{
+  	StructA: &teststructs.StructA{X: "NotEqual"},
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructB2",
 		x:     ts.StructB2{StructB: &ts.StructB{X: "NotEqual"}, X: "equal"},
 		y:     ts.StructB2{StructB: &ts.StructB{X: "not_equal"}, X: "equal"},
 	}, {
-		label:    label + "StructB2",
-		x:        ts.StructB2{StructB: &ts.StructB{X: "NotEqual"}, X: "NotEqual"},
-		y:        ts.StructB2{StructB: &ts.StructB{X: "not_equal"}, X: "not_equal"},
-		wantDiff: "{teststructs.StructB2}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
+		label: label + "StructB2",
+		x:     ts.StructB2{StructB: &ts.StructB{X: "NotEqual"}, X: "NotEqual"},
+		y:     ts.StructB2{StructB: &ts.StructB{X: "not_equal"}, X: "not_equal"},
+		wantDiff: `
+  teststructs.StructB2{
+  	StructB: &teststructs.StructB{X: "NotEqual"},
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructB2",
 		x:     &ts.StructB2{StructB: &ts.StructB{X: "NotEqual"}, X: "equal"},
 		y:     &ts.StructB2{StructB: &ts.StructB{X: "not_equal"}, X: "equal"},
 	}, {
-		label:    label + "StructB2",
-		x:        &ts.StructB2{StructB: &ts.StructB{X: "NotEqual"}, X: "NotEqual"},
-		y:        &ts.StructB2{StructB: &ts.StructB{X: "not_equal"}, X: "not_equal"},
-		wantDiff: "{*teststructs.StructB2}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
+		label: label + "StructB2",
+		x:     &ts.StructB2{StructB: &ts.StructB{X: "NotEqual"}, X: "NotEqual"},
+		y:     &ts.StructB2{StructB: &ts.StructB{X: "not_equal"}, X: "not_equal"},
+		wantDiff: `
+  &teststructs.StructB2{
+  	StructB: &teststructs.StructB{X: "NotEqual"},
+- 	X:       "NotEqual",
++ 	X:       "not_equal",
+  }
+`,
 	}, {
 		label: label + "StructC2",
 		x:     ts.StructC2{StructC: &ts.StructC{X: "NotEqual"}, X: "NotEqual"},
@@ -1682,10 +1897,15 @@ func methodTests() []test {
 		x:     &ts.StructF2{StructF: &ts.StructF{X: "NotEqual"}, X: "NotEqual"},
 		y:     &ts.StructF2{StructF: &ts.StructF{X: "not_equal"}, X: "not_equal"},
 	}, {
-		label:    label + "StructNo",
-		x:        ts.StructNo{X: "NotEqual"},
-		y:        ts.StructNo{X: "not_equal"},
-		wantDiff: "{teststructs.StructNo}.X:\n\t-: \"NotEqual\"\n\t+: \"not_equal\"\n",
+		label: label + "StructNo",
+		x:     ts.StructNo{X: "NotEqual"},
+		y:     ts.StructNo{X: "not_equal"},
+		wantDiff: `
+  teststructs.StructNo{
+- 	X: "NotEqual",
++ 	X: "not_equal",
+  }
+`,
 	}, {
 		label: label + "AssignA",
 		x:     ts.AssignA(func() int { return 0 }),
@@ -1790,8 +2010,32 @@ func project1Tests() []test {
 		y: ts.Eagle{Slaps: []ts.Slap{{}, {}, {}, {}, {
 			Args: &pb.MetaData{Stringer: pb.Stringer{X: "metadata2"}},
 		}}},
-		opts:     []cmp.Option{cmp.Comparer(pb.Equal)},
-		wantDiff: "{teststructs.Eagle}.Slaps[4].Args:\n\t-: s\"metadata\"\n\t+: s\"metadata2\"\n",
+		opts: []cmp.Option{cmp.Comparer(pb.Equal)},
+		wantDiff: `
+  teststructs.Eagle{
+  	... // 4 identical fields
+  	Dreamers: nil,
+  	Prong:    0,
+  	Slaps: []teststructs.Slap{
+  		... // 2 identical elements
+  		{},
+  		{},
+  		{
+  			Name:     "",
+  			Desc:     "",
+  			DescLong: "",
+- 			Args:     s"metadata",
++ 			Args:     s"metadata2",
+  			Tense:    0,
+  			Interval: 0,
+  			... // 3 identical fields
+  		},
+  	},
+  	StateGoverner: "",
+  	PrankRating:   "",
+  	... // 2 identical fields
+  }
+`,
 	}, {
 		label: label,
 		x:     createEagle(),
@@ -1814,21 +2058,78 @@ func project1Tests() []test {
 		}(),
 		opts: []cmp.Option{ignoreUnexported, cmp.Comparer(pb.Equal)},
 		wantDiff: `
-{teststructs.Eagle}.Dreamers[1].Animal[0].(teststructs.Goat).Immutable.ID:
-	-: "southbay2"
-	+: "southbay"
-*{teststructs.Eagle}.Dreamers[1].Animal[0].(teststructs.Goat).Immutable.State:
-	-: testprotos.Goat_States(6)
-	+: testprotos.Goat_States(5)
-{teststructs.Eagle}.Slaps[0].Immutable.MildSlap:
-	-: false
-	+: true
-{teststructs.Eagle}.Slaps[0].Immutable.LoveRadius.Summer.Summary.Devices[1->?]:
-	-: "bar"
-	+: <non-existent>
-{teststructs.Eagle}.Slaps[0].Immutable.LoveRadius.Summer.Summary.Devices[2->?]:
-	-: "baz"
-	+: <non-existent>`,
+  teststructs.Eagle{
+  	... // 2 identical fields
+  	Desc:     "some description",
+  	DescLong: "",
+  	Dreamers: []teststructs.Dreamer{
+  		{},
+  		{
+  			... // 4 identical fields
+  			ContSlaps:         nil,
+  			ContSlapsInterval: 0,
+  			Animal: []interface{}{
+  				teststructs.Goat{
+  					Target:     "corporation",
+  					Slaps:      nil,
+  					FunnyPrank: "",
+  					Immutable: &teststructs.GoatImmutable{
+- 						ID:      "southbay2",
++ 						ID:      "southbay",
+- 						State:   &6,
++ 						State:   &5,
+  						Started: s"2009-11-10 23:00:00 +0000 UTC",
+  						Stopped: s"0001-01-01 00:00:00 +0000 UTC",
+  						... // 1 ignored and 1 identical fields
+  					},
+  				},
+  				teststructs.Donkey{},
+  			},
+  			Ornamental: false,
+  			Amoeba:     53,
+  			... // 5 identical fields
+  		},
+  	},
+  	Prong: 0,
+  	Slaps: []teststructs.Slap{
+  		{
+  			... // 6 identical fields
+  			Homeland:   0x00,
+  			FunnyPrank: "",
+  			Immutable: &teststructs.SlapImmutable{
+  				ID:          "immutableSlap",
+  				Out:         nil,
+- 				MildSlap:    false,
++ 				MildSlap:    true,
+  				PrettyPrint: "",
+  				State:       nil,
+  				Started:     s"2009-11-10 23:00:00 +0000 UTC",
+  				Stopped:     s"0001-01-01 00:00:00 +0000 UTC",
+  				LastUpdate:  s"0001-01-01 00:00:00 +0000 UTC",
+  				LoveRadius: &teststructs.LoveRadius{
+  					Summer: &teststructs.SummerLove{
+  						Summary: &teststructs.SummerLoveSummary{
+  							Devices: []string{
+  								"foo",
+- 								"bar",
+- 								"baz",
+  							},
+  							ChangeType: []testprotos.SummerType{1, 2, 3},
+  							... // 1 ignored field
+  						},
+  						... // 1 ignored field
+  					},
+  					... // 1 ignored field
+  				},
+  				... // 1 ignored field
+  			},
+  		},
+  	},
+  	StateGoverner: "",
+  	PrankRating:   "",
+  	... // 2 identical fields
+  }
+`,
 	}}
 }
 
@@ -1908,12 +2209,21 @@ func project2Tests() []test {
 		}(),
 		opts: []cmp.Option{cmp.Comparer(pb.Equal), equalDish},
 		wantDiff: `
-{teststructs.GermBatch}.DirtyGerms[18][0->?]:
-	-: s"germ2"
-	+: <non-existent>
-{teststructs.GermBatch}.DirtyGerms[18][?->2]:
-	-: <non-existent>
-	+: s"germ2"`,
+  teststructs.GermBatch{
+  	DirtyGerms: map[int32][]*testprotos.Germ{
+  		17: {s"germ1"},
+  		18: {
+- 			s"germ2",
+  			s"germ3",
+  			s"germ4",
++ 			s"germ2",
+  		},
+  	},
+  	CleanGerms: nil,
+  	GermMap:    map[int32]*testprotos.Germ{13: s"germ13", 21: s"germ21"},
+  	... // 7 identical fields
+  }
+`,
 	}, {
 		label: label,
 		x:     createBatch(),
@@ -1940,18 +2250,32 @@ func project2Tests() []test {
 		}(),
 		opts: []cmp.Option{cmp.Comparer(pb.Equal), sortGerms, equalDish},
 		wantDiff: `
-{teststructs.GermBatch}.DirtyGerms[17]:
-	-: <non-existent>
-	+: []*testprotos.Germ{s"germ1"}
-Sort({teststructs.GermBatch}.DirtyGerms[18])[2->?]:
-	-: s"germ4"
-	+: <non-existent>
-{teststructs.GermBatch}.DishMap[1]:
-	-: (*teststructs.Dish)(nil)
-	+: &teststructs.Dish{err: &errors.errorString{s: "unexpected EOF"}}
-{teststructs.GermBatch}.GermStrain:
-	-: 421
-	+: 22`,
+  teststructs.GermBatch{
+  	DirtyGerms: map[int32][]*testprotos.Germ{
++ 		17: {s"germ1"},
+  		18: Inverse(Sort, []*testprotos.Germ{
+  			s"germ2",
+  			s"germ3",
+- 			s"germ4",
+  		}),
+  	},
+  	CleanGerms: nil,
+  	GermMap:    map[int32]*testprotos.Germ{13: s"germ13", 21: s"germ21"},
+  	DishMap: map[int32]*teststructs.Dish{
+  		0: &{err: &errors.errorString{s: "EOF"}},
+- 		1: nil,
++ 		1: &{err: &errors.errorString{s: "unexpected EOF"}},
+  		2: &{pb: &testprotos.Dish{Stringer: testprotos.Stringer{X: "dish"}}},
+  	},
+  	HasPreviousResult: true,
+  	DirtyID:           10,
+  	CleanID:           0,
+- 	GermStrain:        421,
++ 	GermStrain:        22,
+  	TotalDirtyGerms:   0,
+  	InfectedAt:        s"2009-11-10 23:00:00 +0000 UTC",
+  }
+`,
 	}}
 }
 
@@ -2022,21 +2346,24 @@ func project3Tests() []test {
 		}(),
 		opts: []cmp.Option{allowVisibility, transformProtos, ignoreLocker, cmp.Comparer(pb.Equal), equalTable},
 		wantDiff: `
-{teststructs.Dirt}.table:
-	-: &teststructs.MockTable{state: []string{"a", "c"}}
-	+: &teststructs.MockTable{state: []string{"a", "b", "c"}}
-{teststructs.Dirt}.Discord:
-	-: teststructs.DiscordState(554)
-	+: teststructs.DiscordState(500)
-λ({teststructs.Dirt}.Proto):
-	-: s"blah"
-	+: s"proto"
-{teststructs.Dirt}.wizard["albus"]:
-	-: s"dumbledore"
-	+: <non-existent>
-{teststructs.Dirt}.wizard["harry"]:
-	-: s"potter"
-	+: s"otter"`,
+  teststructs.Dirt{
+- 	table:   &teststructs.MockTable{state: []string{"a", "c"}},
++ 	table:   &teststructs.MockTable{state: []string{"a", "b", "c"}},
+  	ts:      12345,
+- 	Discord: 554,
++ 	Discord: 500,
+- 	Proto:   testprotos.Dirt(Inverse(λ, s"blah")),
++ 	Proto:   testprotos.Dirt(Inverse(λ, s"proto")),
+  	wizard: map[string]*testprotos.Wizard{
+- 		"albus": s"dumbledore",
+- 		"harry": s"potter",
++ 		"harry": s"otter",
+  	},
+  	sadistic: nil,
+  	lastTime: 54321,
+  	... // 1 ignored field
+  }
+`,
 	}}
 }
 
@@ -2115,21 +2442,47 @@ func project4Tests() []test {
 		}(),
 		opts: []cmp.Option{allowVisibility, transformProtos, cmp.Comparer(pb.Equal)},
 		wantDiff: `
-{teststructs.Cartel}.Headquarter.subDivisions[0->?]:
-	-: "alpha"
-	+: <non-existent>
-{teststructs.Cartel}.Headquarter.publicMessage[2]:
-	-: 0x03
-	+: 0x04
-{teststructs.Cartel}.Headquarter.publicMessage[3]:
-	-: 0x04
-	+: 0x03
-{teststructs.Cartel}.poisons[0].poisonType:
-	-: testprotos.PoisonType(1)
-	+: testprotos.PoisonType(5)
-{teststructs.Cartel}.poisons[1->?]:
-	-: &teststructs.Poison{poisonType: testprotos.PoisonType(2), manufacturer: "acme2"}
-	+: <non-existent>`,
+  teststructs.Cartel{
+  	Headquarter: teststructs.Headquarter{
+  		id:       0x05,
+  		location: "moon",
+  		subDivisions: []string{
+- 			"alpha",
+  			"bravo",
+  			"charlie",
+  		},
+  		incorporatedDate: s"0001-01-01 00:00:00 +0000 UTC",
+  		metaData:         s"metadata",
+  		privateMessage:   nil,
+  		publicMessage: []uint8{
+  			0x01,
+  			0x02,
+- 			0x03,
++ 			0x04,
+- 			0x04,
++ 			0x03,
+  			0x05,
+  		},
+  		horseBack: "abcdef",
+  		rattle:    "",
+  		... // 5 identical fields
+  	},
+  	source:        "mars",
+  	creationDate:  s"0001-01-01 00:00:00 +0000 UTC",
+  	boss:          "al capone",
+  	lastCrimeDate: s"0001-01-01 00:00:00 +0000 UTC",
+  	poisons: []*teststructs.Poison{
+  		&{
+- 			poisonType:   1,
++ 			poisonType:   5,
+  			expiration:   s"2009-11-10 23:00:00 +0000 UTC",
+  			manufacturer: "acme",
+  			potency:      0,
+  		},
+- 		&{poisonType: 2, manufacturer: "acme2"},
+  	},
+  }
+`,
 	}}
 }
 
