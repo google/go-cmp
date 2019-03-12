@@ -26,8 +26,8 @@ func (r *defaultReporter) PushStep(ps PathStep) {
 		r.root = r.curr
 	}
 }
-func (r *defaultReporter) Report(f reportFlags) {
-	r.curr.Report(f)
+func (r *defaultReporter) Report(rs Result) {
+	r.curr.Report(rs)
 }
 func (r *defaultReporter) PopStep() {
 	r.curr = r.curr.PopStep()

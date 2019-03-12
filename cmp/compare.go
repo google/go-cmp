@@ -120,10 +120,11 @@ func Equal(x, y interface{}, opts ...Option) bool {
 // readable outputs. In such cases, the string is prefixed with either an
 // 's' or 'e' character, respectively, to indicate that the method was called.
 //
-// Do not depend on this output being stable.
+// Do not depend on this output being stable. If you need the ability to
+// programmatically interpret the difference, consider using a custom Reporter.
 func Diff(x, y interface{}, opts ...Option) string {
 	r := new(defaultReporter)
-	opts = Options{Options(opts), reporter(r)}
+	opts = Options{Options(opts), Reporter(r)}
 	eq := Equal(x, y, opts...)
 	d := r.String()
 	if (d == "") != eq {
@@ -135,9 +136,9 @@ func Diff(x, y interface{}, opts ...Option) string {
 type state struct {
 	// These fields represent the "comparison state".
 	// Calling statelessCompare must not result in observable changes to these.
-	result    diff.Result      // The current result of comparison
-	curPath   Path             // The current path in the value tree
-	reporters []reporterOption // Optional reporters
+	result    diff.Result // The current result of comparison
+	curPath   Path        // The current path in the value tree
+	reporters []reporter  // Optional reporters
 
 	// recChecker checks for infinite cycles applying the same set of
 	// transformers upon the output of itself.
@@ -183,7 +184,7 @@ func (s *state) processOption(opt Option) {
 		for t := range opt {
 			s.exporters[t] = true
 		}
-	case reporterOption:
+	case reporter:
 		s.reporters = append(s.reporters, opt)
 	default:
 		panic(fmt.Sprintf("unknown option %T", opt))
@@ -529,8 +530,8 @@ func (s *state) compareMap(t reflect.Type, vx, vy reflect.Value) {
 	}
 }
 
-func (s *state) report(eq bool, rf reportFlags) {
-	if rf&reportIgnored == 0 {
+func (s *state) report(eq bool, rf resultFlags) {
+	if rf&reportByIgnore == 0 {
 		if eq {
 			s.result.NumSame++
 			rf |= reportEqual
@@ -540,7 +541,7 @@ func (s *state) report(eq bool, rf reportFlags) {
 		}
 	}
 	for _, r := range s.reporters {
-		r.Report(rf)
+		r.Report(Result{flags: rf})
 	}
 }
 

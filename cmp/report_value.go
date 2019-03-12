@@ -80,41 +80,42 @@ func (parent *valueNode) PushStep(ps PathStep) (child *valueNode) {
 	return child
 }
 
-func (r *valueNode) Report(f reportFlags) {
+func (r *valueNode) Report(rs Result) {
 	assert(r.MaxDepth == 0) // May only be called on leaf nodes
 
-	if f&reportEqual > 0 {
-		r.NumSame++
-	}
-	if f&reportUnequal > 0 {
-		r.NumDiff++
-	}
-	if f&reportIgnored > 0 {
+	if rs.ByIgnore() {
 		r.NumIgnored++
+	} else {
+		if rs.Equal() {
+			r.NumSame++
+		} else {
+			r.NumDiff++
+		}
 	}
 	assert(r.NumSame+r.NumDiff+r.NumIgnored == 1)
 
-	if f&reportByMethod > 0 {
+	if rs.ByMethod() {
 		r.NumCompared++
 	}
-	if f&reportByFunc > 0 {
+	if rs.ByFunc() {
 		r.NumCompared++
 	}
 	assert(r.NumCompared <= 1)
 }
 
 func (child *valueNode) PopStep() (parent *valueNode) {
+	if child.parent == nil {
+		return nil
+	}
 	parent = child.parent
-	if parent != nil {
-		parent.NumSame += child.NumSame
-		parent.NumDiff += child.NumDiff
-		parent.NumIgnored += child.NumIgnored
-		parent.NumCompared += child.NumCompared
-		parent.NumTransformed += child.NumTransformed
-		parent.NumChildren += child.NumChildren + 1
-		if parent.MaxDepth < child.MaxDepth+1 {
-			parent.MaxDepth = child.MaxDepth + 1
-		}
+	parent.NumSame += child.NumSame
+	parent.NumDiff += child.NumDiff
+	parent.NumIgnored += child.NumIgnored
+	parent.NumCompared += child.NumCompared
+	parent.NumTransformed += child.NumTransformed
+	parent.NumChildren += child.NumChildren + 1
+	if parent.MaxDepth < child.MaxDepth+1 {
+		parent.MaxDepth = child.MaxDepth + 1
 	}
 	return parent
 }
