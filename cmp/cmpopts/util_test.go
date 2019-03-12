@@ -20,7 +20,9 @@ import (
 
 type (
 	MyInt    int
+	MyInts   []int
 	MyFloat  float32
+	MyString string
 	MyTime   struct{ time.Time }
 	MyStruct struct {
 		A, B []int
@@ -716,6 +718,80 @@ func TestOptions(t *testing.T) {
 		},
 		wantEqual: true,
 		reason:    "equal because all Ignore options can be composed together",
+	}, {
+		label: "IgnoreSliceElements",
+		x:     []int{1, 0, 2, 3, 0, 4, 0, 0},
+		y:     []int{0, 0, 0, 0, 1, 2, 3, 4},
+		opts: []cmp.Option{
+			IgnoreSliceElements(func(v int) bool { return v == 0 }),
+		},
+		wantEqual: true,
+		reason:    "equal because zero elements are ignored",
+	}, {
+		label: "IgnoreSliceElements",
+		x:     []MyInt{1, 0, 2, 3, 0, 4, 0, 0},
+		y:     []MyInt{0, 0, 0, 0, 1, 2, 3, 4},
+		opts: []cmp.Option{
+			IgnoreSliceElements(func(v int) bool { return v == 0 }),
+		},
+		wantEqual: false,
+		reason:    "not equal because MyInt is not assignable to int",
+	}, {
+		label: "IgnoreSliceElements",
+		x:     MyInts{1, 0, 2, 3, 0, 4, 0, 0},
+		y:     MyInts{0, 0, 0, 0, 1, 2, 3, 4},
+		opts: []cmp.Option{
+			IgnoreSliceElements(func(v int) bool { return v == 0 }),
+		},
+		wantEqual: true,
+		reason:    "equal because the element type of MyInts is assignable to int",
+	}, {
+		label: "IgnoreSliceElements+EquateEmpty",
+		x:     []MyInt{},
+		y:     []MyInt{0, 0, 0, 0},
+		opts: []cmp.Option{
+			IgnoreSliceElements(func(v int) bool { return v == 0 }),
+			EquateEmpty(),
+		},
+		wantEqual: false,
+		reason:    "not equal because ignored elements does not imply empty slice",
+	}, {
+		label: "IgnoreMapEntries",
+		x:     map[string]int{"one": 1, "TWO": 2, "three": 3, "FIVE": 5},
+		y:     map[string]int{"one": 1, "three": 3, "TEN": 10},
+		opts: []cmp.Option{
+			IgnoreMapEntries(func(k string, v int) bool { return strings.ToUpper(k) == k }),
+		},
+		wantEqual: true,
+		reason:    "equal because uppercase keys are ignored",
+	}, {
+		label: "IgnoreMapEntries",
+		x:     map[MyString]int{"one": 1, "TWO": 2, "three": 3, "FIVE": 5},
+		y:     map[MyString]int{"one": 1, "three": 3, "TEN": 10},
+		opts: []cmp.Option{
+			IgnoreMapEntries(func(k string, v int) bool { return strings.ToUpper(k) == k }),
+		},
+		wantEqual: false,
+		reason:    "not equal because MyString is not assignable to string",
+	}, {
+		label: "IgnoreMapEntries",
+		x:     map[string]MyInt{"one": 1, "TWO": 2, "three": 3, "FIVE": 5},
+		y:     map[string]MyInt{"one": 1, "three": 3, "TEN": 10},
+		opts: []cmp.Option{
+			IgnoreMapEntries(func(k string, v int) bool { return strings.ToUpper(k) == k }),
+		},
+		wantEqual: false,
+		reason:    "not equal because MyInt is not assignable to int",
+	}, {
+		label: "IgnoreMapEntries+EquateEmpty",
+		x:     map[string]MyInt{"ONE": 1, "TWO": 2, "THREE": 3},
+		y:     nil,
+		opts: []cmp.Option{
+			IgnoreMapEntries(func(k string, v int) bool { return strings.ToUpper(k) == k }),
+			EquateEmpty(),
+		},
+		wantEqual: false,
+		reason:    "not equal because ignored entries does not imply empty map",
 	}, {
 		label: "AcyclicTransformer",
 		x:     "a\nb\nc\nd",

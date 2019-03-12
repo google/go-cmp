@@ -120,10 +120,11 @@ func Equal(x, y interface{}, opts ...Option) bool {
 // readable outputs. In such cases, the string is prefixed with either an
 // 's' or 'e' character, respectively, to indicate that the method was called.
 //
-// Do not depend on this output being stable.
+// Do not depend on this output being stable. If you need the ability to
+// programmatically interpret the difference, consider using a custom Reporter.
 func Diff(x, y interface{}, opts ...Option) string {
 	r := new(defaultReporter)
-	opts = Options{Options(opts), reporter(r)}
+	opts = Options{Options(opts), Reporter(r)}
 	eq := Equal(x, y, opts...)
 	d := r.String()
 	if (d == "") != eq {
@@ -135,9 +136,9 @@ func Diff(x, y interface{}, opts ...Option) string {
 type state struct {
 	// These fields represent the "comparison state".
 	// Calling statelessCompare must not result in observable changes to these.
-	result    diff.Result      // The current result of comparison
-	curPath   Path             // The current path in the value tree
-	reporters []reporterOption // Optional reporters
+	result    diff.Result // The current result of comparison
+	curPath   Path        // The current path in the value tree
+	reporters []reporter  // Optional reporters
 
 	// recChecker checks for infinite cycles applying the same set of
 	// transformers upon the output of itself.
@@ -183,7 +184,7 @@ func (s *state) processOption(opt Option) {
 		for t := range opt {
 			s.exporters[t] = true
 		}
-	case reporterOption:
+	case reporter:
 		s.reporters = append(s.reporters, opt)
 	default:
 		panic(fmt.Sprintf("unknown option %T", opt))
@@ -281,7 +282,7 @@ func (s *state) compareAny(step PathStep) {
 			return
 		}
 		vx, vy = vx.Elem(), vy.Elem()
-		s.compareAny(&indirect{pathStep{t.Elem(), vx, vy}})
+		s.compareAny(Indirect{&indirect{pathStep{t.Elem(), vx, vy}}})
 		return
 	case reflect.Interface:
 		if vx.IsNil() || vy.IsNil() {
@@ -293,7 +294,7 @@ func (s *state) compareAny(step PathStep) {
 			s.report(false, 0)
 			return
 		}
-		s.compareAny(&typeAssertion{pathStep{vx.Type(), vx, vy}})
+		s.compareAny(TypeAssertion{&typeAssertion{pathStep{vx.Type(), vx, vy}}})
 		return
 	default:
 		panic(fmt.Sprintf("%v kind not handled", t.Kind()))
@@ -321,7 +322,7 @@ func (s *state) tryMethod(t reflect.Type, vx, vy reflect.Value) bool {
 	return true
 }
 
-func (s *state) callTRFunc(f, v reflect.Value, step *transform) reflect.Value {
+func (s *state) callTRFunc(f, v reflect.Value, step Transform) reflect.Value {
 	v = sanitizeValue(v, f.Type().In(0))
 	if !s.dynChecker.Next() {
 		return f.Call([]reflect.Value{v})[0]
@@ -391,7 +392,7 @@ func sanitizeValue(v reflect.Value, t reflect.Type) reflect.Value {
 func (s *state) compareStruct(t reflect.Type, vx, vy reflect.Value) {
 	var vax, vay reflect.Value // Addressable versions of vx and vy
 
-	step := &structField{}
+	step := StructField{&structField{}}
 	for i := 0; i < t.NumField(); i++ {
 		step.typ = t.Field(i).Type
 		step.vx = vx.Field(i)
@@ -422,8 +423,8 @@ func (s *state) compareStruct(t reflect.Type, vx, vy reflect.Value) {
 }
 
 func (s *state) compareSlice(t reflect.Type, vx, vy reflect.Value) {
-	step := &sliceIndex{pathStep: pathStep{typ: t.Elem()}}
-	withIndexes := func(ix, iy int) *sliceIndex {
+	step := SliceIndex{&sliceIndex{pathStep: pathStep{typ: t.Elem()}}}
+	withIndexes := func(ix, iy int) SliceIndex {
 		if ix >= 0 {
 			step.vx, step.xkey = vx.Index(ix), ix
 		} else {
@@ -502,7 +503,7 @@ func (s *state) compareMap(t reflect.Type, vx, vy reflect.Value) {
 
 	// We combine and sort the two map keys so that we can perform the
 	// comparisons in a deterministic order.
-	step := &mapIndex{pathStep: pathStep{typ: t.Elem()}}
+	step := MapIndex{&mapIndex{pathStep: pathStep{typ: t.Elem()}}}
 	for _, k := range value.SortKeys(append(vx.MapKeys(), vy.MapKeys()...)) {
 		step.vx = vx.MapIndex(k)
 		step.vy = vy.MapIndex(k)
@@ -529,8 +530,8 @@ func (s *state) compareMap(t reflect.Type, vx, vy reflect.Value) {
 	}
 }
 
-func (s *state) report(eq bool, rf reportFlags) {
-	if rf&reportIgnored == 0 {
+func (s *state) report(eq bool, rf resultFlags) {
+	if rf&reportByIgnore == 0 {
 		if eq {
 			s.result.NumSame++
 			rf |= reportEqual
@@ -540,7 +541,7 @@ func (s *state) report(eq bool, rf reportFlags) {
 		}
 	}
 	for _, r := range s.reporters {
-		r.Report(rf)
+		r.Report(Result{flags: rf})
 	}
 }
 

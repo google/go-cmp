@@ -199,7 +199,7 @@ type ignore struct{ core }
 
 func (ignore) isFiltered() bool                                                     { return false }
 func (ignore) filter(_ *state, _ reflect.Type, _, _ reflect.Value) applicableOption { return ignore{} }
-func (ignore) apply(s *state, _, _ reflect.Value)                                   { s.report(true, reportIgnored) }
+func (ignore) apply(s *state, _, _ reflect.Value)                                   { s.report(true, reportByIgnore) }
 func (ignore) String() string                                                       { return "Ignore()" }
 
 // validator is a sentinel Option type to indicate that some options could not
@@ -288,7 +288,7 @@ func (tr *transformer) isFiltered() bool { return tr.typ != nil }
 
 func (tr *transformer) filter(s *state, t reflect.Type, _, _ reflect.Value) applicableOption {
 	for i := len(s.curPath) - 1; i >= 0; i-- {
-		if t, ok := s.curPath[i].(*transform); !ok {
+		if t, ok := s.curPath[i].(Transform); !ok {
 			break // Hit most recent non-Transform step
 		} else if tr == t.trans {
 			return nil // Cannot directly use same Transform
@@ -301,7 +301,7 @@ func (tr *transformer) filter(s *state, t reflect.Type, _, _ reflect.Value) appl
 }
 
 func (tr *transformer) apply(s *state, vx, vy reflect.Value) {
-	step := &transform{pathStep{typ: tr.fnc.Type().Out(0)}, tr}
+	step := Transform{&transform{pathStep{typ: tr.fnc.Type().Out(0)}, tr}}
 	vvx := s.callTRFunc(tr.fnc, vx, step)
 	vvy := s.callTRFunc(tr.fnc, vy, step)
 	step.vx, step.vy = vvx, vvy
@@ -407,68 +407,87 @@ func (visibleStructs) filter(_ *state, _ reflect.Type, _, _ reflect.Value) appli
 	panic("not implemented")
 }
 
-// reportFlags is a bit-set representing how a comparison was determined.
-type reportFlags uint
+// Result represents the comparison result for a single node and
+// is provided by cmp when calling Result (see Reporter).
+type Result struct {
+	_     [0]func() // Make Result incomparable
+	flags resultFlags
+}
+
+// Equal reports whether the node was determined to be equal or not.
+// As a special case, ignored nodes are considered equal.
+func (r Result) Equal() bool {
+	return r.flags&(reportEqual|reportByIgnore) != 0
+}
+
+// ByIgnore reports whether the node is equal because it was ignored.
+// This never reports true if Equal reports false.
+func (r Result) ByIgnore() bool {
+	return r.flags&reportByIgnore != 0
+}
+
+// ByMethod reports whether the Equal method determined equality.
+func (r Result) ByMethod() bool {
+	return r.flags&reportByMethod != 0
+}
+
+// ByFunc reports whether a Comparer function determined equality.
+func (r Result) ByFunc() bool {
+	return r.flags&reportByFunc != 0
+}
+
+type resultFlags uint
 
 const (
-	_ reportFlags = (1 << iota) / 2
+	_ resultFlags = (1 << iota) / 2
 
-	// reportEqual reports whether the node is equal.
-	// This may be ORed with reportByMethod or reportByFunc.
 	reportEqual
-	// reportUnequal reports whether the node is not equal.
-	// This may be ORed with reportByMethod or reportByFunc.
 	reportUnequal
-	// reportIgnored reports whether the node was ignored.
-	reportIgnored
-
-	// reportByMethod reports whether equality was determined by calling the
-	// Equal method. This may be ORed with reportEqual or reportUnequal.
+	reportByIgnore
 	reportByMethod
-	// reportByFunc reports whether equality was determined by calling a custom
-	// Comparer function. This may be ORed with reportEqual or reportUnequal.
 	reportByFunc
 )
 
-// reporter is an Option that can be passed to Equal. When Equal traverses
+// Reporter is an Option that can be passed to Equal. When Equal traverses
 // the value trees, it calls PushStep as it descends into each node in the
 // tree and PopStep as it ascend out of the node. The leaves of the tree are
 // either compared (determined to be equal or not equal) or ignored and reported
 // as such by calling the Report method.
-func reporter(r interface {
-	// TODO: Export this option.
-
+func Reporter(r interface {
 	// PushStep is called when a tree-traversal operation is performed.
 	// The PathStep itself is only valid until the step is popped.
-	// The PathStep.Values are valid for the duration of the entire traversal.
+	// The PathStep.Values are valid for the duration of the entire traversal
+	// and must not be mutated.
 	//
-	// Equal always call PushStep at the start to provide an operation-less
+	// Equal always calls PushStep at the start to provide an operation-less
 	// PathStep used to report the root values.
 	//
+	// Within a slice, the exact set of inserted, removed, or modified elements
+	// is unspecified and may change in future implementations.
 	// The entries of a map are iterated through in an unspecified order.
 	PushStep(PathStep)
 
-	// Report is called at exactly once on leaf nodes to report whether the
+	// Report is called exactly once on leaf nodes to report whether the
 	// comparison identified the node as equal, unequal, or ignored.
 	// A leaf node is one that is immediately preceded by and followed by
 	// a pair of PushStep and PopStep calls.
-	Report(reportFlags)
+	Report(Result)
 
 	// PopStep ascends back up the value tree.
 	// There is always a matching pop call for every push call.
 	PopStep()
 }) Option {
-	return reporterOption{r}
+	return reporter{r}
 }
 
-type reporterOption struct{ reporterIface }
+type reporter struct{ reporterIface }
 type reporterIface interface {
 	PushStep(PathStep)
-	Report(reportFlags)
+	Report(Result)
 	PopStep()
 }
 
-func (reporterOption) filter(_ *state, _ reflect.Type, _, _ reflect.Value) applicableOption {
+func (reporter) filter(_ *state, _ reflect.Type, _, _ reflect.Value) applicableOption {
 	panic("not implemented")
 }
 

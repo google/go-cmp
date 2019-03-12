@@ -26,10 +26,10 @@ import (
 // !less(y, x) for two elements x and y, their relative order is maintained.
 //
 // SortSlices can be used in conjunction with EquateEmpty.
-func SortSlices(less interface{}) cmp.Option {
-	vf := reflect.ValueOf(less)
+func SortSlices(lessFunc interface{}) cmp.Option {
+	vf := reflect.ValueOf(lessFunc)
 	if !function.IsType(vf.Type(), function.Less) || vf.IsNil() {
-		panic(fmt.Sprintf("invalid less function: %T", less))
+		panic(fmt.Sprintf("invalid less function: %T", lessFunc))
 	}
 	ss := sliceSorter{vf.Type().In(0), vf}
 	return cmp.FilterValues(ss.filter, cmp.Transformer("cmpopts.SortSlices", ss.sort))
@@ -97,10 +97,10 @@ func (ss sliceSorter) less(v reflect.Value, i, j int) bool {
 //	• Total: if x != y, then either less(x, y) or less(y, x)
 //
 // SortMaps can be used in conjunction with EquateEmpty.
-func SortMaps(less interface{}) cmp.Option {
-	vf := reflect.ValueOf(less)
+func SortMaps(lessFunc interface{}) cmp.Option {
+	vf := reflect.ValueOf(lessFunc)
 	if !function.IsType(vf.Type(), function.Less) || vf.IsNil() {
-		panic(fmt.Sprintf("invalid less function: %T", less))
+		panic(fmt.Sprintf("invalid less function: %T", lessFunc))
 	}
 	ms := mapSorter{vf.Type().In(0), vf}
 	return cmp.FilterValues(ms.filter, cmp.Transformer("cmpopts.SortMaps", ms.sort))
