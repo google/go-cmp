@@ -365,37 +365,8 @@ func comparerTests() []test {
 		y:     md5.Sum([]byte{'b'}),
 		wantDiff: `
   [16]uint8{
-- 	0x0c,
-+ 	0x92,
-- 	0xc1,
-+ 	0xeb,
-- 	0x75,
-+ 	0x5f,
-- 	0xb9,
-+ 	0xfe,
-- 	0xc0,
-+ 	0xe6,
-- 	0xf1,
-+ 	0xae,
-- 	0xb6,
-+ 	0x2f,
-- 	0xa8,
-+ 	0xec,
-- 	0x31,
-+ 	0x3a,
-- 	0xc3,
-+ 	0xd7,
-- 	0x99,
-+ 	0x1c,
-- 	0xe2,
-- 	0x69,
-  	0x77,
-+ 	0x75,
-+ 	0x31,
-- 	0x26,
-+ 	0x57,
-- 	0x61,
-+ 	0x8f,
+- 	0x0c, 0xc1, 0x75, 0xb9, 0xc0, 0xf1, 0xb6, 0xa8, 0x31, 0xc3, 0x99, 0xe2, 0x69, 0x77, 0x26, 0x61,
++ 	0x92, 0xeb, 0x5f, 0xfe, 0xe6, 0xae, 0x2f, 0xec, 0x3a, 0xd7, 0x1c, 0x77, 0x75, 0x31, 0x57, 0x8f,
   }
 `,
 	}, {
@@ -903,6 +874,327 @@ func transformerTests() []test {
 			cmp.Transformer("T3", func(x float64) complex64 { return complex64(complex(x, 0)) }),
 		},
 		wantPanic: "recursive set of Transformers detected",
+	}}
+}
+
+func reporterTests() []test {
+	const label = "Reporter"
+
+	type (
+		MyString    string
+		MyByte      byte
+		MyBytes     []byte
+		MyInt       int8
+		MyInts      []int8
+		MyUint      int16
+		MyUints     []int16
+		MyFloat     float32
+		MyFloats    []float32
+		MyComposite struct {
+			StringA string
+			StringB MyString
+			BytesA  []byte
+			BytesB  []MyByte
+			BytesC  MyBytes
+			IntsA   []int8
+			IntsB   []MyInt
+			IntsC   MyInts
+			UintsA  []uint16
+			UintsB  []MyUint
+			UintsC  MyUints
+			FloatsA []float32
+			FloatsB []MyFloat
+			FloatsC MyFloats
+		}
+	)
+
+	return []test{{
+		label: label,
+		x:     MyComposite{IntsA: []int8{11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29}},
+		y:     MyComposite{IntsA: []int8{10, 11, 21, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29}},
+		wantDiff: `
+  cmp_test.MyComposite{
+  	... // 3 identical fields
+  	BytesB: nil,
+  	BytesC: nil,
+  	IntsA: []int8{
++ 		10,
+  		11,
+- 		12,
++ 		21,
+  		13,
+  		14,
+  		... // 15 identical elements
+  	},
+  	IntsB: nil,
+  	IntsC: nil,
+  	... // 6 identical fields
+  }
+`,
+		reason: "unbatched diffing desired since few elements differ",
+	}, {
+		label: label,
+		x:     MyComposite{IntsA: []int8{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29}},
+		y:     MyComposite{IntsA: []int8{12, 29, 13, 27, 22, 23, 17, 18, 19, 20, 21, 10, 26, 16, 25, 28, 11, 15, 24, 14}},
+		wantDiff: `
+  cmp_test.MyComposite{
+  	... // 3 identical fields
+  	BytesB: nil,
+  	BytesC: nil,
+  	IntsA: []int8{
+- 		10, 11, 12, 13, 14, 15, 16,
++ 		12, 29, 13, 27, 22, 23,
+  		17, 18, 19, 20, 21,
+- 		22, 23, 24, 25, 26, 27, 28, 29,
++ 		10, 26, 16, 25, 28, 11, 15, 24, 14,
+  	},
+  	IntsB: nil,
+  	IntsC: nil,
+  	... // 6 identical fields
+  }
+`,
+		reason: "batched diffing desired since many elements differ",
+	}, {
+		label: label,
+		x: MyComposite{
+			BytesA:  []byte{1, 2, 3},
+			BytesB:  []MyByte{4, 5, 6},
+			BytesC:  MyBytes{7, 8, 9},
+			IntsA:   []int8{-1, -2, -3},
+			IntsB:   []MyInt{-4, -5, -6},
+			IntsC:   MyInts{-7, -8, -9},
+			UintsA:  []uint16{1000, 2000, 3000},
+			UintsB:  []MyUint{4000, 5000, 6000},
+			UintsC:  MyUints{7000, 8000, 9000},
+			FloatsA: []float32{1.5, 2.5, 3.5},
+			FloatsB: []MyFloat{4.5, 5.5, 6.5},
+			FloatsC: MyFloats{7.5, 8.5, 9.5},
+		},
+		y: MyComposite{
+			BytesA:  []byte{3, 2, 1},
+			BytesB:  []MyByte{6, 5, 4},
+			BytesC:  MyBytes{9, 8, 7},
+			IntsA:   []int8{-3, -2, -1},
+			IntsB:   []MyInt{-6, -5, -4},
+			IntsC:   MyInts{-9, -8, -7},
+			UintsA:  []uint16{3000, 2000, 1000},
+			UintsB:  []MyUint{6000, 5000, 4000},
+			UintsC:  MyUints{9000, 8000, 7000},
+			FloatsA: []float32{3.5, 2.5, 1.5},
+			FloatsB: []MyFloat{6.5, 5.5, 4.5},
+			FloatsC: MyFloats{9.5, 8.5, 7.5},
+		},
+		wantDiff: `
+  cmp_test.MyComposite{
+  	StringA: "",
+  	StringB: "",
+  	BytesA: []uint8{
+- 		0x01, 0x02, 0x03, // -|...|
++ 		0x03, 0x02, 0x01, // +|...|
+  	},
+  	BytesB: []cmp_test.MyByte{
+- 		0x04, 0x05, 0x06,
++ 		0x06, 0x05, 0x04,
+  	},
+  	BytesC: cmp_test.MyBytes{
+- 		0x07, 0x08, 0x09, // -|...|
++ 		0x09, 0x08, 0x07, // +|...|
+  	},
+  	IntsA: []int8{
+- 		-1, -2, -3,
++ 		-3, -2, -1,
+  	},
+  	IntsB: []cmp_test.MyInt{
+- 		-4, -5, -6,
++ 		-6, -5, -4,
+  	},
+  	IntsC: cmp_test.MyInts{
+- 		-7, -8, -9,
++ 		-9, -8, -7,
+  	},
+  	UintsA: []uint16{
+- 		0x03e8, 0x07d0, 0x0bb8,
++ 		0x0bb8, 0x07d0, 0x03e8,
+  	},
+  	UintsB: []cmp_test.MyUint{
+- 		4000, 5000, 6000,
++ 		6000, 5000, 4000,
+  	},
+  	UintsC: cmp_test.MyUints{
+- 		7000, 8000, 9000,
++ 		9000, 8000, 7000,
+  	},
+  	FloatsA: []float32{
+- 		1.5, 2.5, 3.5,
++ 		3.5, 2.5, 1.5,
+  	},
+  	FloatsB: []cmp_test.MyFloat{
+- 		4.5, 5.5, 6.5,
++ 		6.5, 5.5, 4.5,
+  	},
+  	FloatsC: cmp_test.MyFloats{
+- 		7.5, 8.5, 9.5,
++ 		9.5, 8.5, 7.5,
+  	},
+  }
+`,
+		reason: "batched diffing available for both named and unnamed slices",
+	}, {
+		label: label,
+		x:     MyComposite{BytesA: []byte("\xf3\x0f\x8a\xa4\xd3\x12R\t$\xbeX\x95A\xfd$fX\x8byT\xac\r\xd8qwp\x20j\\s\u007f\x8c\x17U\xc04\xcen\xf7\xaaG\xee2\x9d\xc5\xca\x1eX\xaf\x8f'\xf3\x02J\x90\xedi.p2\xb4\xab0 \xb6\xbd\\b4\x17\xb0\x00\xbbO~'G\x06\xf4.f\xfdc\xd7\x04ݷ0\xb7\xd1U~{\xf6\xb3~\x1dWi \x9e\xbc\xdf\xe1M\xa9\xef\xa2\xd2\xed\xb4Gx\xc9\xc9'\xa4\xc6\xce\xecDp]")},
+		y:     MyComposite{BytesA: []byte("\xf3\x0f\x8a\xa4\xd3\x12R\t$\xbeT\xac\r\xd8qwp\x20j\\s\u007f\x8c\x17U\xc04\xcen\xf7\xaaG\xee2\x9d\xc5\xca\x1eX\xaf\x8f'\xf3\x02J\x90\xedi.p2\xb4\xab0 \xb6\xbd\\b4\x17\xb0\x00\xbbO~'G\x06\xf4.f\xfdc\xd7\x04ݷ0\xb7\xd1u-[]]\xf6\xb3haha~\x1dWI \x9e\xbc\xdf\xe1M\xa9\xef\xa2\xd2\xed\xb4Gx\xc9\xc9'\xa4\xc6\xce\xecDp]")},
+		wantDiff: `
+  cmp_test.MyComposite{
+  	StringA: "",
+  	StringB: "",
+  	BytesA: []uint8{
+  		0xf3, 0x0f, 0x8a, 0xa4, 0xd3, 0x12, 0x52, 0x09, 0x24, 0xbe,                                     //  |......R.$.|
+- 		0x58, 0x95, 0x41, 0xfd, 0x24, 0x66, 0x58, 0x8b, 0x79,                                           // -|X.A.$fX.y|
+  		0x54, 0xac, 0x0d, 0xd8, 0x71, 0x77, 0x70, 0x20, 0x6a, 0x5c, 0x73, 0x7f, 0x8c, 0x17, 0x55, 0xc0, //  |T...qwp j\s...U.|
+  		0x34, 0xce, 0x6e, 0xf7, 0xaa, 0x47, 0xee, 0x32, 0x9d, 0xc5, 0xca, 0x1e, 0x58, 0xaf, 0x8f, 0x27, //  |4.n..G.2....X..'|
+  		0xf3, 0x02, 0x4a, 0x90, 0xed, 0x69, 0x2e, 0x70, 0x32, 0xb4, 0xab, 0x30, 0x20, 0xb6, 0xbd, 0x5c, //  |..J..i.p2..0 ..\|
+  		0x62, 0x34, 0x17, 0xb0, 0x00, 0xbb, 0x4f, 0x7e, 0x27, 0x47, 0x06, 0xf4, 0x2e, 0x66, 0xfd, 0x63, //  |b4....O~'G...f.c|
+  		0xd7, 0x04, 0xdd, 0xb7, 0x30, 0xb7, 0xd1,                                                       //  |....0..|
+- 		0x55, 0x7e, 0x7b, 0xf6, 0xb3, 0x7e, 0x1d, 0x57, 0x69,                                           // -|U~{..~.Wi|
++ 		0x75, 0x2d, 0x5b, 0x5d, 0x5d, 0xf6, 0xb3, 0x68, 0x61, 0x68, 0x61, 0x7e, 0x1d, 0x57, 0x49,       // +|u-[]]..haha~.WI|
+  		0x20, 0x9e, 0xbc, 0xdf, 0xe1, 0x4d, 0xa9, 0xef, 0xa2, 0xd2, 0xed, 0xb4, 0x47, 0x78, 0xc9, 0xc9, //  | ....M......Gx..|
+  		0x27, 0xa4, 0xc6, 0xce, 0xec, 0x44, 0x70, 0x5d,                                                 //  |'....Dp]|
+  	},
+  	BytesB: nil,
+  	BytesC: nil,
+  	... // 9 identical fields
+  }
+`,
+		reason: "binary diff in hexdump form since data is binary data",
+	}, {
+		label: label,
+		x:     MyComposite{StringB: MyString("readme.txt\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x000000600\x000000000\x000000000\x0000000000046\x0000000000000\x00011173\x00 0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00ustar\x0000\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x000000000\x000000000\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")},
+		y:     MyComposite{StringB: MyString("gopher.txt\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x000000600\x000000000\x000000000\x0000000000043\x0000000000000\x00011217\x00 0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00ustar\x0000\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x000000000\x000000000\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")},
+		wantDiff: `
+  cmp_test.MyComposite{
+  	StringA: "",
+  	StringB: cmp_test.MyString{
+- 		0x72, 0x65, 0x61, 0x64, 0x6d, 0x65,                                                             // -|readme|
++ 		0x67, 0x6f, 0x70, 0x68, 0x65, 0x72,                                                             // +|gopher|
+  		0x2e, 0x74, 0x78, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //  |.txt............|
+  		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //  |................|
+  		... // 64 identical bytes
+  		0x30, 0x30, 0x36, 0x30, 0x30, 0x00, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x00, 0x30, 0x30, //  |00600.0000000.00|
+  		0x30, 0x30, 0x30, 0x30, 0x30, 0x00, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x34, //  |00000.0000000004|
+- 		0x36,                                                                                           // -|6|
++ 		0x33,                                                                                           // +|3|
+  		0x00, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x00, 0x30, 0x31, 0x31, //  |.00000000000.011|
+- 		0x31, 0x37, 0x33,                                                                               // -|173|
++ 		0x32, 0x31, 0x37,                                                                               // +|217|
+  		0x00, 0x20, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //  |. 0.............|
+  		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //  |................|
+  		... // 326 identical bytes
+  	},
+  	BytesA: nil,
+  	BytesB: nil,
+  	... // 10 identical fields
+  }
+`,
+		reason: "binary diff desired since string looks like binary data",
+	}, {
+		label: label,
+		x:     MyComposite{BytesA: []byte(`{"firstName":"John","lastName":"Smith","isAlive":true,"age":27,"address":{"streetAddress":"314 54th Avenue","city":"New York","state":"NY","postalCode":"10021-3100"},"phoneNumbers":[{"type":"home","number":"212 555-1234"},{"type":"office","number":"646 555-4567"},{"type":"mobile","number":"123 456-7890"}],"children":[],"spouse":null}`)},
+		y:     MyComposite{BytesA: []byte(`{"firstName":"John","lastName":"Smith","isAlive":true,"age":27,"address":{"streetAddress":"21 2nd Street","city":"New York","state":"NY","postalCode":"10021-3100"},"phoneNumbers":[{"type":"home","number":"212 555-1234"},{"type":"office","number":"646 555-4567"},{"type":"mobile","number":"123 456-7890"}],"children":[],"spouse":null}`)},
+		wantDiff: strings.Replace(`
+  cmp_test.MyComposite{
+  	StringA: "",
+  	StringB: "",
+  	BytesA: bytes.Join({
+  		'{"firstName":"John","lastName":"Smith","isAlive":true,"age":27,"',
+  		'address":{"streetAddress":"',
+- 		"314 54th Avenue",
++ 		"21 2nd Street",
+  		'","city":"New York","state":"NY","postalCode":"10021-3100"},"pho',
+  		'neNumbers":[{"type":"home","number":"212 555-1234"},{"type":"off',
+  		... // 101 identical bytes
+  	}, ""),
+  	BytesB: nil,
+  	BytesC: nil,
+  	... // 9 identical fields
+  }
+`, "'", "`", -1),
+		reason: "batched textual diff desired since bytes looks like textual data",
+	}, {
+		label: label,
+		x: MyComposite{
+			StringA: strings.TrimPrefix(`
+Package cmp determines equality of values.
+
+This package is intended to be a more powerful and safer alternative to
+reflect.DeepEqual for comparing whether two values are semantically equal.
+
+The primary features of cmp are:
+
+• When the default behavior of equality does not suit the needs of the test,
+custom equality functions can override the equality operation.
+For example, an equality function may report floats as equal so long as they
+are within some tolerance of each other.
+
+• Types that have an Equal method may use that method to determine equality.
+This allows package authors to determine the equality operation for the types
+that they define.
+
+• If no custom equality functions are used and no Equal method is defined,
+equality is determined by recursively comparing the primitive kinds on both
+values, much like reflect.DeepEqual. Unlike reflect.DeepEqual, unexported
+fields are not compared by default; they result in panics unless suppressed
+by using an Ignore option (see cmpopts.IgnoreUnexported) or explicitly compared
+using the AllowUnexported option.
+`, "\n"),
+		},
+		y: MyComposite{
+			StringA: strings.TrimPrefix(`
+Package cmp determines equality of value.
+
+This package is intended to be a more powerful and safer alternative to
+reflect.DeepEqual for comparing whether two values are semantically equal.
+
+The primary features of cmp are:
+
+• When the default behavior of equality does not suit the needs of the test,
+custom equality functions can override the equality operation.
+For example, an equality function may report floats as equal so long as they
+are within some tolerance of each other.
+
+• If no custom equality functions are used and no Equal method is defined,
+equality is determined by recursively comparing the primitive kinds on both
+values, much like reflect.DeepEqual. Unlike reflect.DeepEqual, unexported
+fields are not compared by default; they result in panics unless suppressed
+by using an Ignore option (see cmpopts.IgnoreUnexported) or explicitly compared
+using the AllowUnexported option.`, "\n"),
+		},
+		wantDiff: `
+  cmp_test.MyComposite{
+  	StringA: strings.Join({
+- 		"Package cmp determines equality of values.",
++ 		"Package cmp determines equality of value.",
+  		"",
+  		"This package is intended to be a more powerful and safer alternative to",
+  		... // 6 identical lines
+  		"For example, an equality function may report floats as equal so long as they",
+  		"are within some tolerance of each other.",
+- 		"",
+- 		"• Types that have an Equal method may use that method to determine equality.",
+- 		"This allows package authors to determine the equality operation for the types",
+- 		"that they define.",
+  		"",
+  		"• If no custom equality functions are used and no Equal method is defined,",
+  		... // 3 identical lines
+  		"by using an Ignore option (see cmpopts.IgnoreUnexported) or explicitly compared",
+  		"using the AllowUnexported option.",
+- 		"",
+  	}, "\n"),
+  	StringB: "",
+  	BytesA:  nil,
+  	... // 11 identical fields
+  }
+`,
+		reason: "batched per-line diff desired since string looks like multi-line textual data",
 	}}
 }
 
