@@ -322,7 +322,7 @@ func coalesceInterveningIdentical(groups []diffStats, windowSize int) []diffStat
 			hadX, hadY := prev.NumRemoved > 0, prev.NumInserted > 0
 			hasX, hasY := next.NumRemoved > 0, next.NumInserted > 0
 			if ((hadX || hasX) && (hadY || hasY)) && curr.NumIdentical <= windowSize {
-				*prev = (*prev).Append(*curr).Append(*next)
+				*prev = prev.Append(*curr).Append(*next)
 				groups = groups[:len(groups)-1] // Truncate off equal group
 				continue
 			}
