@@ -89,13 +89,13 @@ func (opts formatOptions) FormatDiff(v *valueNode) textNode {
 			if v.NumDiff == 0 {
 				outx := opts.FormatValue(v.ValueX, visitedPointers{})
 				outy := opts.FormatValue(v.ValueY, visitedPointers{})
-				if v.NumIgnored > 0 && v.NumSame == 0 {
+				switch {
+				case v.NumIgnored > 0 && v.NumSame == 0:
 					return textEllipsis
-				} else if outx.Len() < outy.Len() {
+				case outx.Len() < outy.Len():
 					return outx
-				} else {
-					return outy
 				}
+				return outy
 			}
 
 			// Format unequal.
@@ -124,17 +124,16 @@ func (opts formatOptions) FormatDiff(v *valueNode) textNode {
 		out := opts.WithTypeMode(emitType).FormatDiff(v.Value)
 		out = textWrap{"Inverse(" + v.TransformerName + ", ", out, ")"}
 		return opts.FormatType(v.Type, out)
-	} else {
-		switch k := v.Type.Kind(); k {
-		case reflect.Struct, reflect.Array, reflect.Slice, reflect.Map:
-			return opts.FormatType(v.Type, opts.formatDiffList(v.Records, k))
-		case reflect.Ptr:
-			return textWrap{"&", opts.FormatDiff(v.Value), ""}
-		case reflect.Interface:
-			return opts.WithTypeMode(emitType).FormatDiff(v.Value)
-		default:
-			panic(fmt.Sprintf("%v cannot have children", k))
-		}
+	}
+	switch k := v.Type.Kind(); k {
+	case reflect.Struct, reflect.Array, reflect.Slice, reflect.Map:
+		return opts.FormatType(v.Type, opts.formatDiffList(v.Records, k))
+	case reflect.Ptr:
+		return textWrap{"&", opts.FormatDiff(v.Value), ""}
+	case reflect.Interface:
+		return opts.WithTypeMode(emitType).FormatDiff(v.Value)
+	default:
+		panic(fmt.Sprintf("%v cannot have children", k))
 	}
 }
 
@@ -167,9 +166,7 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 			if k == reflect.Struct {
 				var isZero bool
 				switch opts.DiffMode {
-				case diffIdentical:
-					isZero = value.IsZero(r.Value.ValueX) || value.IsZero(r.Value.ValueX)
-				case diffRemoved:
+				case diffIdentical, diffRemoved:
 					isZero = value.IsZero(r.Value.ValueX)
 				case diffInserted:
 					isZero = value.IsZero(r.Value.ValueY)
