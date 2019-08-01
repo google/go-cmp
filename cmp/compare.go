@@ -332,7 +332,7 @@ func (s *state) callTTBFunc(f, x, y reflect.Value) bool {
 func detectRaces(c chan<- reflect.Value, f reflect.Value, vs ...reflect.Value) {
 	var ret reflect.Value
 	defer func() {
-		recover() // Ignore panics, let the other call to f panic instead
+		_ = recover() // Ignore panics, let the other call to f panic instead
 		c <- ret
 	}()
 	ret = f.Call(vs)[0]
