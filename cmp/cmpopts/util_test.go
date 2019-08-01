@@ -806,7 +806,7 @@ func TestOptions(t *testing.T) {
 		x:     []string{"foo", "Bar", "BAZ"},
 		y:     []string{"Foo", "BAR", "baz"},
 		opts: []cmp.Option{
-			AcyclicTransformer("", func(s string) string { return strings.ToUpper(s) }),
+			AcyclicTransformer("", strings.ToUpper),
 		},
 		wantEqual: true,
 		reason:    "equal because of strings.ToUpper; AcyclicTransformer unnecessary, but check this still works",
@@ -815,7 +815,7 @@ func TestOptions(t *testing.T) {
 		x:     "this is a sentence",
 		y: "this   			is a 			sentence",
 		opts: []cmp.Option{
-			AcyclicTransformer("", func(s string) []string { return strings.Fields(s) }),
+			AcyclicTransformer("", strings.Fields),
 		},
 		wantEqual: true,
 		reason:    "equal because acyclic transformer splits on any contiguous whitespace",
