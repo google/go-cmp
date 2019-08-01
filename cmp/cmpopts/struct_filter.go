@@ -170,7 +170,7 @@ func canonicalName(t reflect.Type, sel string) ([]string, error) {
 	if !ok {
 		return []string{name}, fmt.Errorf("does not exist")
 	}
-	var ss []string
+	ss := make([]string,0,len(sf.Index))
 	for i := range sf.Index {
 		ss = append(ss, t.FieldByIndex(sf.Index[:i+1]).Name)
 	}

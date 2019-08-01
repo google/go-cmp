@@ -87,7 +87,7 @@ func (opts Options) filter(s *state, t reflect.Type, vx, vy reflect.Value) (out 
 func (opts Options) apply(s *state, _, _ reflect.Value) {
 	const warning = "ambiguous set of applicable options"
 	const help = "consider using filters to ensure at most one Comparer or Transformer may apply"
-	var ss []string
+	ss := make([]string, 0, len(opts))
 	for _, opt := range flattenOptions(nil, opts) {
 		ss = append(ss, fmt.Sprint(opt))
 	}
@@ -96,7 +96,7 @@ func (opts Options) apply(s *state, _, _ reflect.Value) {
 }
 
 func (opts Options) String() string {
-	var ss []string
+	ss := make([]string, 0, len(opts))
 	for _, opt := range opts {
 		ss = append(ss, fmt.Sprint(opt))
 	}
