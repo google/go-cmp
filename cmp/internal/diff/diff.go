@@ -93,9 +93,8 @@ type Result struct{ NumSame, NumDiff int }
 func BoolResult(b bool) Result {
 	if b {
 		return Result{NumSame: 1} // Equal, Similar
-	} else {
-		return Result{NumDiff: 2} // Not Equal, not Similar
 	}
+	return Result{NumDiff: 2} // Not Equal, not Similar
 }
 
 // Equal indicates whether the symbols are equal. Two symbols are equal
