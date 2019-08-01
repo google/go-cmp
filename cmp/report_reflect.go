@@ -148,8 +148,7 @@ func (opts formatOptions) FormatValue(v reflect.Value, m visitedPointers) (out t
 			if vi.CanAddr() { // Check for cyclic elements
 				p := vi.Addr()
 				if m.Visit(p) {
-					var out textNode
-					out = textLine(formatPointer(p))
+					out := textNode(textLine(formatPointer(p)))
 					out = opts.WithTypeMode(emitType).FormatType(p.Type(), out)
 					out = textWrap{"*", out, ""}
 					list = append(list, textRecord{Value: out})
