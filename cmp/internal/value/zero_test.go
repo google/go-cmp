@@ -6,6 +6,7 @@ package value
 
 import (
 	"archive/tar"
+	"math"
 	"reflect"
 	"testing"
 )
@@ -32,6 +33,12 @@ func TestIsZero(t *testing.T) {
 		{TestIsZero, false},
 		{[...]int{0, 0, 0}, true},
 		{[...]int{0, 1, 0}, false},
+		{math.Copysign(0, +1), true},
+		{math.Copysign(0, -1), false},
+		{complex(math.Copysign(0, +1), math.Copysign(0, +1)), true},
+		{complex(math.Copysign(0, -1), math.Copysign(0, +1)), false},
+		{complex(math.Copysign(0, +1), math.Copysign(0, -1)), false},
+		{complex(math.Copysign(0, -1), math.Copysign(0, -1)), false},
 	}
 
 	for _, tt := range tests {
