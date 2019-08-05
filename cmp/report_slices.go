@@ -90,7 +90,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 			}
 			if r == '\n' {
 				if maxLineLen < i-lastLineIdx {
-					lastLineIdx = i - lastLineIdx
+					maxLineLen = i - lastLineIdx
 				}
 				lastLineIdx = i + 1
 				numLines++
