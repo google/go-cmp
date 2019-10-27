@@ -94,7 +94,7 @@ func (pa Path) Index(i int) PathStep {
 // For example:
 //	MyMap.MySlices.MyField
 func (pa Path) String() string {
-	var ss []string
+	ss := make([]string, 0, len(pa))
 	for _, s := range pa {
 		if _, ok := s.(StructField); ok {
 			ss = append(ss, s.String())

@@ -136,7 +136,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 		list = opts.formatDiffSlice(
 			reflect.ValueOf(sx), reflect.ValueOf(sy), 16, "byte",
 			func(v reflect.Value, d diffMode) textRecord {
-				var ss []string
+				ss := make([]string, 0, v.Len())
 				for i := 0; i < v.Len(); i++ {
 					ss = append(ss, formatHex(v.Index(i).Uint()))
 				}
@@ -167,7 +167,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 		list = opts.formatDiffSlice(
 			vx, vy, chunkSize, t.Elem().Kind().String(),
 			func(v reflect.Value, d diffMode) textRecord {
-				var ss []string
+				ss := make([]string, 0, v.Len())
 				for i := 0; i < v.Len(); i++ {
 					switch t.Elem().Kind() {
 					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:

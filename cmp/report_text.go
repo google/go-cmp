@@ -351,10 +351,10 @@ func (s diffStats) Append(ds diffStats) diffStats {
 // Example:
 //	diffStats{Name: "Field", NumIgnored: 5}.String() => "5 ignored fields"
 func (s diffStats) String() string {
-	var ss []string
 	var sum int
 	labels := [...]string{"ignored", "identical", "removed", "inserted", "modified"}
 	counts := [...]int{s.NumIgnored, s.NumIdentical, s.NumRemoved, s.NumInserted, s.NumModified}
+	ss := make([]string, 0, len(counts))
 	for i, n := range counts {
 		if n > 0 {
 			ss = append(ss, fmt.Sprintf("%d %v", n, labels[i]))
