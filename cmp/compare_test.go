@@ -15,6 +15,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -117,6 +118,10 @@ func comparerTests() []test {
 		AccessTime time.Time
 		ChangeTime time.Time
 		Xattrs     map[string]string
+	}
+
+	type namedWithUnexported struct {
+		unexported string
 	}
 
 	makeTarHeaders := func(tf byte) (hs []tarHeader) {
@@ -673,6 +678,18 @@ func comparerTests() []test {
   }
 `,
 		reason: "all zero map entries are ignored (even if missing)",
+	}, {
+		label:     label,
+		x:         namedWithUnexported{},
+		y:         namedWithUnexported{},
+		wantPanic: strconv.Quote(reflect.TypeOf(namedWithUnexported{}).PkgPath()) + ".namedWithUnexported",
+		reason:    "panic on named struct type with unexported field",
+	}, {
+		label:     label,
+		x:         struct{ a int }{},
+		y:         struct{ a int }{},
+		wantPanic: strconv.Quote(reflect.TypeOf(namedWithUnexported{}).PkgPath()) + ".(struct { a int })",
+		reason:    "panic on unnamed struct type with unexported field",
 	}}
 }
 
