@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"golang.org/x/xerrors"
 )
 
 func equateAlways(_, _ interface{}) bool { return true }
@@ -122,4 +123,37 @@ func (a timeApproximator) compare(x, y time.Time) bool {
 	// We're within the margin if x+margin >= y.
 	// Note: time.Time doesn't have AfterOrEqual method hence the negation.
 	return !x.Add(a.margin).Before(y)
+}
+
+// AnyError is an error that matches any non-nil error.
+var AnyError anyError
+
+type anyError struct{}
+
+func (anyError) Error() string     { return "any error" }
+func (anyError) Is(err error) bool { return err != nil }
+
+// EquateErrors returns a Comparer option that determines errors to be equal
+// if errors.Is reports them to match. The AnyError error can be used to
+// match any non-nil error.
+func EquateErrors() cmp.Option {
+	return cmp.FilterValues(areConcreteErrors, cmp.Comparer(compareErrors))
+}
+
+// areConcreteErrors reports whether x and y are types that implement error.
+// The input types are deliberately of the interface{} type rather than the
+// error type so that we can handle situations where the current type is an
+// interface{}, but the underlying concrete types both happen to implement
+// the error interface.
+func areConcreteErrors(x, y interface{}) bool {
+	_, ok1 := x.(error)
+	_, ok2 := y.(error)
+	return ok1 && ok2
+}
+
+func compareErrors(x, y interface{}) bool {
+	xe := x.(error)
+	ye := y.(error)
+	// TODO: Use errors.Is when go1.13 is the minimally supported version of Go.
+	return xerrors.Is(xe, ye) || xerrors.Is(ye, xe)
 }

@@ -6,6 +6,7 @@ package cmpopts
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"golang.org/x/xerrors"
 )
 
 type (
@@ -508,6 +510,168 @@ func TestOptions(t *testing.T) {
 		y:      time.Date(2000, 11, 10, 23, 0, 3, 0, time.UTC),
 		opts:   []cmp.Option{EquateApproxTime(3 * time.Second)},
 		reason: "time difference overflows time.Duration",
+	}, {
+		label:     "EquateErrors",
+		x:         nil,
+		y:         nil,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "nil values are equal",
+	}, {
+		label:     "EquateErrors",
+		x:         errors.New("EOF"),
+		y:         io.EOF,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: false,
+		reason:    "user-defined EOF is not exactly equal",
+	}, {
+		label:     "EquateErrors",
+		x:         xerrors.Errorf("wrapped: %w", io.EOF),
+		y:         io.EOF,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "wrapped io.EOF is equal according to errors.Is",
+	}, {
+		label:     "EquateErrors",
+		x:         xerrors.Errorf("wrapped: %w", io.EOF),
+		y:         io.EOF,
+		wantEqual: false,
+		reason:    "wrapped io.EOF is not equal without EquateErrors option",
+	}, {
+		label:     "EquateErrors",
+		x:         io.EOF,
+		y:         io.EOF,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "sentinel errors are equal",
+	}, {
+		label:     "EquateErrors",
+		x:         io.EOF,
+		y:         AnyError,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "AnyError is equal to any non-nil error",
+	}, {
+		label:     "EquateErrors",
+		x:         io.EOF,
+		y:         AnyError,
+		wantEqual: false,
+		reason:    "AnyError is not equal to any non-nil error without EquateErrors option",
+	}, {
+		label:     "EquateErrors",
+		x:         nil,
+		y:         AnyError,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: false,
+		reason:    "AnyError is not equal to nil value",
+	}, {
+		label:     "EquateErrors",
+		x:         nil,
+		y:         nil,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "nil values are equal",
+	}, {
+		label:     "EquateErrors",
+		x:         errors.New("EOF"),
+		y:         io.EOF,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: false,
+		reason:    "user-defined EOF is not exactly equal",
+	}, {
+		label:     "EquateErrors",
+		x:         xerrors.Errorf("wrapped: %w", io.EOF),
+		y:         io.EOF,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "wrapped io.EOF is equal according to errors.Is",
+	}, {
+		label:     "EquateErrors",
+		x:         xerrors.Errorf("wrapped: %w", io.EOF),
+		y:         io.EOF,
+		wantEqual: false,
+		reason:    "wrapped io.EOF is not equal without EquateErrors option",
+	}, {
+		label:     "EquateErrors",
+		x:         io.EOF,
+		y:         io.EOF,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "sentinel errors are equal",
+	}, {
+		label:     "EquateErrors",
+		x:         io.EOF,
+		y:         AnyError,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "AnyError is equal to any non-nil error",
+	}, {
+		label:     "EquateErrors",
+		x:         io.EOF,
+		y:         AnyError,
+		wantEqual: false,
+		reason:    "AnyError is not equal to any non-nil error without EquateErrors option",
+	}, {
+		label:     "EquateErrors",
+		x:         nil,
+		y:         AnyError,
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: false,
+		reason:    "AnyError is not equal to nil value",
+	}, {
+		label:     "EquateErrors",
+		x:         struct{ E error }{nil},
+		y:         struct{ E error }{nil},
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "nil values are equal",
+	}, {
+		label:     "EquateErrors",
+		x:         struct{ E error }{errors.New("EOF")},
+		y:         struct{ E error }{io.EOF},
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: false,
+		reason:    "user-defined EOF is not exactly equal",
+	}, {
+		label:     "EquateErrors",
+		x:         struct{ E error }{xerrors.Errorf("wrapped: %w", io.EOF)},
+		y:         struct{ E error }{io.EOF},
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "wrapped io.EOF is equal according to errors.Is",
+	}, {
+		label:     "EquateErrors",
+		x:         struct{ E error }{xerrors.Errorf("wrapped: %w", io.EOF)},
+		y:         struct{ E error }{io.EOF},
+		wantEqual: false,
+		reason:    "wrapped io.EOF is not equal without EquateErrors option",
+	}, {
+		label:     "EquateErrors",
+		x:         struct{ E error }{io.EOF},
+		y:         struct{ E error }{io.EOF},
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "sentinel errors are equal",
+	}, {
+		label:     "EquateErrors",
+		x:         struct{ E error }{io.EOF},
+		y:         struct{ E error }{AnyError},
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: true,
+		reason:    "AnyError is equal to any non-nil error",
+	}, {
+		label:     "EquateErrors",
+		x:         struct{ E error }{io.EOF},
+		y:         struct{ E error }{AnyError},
+		wantEqual: false,
+		reason:    "AnyError is not equal to any non-nil error without EquateErrors option",
+	}, {
+		label:     "EquateErrors",
+		x:         struct{ E error }{nil},
+		y:         struct{ E error }{AnyError},
+		opts:      []cmp.Option{EquateErrors()},
+		wantEqual: false,
+		reason:    "AnyError is not equal to nil value",
 	}, {
 		label:     "IgnoreFields",
 		x:         Bar1{Foo3{&Foo2{&Foo1{Alpha: 5}}}},
