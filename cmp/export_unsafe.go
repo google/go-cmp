@@ -11,7 +11,7 @@ import (
 	"unsafe"
 )
 
-const supportAllowUnexported = true
+const supportExporters = true
 
 // retrieveUnexportedField uses unsafe to forcibly retrieve any field from
 // a struct such that the value has read-write permissions.

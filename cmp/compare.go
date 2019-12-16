@@ -22,8 +22,8 @@
 // equality is determined by recursively comparing the primitive kinds on both
 // values, much like reflect.DeepEqual. Unlike reflect.DeepEqual, unexported
 // fields are not compared by default; they result in panics unless suppressed
-// by using an Ignore option (see cmpopts.IgnoreUnexported) or explicitly compared
-// using the AllowUnexported option.
+// by using an Ignore option (see cmpopts.IgnoreUnexported) or explicitly
+// compared using the Exporter option.
 package cmp
 
 import (
@@ -62,8 +62,8 @@ import (
 //
 // Structs are equal if recursively calling Equal on all fields report equal.
 // If a struct contains unexported fields, Equal panics unless an Ignore option
-// (e.g., cmpopts.IgnoreUnexported) ignores that field or the AllowUnexported
-// option explicitly permits comparing the unexported field.
+// (e.g., cmpopts.IgnoreUnexported) ignores that field or the Exporter option
+// explicitly permits comparing the unexported field.
 //
 // Slices are equal if they are both nil or both non-nil, where recursively
 // calling Equal on all non-ignored slice or array elements report equal.
@@ -148,8 +148,8 @@ type state struct {
 	dynChecker dynChecker
 
 	// These fields, once set by processOption, will not change.
-	exporters map[reflect.Type]bool // Set of structs with unexported field visibility
-	opts      Options               // List of all fundamental and filter options
+	exporters []exporter // List of exporters for structs with unexported fields
+	opts      Options    // List of all fundamental and filter options
 }
 
 func newState(opts []Option) *state {
@@ -174,13 +174,8 @@ func (s *state) processOption(opt Option) {
 			panic(fmt.Sprintf("cannot use an unfiltered option: %v", opt))
 		}
 		s.opts = append(s.opts, opt)
-	case visibleStructs:
-		if s.exporters == nil {
-			s.exporters = make(map[reflect.Type]bool)
-		}
-		for t := range opt {
-			s.exporters[t] = true
-		}
+	case exporter:
+		s.exporters = append(s.exporters, opt)
 	case reporter:
 		s.reporters = append(s.reporters, opt)
 	default:
@@ -354,6 +349,7 @@ func sanitizeValue(v reflect.Value, t reflect.Type) reflect.Value {
 func (s *state) compareStruct(t reflect.Type, vx, vy reflect.Value) {
 	var vax, vay reflect.Value // Addressable versions of vx and vy
 
+	var mayForce, mayForceInit bool
 	step := StructField{&structField{}}
 	for i := 0; i < t.NumField(); i++ {
 		step.typ = t.Field(i).Type
@@ -375,7 +371,13 @@ func (s *state) compareStruct(t reflect.Type, vx, vy reflect.Value) {
 				vax = makeAddressable(vx)
 				vay = makeAddressable(vy)
 			}
-			step.mayForce = s.exporters[t]
+			if !mayForceInit {
+				for _, xf := range s.exporters {
+					mayForce = mayForce || xf(t)
+				}
+				mayForceInit = true
+			}
+			step.mayForce = mayForce
 			step.pvx = vax
 			step.pvy = vay
 			step.field = t.Field(i)
