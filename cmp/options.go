@@ -455,6 +455,11 @@ func (r Result) ByFunc() bool {
 	return r.flags&reportByFunc != 0
 }
 
+// ByCycle reports whether a reference cycle was detected.
+func (r Result) ByCycle() bool {
+	return r.flags&reportByCycle != 0
+}
+
 type resultFlags uint
 
 const (
@@ -465,6 +470,7 @@ const (
 	reportByIgnore
 	reportByMethod
 	reportByFunc
+	reportByCycle
 )
 
 // Reporter is an Option that can be passed to Equal. When Equal traverses
