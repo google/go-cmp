@@ -90,23 +90,20 @@ func areNaNsF32s(x, y float32) bool {
 	return areNaNsF64s(float64(x), float64(y))
 }
 
-// EquateApproxTime returns a Comparer options that
-// determine two time.Time values to be equal if they
-// are within the given time interval of one another.
-// Note that if both times have a monotonic clock reading,
-// the monotonic time difference will be used.
-//
-// The zero time is treated specially: it is only considered
-// equal to another zero time value.
-//
-// It will panic if margin is negative.
+// EquateApproxTime returns a Comparer option that determines two non-zero
+// time.Time values to be equal if they are within some margin of one another.
+// If both times have a monotonic clock reading, then the monotonic time
+// difference will be used. The margin must be non-negative.
 func EquateApproxTime(margin time.Duration) cmp.Option {
 	if margin < 0 {
-		panic("negative duration in EquateApproxTime")
+		panic("margin must be a non-negative number")
 	}
-	return cmp.FilterValues(func(x, y time.Time) bool {
-		return !x.IsZero() && !y.IsZero()
-	}, cmp.Comparer(timeApproximator{margin}.compare))
+	a := timeApproximator{margin}
+	return cmp.FilterValues(areNonZeroTimes, cmp.Comparer(a.compare))
+}
+
+func areNonZeroTimes(x, y time.Time) bool {
+	return !x.IsZero() && !y.IsZero()
 }
 
 type timeApproximator struct {
