@@ -41,7 +41,7 @@ type PathStep interface {
 	// In some cases, one or both may be invalid or have restrictions:
 	//	• For StructField, both are not interface-able if the current field
 	//	is unexported and the struct type is not explicitly permitted by
-	//	AllowUnexported to traverse unexported fields.
+	//	an Exporter to traverse unexported fields.
 	//	• For SliceIndex, one may be invalid if an element is missing from
 	//	either the x or y slice.
 	//	• For MapIndex, one may be invalid if an entry is missing from

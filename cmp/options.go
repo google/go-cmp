@@ -225,7 +225,7 @@ func (validator) apply(s *state, vx, vy reflect.Value) {
 
 	// Unable to Interface implies unexported field without visibility access.
 	if !vx.CanInterface() || !vy.CanInterface() {
-		const help = "consider using a custom Comparer; if you control the implementation of type, you can also consider AllowUnexported or cmpopts.IgnoreUnexported"
+		const help = "consider using a custom Comparer; if you control the implementation of type, you can also consider using an Exporter, AllowUnexported, or cmpopts.IgnoreUnexported"
 		var name string
 		if t := s.curPath.Index(-2).Type(); t.Name() != "" {
 			// Named type with unexported fields.
@@ -372,9 +372,8 @@ func (cm comparer) String() string {
 	return fmt.Sprintf("Comparer(%s)", function.NameOf(cm.fnc))
 }
 
-// AllowUnexported returns an Option that forcibly allows operations on
-// unexported fields in certain structs, which are specified by passing in a
-// value of each struct type.
+// Exporter returns an Option that specifies whether Equal is allowed to
+// introspect into the unexported fields of certain struct types.
 //
 // Users of this option must understand that comparing on unexported fields
 // from external packages is not safe since changes in the internal
@@ -398,10 +397,24 @@ func (cm comparer) String() string {
 //
 // In other cases, the cmpopts.IgnoreUnexported option can be used to ignore
 // all unexported fields on specified struct types.
-func AllowUnexported(types ...interface{}) Option {
-	if !supportAllowUnexported {
-		panic("AllowUnexported is not supported on purego builds, Google App Engine Standard, or GopherJS")
+func Exporter(f func(reflect.Type) bool) Option {
+	if !supportExporters {
+		panic("Exporter is not supported on purego builds")
 	}
+	return exporter(f)
+}
+
+type exporter func(reflect.Type) bool
+
+func (exporter) filter(_ *state, _ reflect.Type, _, _ reflect.Value) applicableOption {
+	panic("not implemented")
+}
+
+// AllowUnexported returns an Options that allows Equal to forcibly introspect
+// unexported fields of the specified struct types.
+//
+// See Exporter for the proper use of this option.
+func AllowUnexported(types ...interface{}) Option {
 	m := make(map[reflect.Type]bool)
 	for _, typ := range types {
 		t := reflect.TypeOf(typ)
@@ -410,13 +423,7 @@ func AllowUnexported(types ...interface{}) Option {
 		}
 		m[t] = true
 	}
-	return visibleStructs(m)
-}
-
-type visibleStructs map[reflect.Type]bool
-
-func (visibleStructs) filter(_ *state, _ reflect.Type, _, _ reflect.Value) applicableOption {
-	panic("not implemented")
+	return exporter(func(t reflect.Type) bool { return m[t] })
 }
 
 // Result represents the comparison result for a single node and
