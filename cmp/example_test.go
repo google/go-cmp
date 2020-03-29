@@ -219,7 +219,7 @@ func (x otherString) Equal(y otherString) bool {
 	return strings.ToLower(string(x)) == strings.ToLower(string(y))
 }
 
-// If the Equal method defined on a type is not suitable, the type can be be
+// If the Equal method defined on a type is not suitable, the type can be
 // dynamically transformed to be stripped of the Equal method (or any method
 // for that matter).
 func ExampleOption_avoidEqualMethod() {
