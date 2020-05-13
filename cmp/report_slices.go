@@ -175,6 +175,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 					case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 						ss = append(ss, fmt.Sprint(v.Index(i).Uint()))
 					case reflect.Uint8, reflect.Uintptr:
+						// If it is uint8 which is an alias of byte, format it to hex.
 						ss = append(ss, formatHex(v.Index(i).Uint()))
 					case reflect.Bool, reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128:
 						ss = append(ss, fmt.Sprint(v.Index(i).Interface()))
