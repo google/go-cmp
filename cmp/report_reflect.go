@@ -110,7 +110,7 @@ func (opts formatOptions) FormatValue(v reflect.Value, m visitedPointers) (out t
 		return textLine(fmt.Sprint(v.Int()))
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		// Unnamed uints are usually bytes or words, so use hexadecimal.
-		if t.PkgPath() == "" || t.Kind() == reflect.Uintptr {
+		if t.Kind() == reflect.Uint8 || t.Kind() == reflect.Uintptr {
 			return textLine(formatHex(v.Uint()))
 		}
 		return textLine(fmt.Sprint(v.Uint()))
