@@ -50,6 +50,7 @@ func TestDiff(t *testing.T) {
 	var tests []test
 	tests = append(tests, comparerTests()...)
 	tests = append(tests, transformerTests()...)
+	tests = append(tests, reporterTests()...)
 	tests = append(tests, embeddedTests()...)
 	tests = append(tests, methodTests()...)
 	tests = append(tests, cycleTests()...)
