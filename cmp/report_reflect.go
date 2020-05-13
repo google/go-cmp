@@ -108,12 +108,11 @@ func (opts formatOptions) FormatValue(v reflect.Value, m visitedPointers) (out t
 		return textLine(fmt.Sprint(v.Bool()))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return textLine(fmt.Sprint(v.Int()))
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		// Unnamed uints are usually bytes or words, so use hexadecimal.
-		if t.Kind() == reflect.Uint8 || t.Kind() == reflect.Uintptr {
-			return textLine(formatHex(v.Uint()))
-		}
+	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return textLine(fmt.Sprint(v.Uint()))
+	case reflect.Uint8, reflect.Uintptr:
+		//  If it is uint8 which is an alias of byte, format it to hex.
+		return textLine(formatHex(v.Uint()))
 	case reflect.Float32, reflect.Float64:
 		return textLine(fmt.Sprint(v.Float()))
 	case reflect.Complex64, reflect.Complex128:
