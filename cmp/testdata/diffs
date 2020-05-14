@@ -54,8 +54,8 @@
   		... // 4 identical fields
   		Size:     1,
   		ModTime:  s"2009-11-10 23:00:00 +0000 UTC",
-- 		Typeflag: 0x30,
-+ 		Typeflag: 0x00,
+- 		Typeflag: 48,
++ 		Typeflag: 0,
   		Linkname: "",
   		Uname:    "user",
   		... // 6 identical fields
@@ -64,8 +64,8 @@
   		... // 4 identical fields
   		Size:     2,
   		ModTime:  s"2009-11-11 00:00:00 +0000 UTC",
-- 		Typeflag: 0x30,
-+ 		Typeflag: 0x00,
+- 		Typeflag: 48,
++ 		Typeflag: 0,
   		Linkname: "",
   		Uname:    "user",
   		... // 6 identical fields
@@ -74,8 +74,8 @@
   		... // 4 identical fields
   		Size:     4,
   		ModTime:  s"2009-11-11 01:00:00 +0000 UTC",
-- 		Typeflag: 0x30,
-+ 		Typeflag: 0x00,
+- 		Typeflag: 48,
++ 		Typeflag: 0,
   		Linkname: "",
   		Uname:    "user",
   		... // 6 identical fields
@@ -84,8 +84,8 @@
   		... // 4 identical fields
   		Size:     8,
   		ModTime:  s"2009-11-11 02:00:00 +0000 UTC",
-- 		Typeflag: 0x30,
-+ 		Typeflag: 0x00,
+- 		Typeflag: 48,
++ 		Typeflag: 0,
   		Linkname: "",
   		Uname:    "user",
   		... // 6 identical fields
@@ -94,8 +94,8 @@
   		... // 4 identical fields
   		Size:     16,
   		ModTime:  s"2009-11-11 03:00:00 +0000 UTC",
-- 		Typeflag: 0x30,
-+ 		Typeflag: 0x00,
+- 		Typeflag: 48,
++ 		Typeflag: 0,
   		Linkname: "",
   		Uname:    "user",
   		... // 6 identical fields
@@ -188,8 +188,8 @@
 >>> TestDiff/Comparer#46
 <<< TestDiff/Transformer
   uint8(Inverse(λ, uint16(Inverse(λ, uint32(Inverse(λ, uint64(
-- 	0x00,
-+ 	0x01,
+- 	0,
++ 	1,
   )))))))
 >>> TestDiff/Transformer
 <<< TestDiff/Transformer#02
@@ -323,8 +323,8 @@
 + 		-9, -8, -7,
   	},
   	UintsA: []uint16{
-- 		0x03e8, 0x07d0, 0x0bb8,
-+ 		0x0bb8, 0x07d0, 0x03e8,
+- 		1000, 2000, 3000,
++ 		3000, 2000, 1000,
   	},
   	UintsB: []cmp_test.MyUint{
 - 		4000, 5000, 6000,
@@ -1029,7 +1029,7 @@
   	Slaps: []teststructs.Slap{
   		{
   			... // 6 identical fields
-  			Homeland:   0x00,
+  			Homeland:   0,
   			FunnyPrank: "",
   			Immutable: &teststructs.SlapImmutable{
   				ID:          "immutableSlap",
@@ -1130,7 +1130,7 @@
 <<< TestDiff/Project4#03
   teststructs.Cartel{
   	Headquarter: teststructs.Headquarter{
-  		id:       0x05,
+  		id:       5,
   		location: "moon",
   		subDivisions: []string{
 - 			"alpha",
