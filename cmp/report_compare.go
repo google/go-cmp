@@ -82,8 +82,7 @@ func (opts formatOptions) FormatDiff(v *valueNode) textNode {
 	}
 
 	var isSlice bool
-	if v.parent != nil &&
-		(v.parent.Type.Kind() == reflect.Slice || v.parent.Type.Kind() == reflect.Array) {
+	if v.parent != nil && (v.parent.Type.Kind() == reflect.Slice || v.parent.Type.Kind() == reflect.Array) {
 		isSlice = true
 	}
 
