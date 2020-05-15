@@ -81,9 +81,9 @@ func (opts formatOptions) FormatDiff(v *valueNode) textNode {
 		return opts.FormatDiffSlice(v)
 	}
 
-	var isSlice bool
+	var withinSlice bool
 	if v.parent != nil && (v.parent.Type.Kind() == reflect.Slice || v.parent.Type.Kind() == reflect.Array) {
-		isSlice = true
+		withinSlice = true
 	}
 
 	// For leaf nodes, format the value based on the reflect.Values alone.
@@ -92,8 +92,8 @@ func (opts formatOptions) FormatDiff(v *valueNode) textNode {
 		case diffUnknown, diffIdentical:
 			// Format Equal.
 			if v.NumDiff == 0 {
-				outx := opts.FormatValue(v.ValueX, isSlice, visitedPointers{})
-				outy := opts.FormatValue(v.ValueY, isSlice, visitedPointers{})
+				outx := opts.FormatValue(v.ValueX, withinSlice, visitedPointers{})
+				outy := opts.FormatValue(v.ValueY, withinSlice, visitedPointers{})
 				if v.NumIgnored > 0 && v.NumSame == 0 {
 					return textEllipsis
 				} else if outx.Len() < outy.Len() {
@@ -106,8 +106,8 @@ func (opts formatOptions) FormatDiff(v *valueNode) textNode {
 			// Format unequal.
 			assert(opts.DiffMode == diffUnknown)
 			var list textList
-			outx := opts.WithTypeMode(elideType).FormatValue(v.ValueX, isSlice, visitedPointers{})
-			outy := opts.WithTypeMode(elideType).FormatValue(v.ValueY, isSlice, visitedPointers{})
+			outx := opts.WithTypeMode(elideType).FormatValue(v.ValueX, withinSlice, visitedPointers{})
+			outy := opts.WithTypeMode(elideType).FormatValue(v.ValueY, withinSlice, visitedPointers{})
 			if outx != nil {
 				list = append(list, textRecord{Diff: '-', Value: outx})
 			}
@@ -116,9 +116,9 @@ func (opts formatOptions) FormatDiff(v *valueNode) textNode {
 			}
 			return opts.WithTypeMode(emitType).FormatType(v.Type, list)
 		case diffRemoved:
-			return opts.FormatValue(v.ValueX, isSlice, visitedPointers{})
+			return opts.FormatValue(v.ValueX, withinSlice, visitedPointers{})
 		case diffInserted:
-			return opts.FormatValue(v.ValueY, isSlice, visitedPointers{})
+			return opts.FormatValue(v.ValueY, withinSlice, visitedPointers{})
 		default:
 			panic("invalid diff mode")
 		}

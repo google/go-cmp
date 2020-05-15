@@ -74,7 +74,7 @@ func (opts formatOptions) FormatType(t reflect.Type, s textNode) textNode {
 
 // FormatValue prints the reflect.Value, taking extra care to avoid descending
 // into pointers already in m. As pointers are visited, m is also updated.
-func (opts formatOptions) FormatValue(v reflect.Value, isSlice bool, m visitedPointers) (out textNode) {
+func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visitedPointers) (out textNode) {
 	if !v.IsValid() {
 		return nil
 	}
@@ -111,7 +111,7 @@ func (opts formatOptions) FormatValue(v reflect.Value, isSlice bool, m visitedPo
 	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return textLine(fmt.Sprint(v.Uint()))
 	case reflect.Uint8:
-		if isSlice {
+		if withinSlice {
 			return textLine(formatHex(v.Uint()))
 		}
 		return textLine(fmt.Sprint(v.Uint()))
