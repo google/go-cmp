@@ -28,6 +28,8 @@ func (opts formatOptions) CanFormatDiffSlice(v *valueNode) bool {
 		return false // Some custom option was used to determined equality
 	case !v.ValueX.IsValid() || !v.ValueY.IsValid():
 		return false // Both values must be valid
+	case v.Type.Kind() == reflect.Slice && (v.ValueX.IsNil() || v.ValueY.IsNil()):
+		return false // Both of values have to be non-nil
 	}
 
 	switch t := v.Type; t.Kind() {
