@@ -439,6 +439,66 @@
   	... // 11 identical fields
   }
 >>> TestDiff/Reporter#06
+<<< TestDiff/Reporter#07
+  cmp_test.MyComposite{
+  	StringA: "",
+  	StringB: "",
+- 	BytesA:  []uint8{0x01, 0x02, 0x03},
++ 	BytesA:  nil,
+- 	BytesB:  []cmp_test.MyByte{0x04, 0x05, 0x06},
++ 	BytesB:  nil,
+- 	BytesC:  cmp_test.MyBytes{0x07, 0x08, 0x09},
++ 	BytesC:  nil,
+- 	IntsA:   []int8{-1, -2, -3},
++ 	IntsA:   nil,
+- 	IntsB:   []cmp_test.MyInt{-4, -5, -6},
++ 	IntsB:   nil,
+- 	IntsC:   cmp_test.MyInts{-7, -8, -9},
++ 	IntsC:   nil,
+- 	UintsA:  []uint16{1000, 2000, 3000},
++ 	UintsA:  nil,
+- 	UintsB:  []cmp_test.MyUint{4000, 5000, 6000},
++ 	UintsB:  nil,
+- 	UintsC:  cmp_test.MyUints{7000, 8000, 9000},
++ 	UintsC:  nil,
+- 	FloatsA: []float32{1.5, 2.5, 3.5},
++ 	FloatsA: nil,
+- 	FloatsB: []cmp_test.MyFloat{4.5, 5.5, 6.5},
++ 	FloatsB: nil,
+- 	FloatsC: cmp_test.MyFloats{7.5, 8.5, 9.5},
++ 	FloatsC: nil,
+  }
+>>> TestDiff/Reporter#07
+<<< TestDiff/Reporter#08
+  cmp_test.MyComposite{
+  	StringA: "",
+  	StringB: "",
+- 	BytesA:  []uint8{},
++ 	BytesA:  nil,
+- 	BytesB:  []cmp_test.MyByte{},
++ 	BytesB:  nil,
+- 	BytesC:  cmp_test.MyBytes{},
++ 	BytesC:  nil,
+- 	IntsA:   []int8{},
++ 	IntsA:   nil,
+- 	IntsB:   []cmp_test.MyInt{},
++ 	IntsB:   nil,
+- 	IntsC:   cmp_test.MyInts{},
++ 	IntsC:   nil,
+- 	UintsA:  []uint16{},
++ 	UintsA:  nil,
+- 	UintsB:  []cmp_test.MyUint{},
++ 	UintsB:  nil,
+- 	UintsC:  cmp_test.MyUints{},
++ 	UintsC:  nil,
+- 	FloatsA: []float32{},
++ 	FloatsA: nil,
+- 	FloatsB: []cmp_test.MyFloat{},
++ 	FloatsB: nil,
+- 	FloatsC: cmp_test.MyFloats{},
++ 	FloatsC: nil,
+  }
+>>> TestDiff/Reporter#08
 <<< TestDiff/EmbeddedStruct/ParentStructA#04
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{
