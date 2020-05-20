@@ -90,6 +90,52 @@ import (
 // If there is a cycle, then the pointed at values are considered equal
 // only if both addresses were previously visited in the same path step.
 func Equal(x, y interface{}, opts ...Option) bool {
+	s := newState(opts)
+	s.compareAny(rootStep(x, y))
+	return s.result.Equal()
+}
+
+// Diff returns a human-readable report of the differences between two values.
+// It returns an empty string if and only if Equal returns true for the same
+// input values and options.
+//
+// The output is displayed as a literal in pseudo-Go syntax.
+// At the start of each line, a "-" prefix indicates an element removed from x,
+// a "+" prefix to indicates an element added to y, and the lack of a prefix
+// indicates an element common to both x and y. If possible, the output
+// uses fmt.Stringer.String or error.Error methods to produce more humanly
+// readable outputs. In such cases, the string is prefixed with either an
+// 's' or 'e' character, respectively, to indicate that the method was called.
+//
+// Do not depend on this output being stable. If you need the ability to
+// programmatically interpret the difference, consider using a custom Reporter.
+func Diff(x, y interface{}, opts ...Option) string {
+	s := newState(opts)
+
+	// Optimization: If there are no other reporters, we can optimize for the
+	// common case where the result is equal (and thus no reported difference).
+	// This avoids the expensive construction of a difference tree.
+	if len(s.reporters) == 0 {
+		s.compareAny(rootStep(x, y))
+		if s.result.Equal() {
+			return ""
+		}
+		s.result = diff.Result{} // Reset results
+	}
+
+	r := new(defaultReporter)
+	s.reporters = append(s.reporters, reporter{r})
+	s.compareAny(rootStep(x, y))
+	d := r.String()
+	if (d == "") != s.result.Equal() {
+		panic("inconsistent difference and equality results")
+	}
+	return d
+}
+
+// rootStep constructs the first path step. If x and y have differing types,
+// then they are stored within an empty interface type.
+func rootStep(x, y interface{}) PathStep {
 	vx := reflect.ValueOf(x)
 	vy := reflect.ValueOf(y)
 
@@ -112,33 +158,7 @@ func Equal(x, y interface{}, opts ...Option) bool {
 		t = vx.Type()
 	}
 
-	s := newState(opts)
-	s.compareAny(&pathStep{t, vx, vy})
-	return s.result.Equal()
-}
-
-// Diff returns a human-readable report of the differences between two values.
-// It returns an empty string if and only if Equal returns true for the same
-// input values and options.
-//
-// The output is displayed as a literal in pseudo-Go syntax.
-// At the start of each line, a "-" prefix indicates an element removed from x,
-// a "+" prefix to indicates an element added to y, and the lack of a prefix
-// indicates an element common to both x and y. If possible, the output
-// uses fmt.Stringer.String or error.Error methods to produce more humanly
-// readable outputs. In such cases, the string is prefixed with either an
-// 's' or 'e' character, respectively, to indicate that the method was called.
-//
-// Do not depend on this output being stable. If you need the ability to
-// programmatically interpret the difference, consider using a custom Reporter.
-func Diff(x, y interface{}, opts ...Option) string {
-	r := new(defaultReporter)
-	eq := Equal(x, y, Options(opts), Reporter(r))
-	d := r.String()
-	if (d == "") != eq {
-		panic("inconsistent difference and equality results")
-	}
-	return d
+	return &pathStep{t, vx, vy}
 }
 
 type state struct {
