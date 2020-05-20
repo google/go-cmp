@@ -772,6 +772,39 @@ func TestOptions(t *testing.T) {
 		wantEqual: false,
 		reason:    "not equal because highest-level field is not ignored: Foo3",
 	}, {
+		label: "IgnoreFields",
+		x: ParentStruct{
+			privateStruct: &privateStruct{private: 1},
+			PublicStruct:  &PublicStruct{private: 2},
+			private:       3,
+		},
+		y: ParentStruct{
+			privateStruct: &privateStruct{private: 10},
+			PublicStruct:  &PublicStruct{private: 20},
+			private:       30,
+		},
+		opts:      []cmp.Option{cmp.AllowUnexported(ParentStruct{}, PublicStruct{}, privateStruct{})},
+		wantEqual: false,
+		reason:    "not equal because unexported fields mismatch",
+	}, {
+		label: "IgnoreFields",
+		x: ParentStruct{
+			privateStruct: &privateStruct{private: 1},
+			PublicStruct:  &PublicStruct{private: 2},
+			private:       3,
+		},
+		y: ParentStruct{
+			privateStruct: &privateStruct{private: 10},
+			PublicStruct:  &PublicStruct{private: 20},
+			private:       30,
+		},
+		opts: []cmp.Option{
+			cmp.AllowUnexported(ParentStruct{}, PublicStruct{}, privateStruct{}),
+			IgnoreFields(ParentStruct{}, "PublicStruct.private", "privateStruct.private", "private"),
+		},
+		wantEqual: true,
+		reason:    "equal because mismatching unexported fields are ignored",
+	}, {
 		label:     "IgnoreTypes",
 		x:         []interface{}{5, "same"},
 		y:         []interface{}{6, "same"},
@@ -1193,11 +1226,21 @@ func TestPanic(t *testing.T) {
 		wantPanic: "must be a struct",
 		reason:    "the type must be a struct (not pointer to a struct)",
 	}, {
+		label:  "IgnoreFields",
+		fnc:    IgnoreFields,
+		args:   args(struct{ privateStruct }{}, "privateStruct"),
+		reason: "privateStruct field permitted since it is the default name of the embedded type",
+	}, {
+		label:  "IgnoreFields",
+		fnc:    IgnoreFields,
+		args:   args(struct{ privateStruct }{}, "Public"),
+		reason: "Public field permitted since it is a forwarded field that is exported",
+	}, {
 		label:     "IgnoreFields",
 		fnc:       IgnoreFields,
-		args:      args(Foo1{}, "unexported"),
-		wantPanic: "name must be exported",
-		reason:    "unexported fields must not be specified",
+		args:      args(struct{ privateStruct }{}, "private"),
+		wantPanic: "does not exist",
+		reason:    "private field not permitted since it is a forwarded field that is unexported",
 	}, {
 		label:  "IgnoreTypes",
 		fnc:    IgnoreTypes,
