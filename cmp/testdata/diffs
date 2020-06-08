@@ -1154,10 +1154,10 @@
   	CleanGerms: nil,
   	GermMap:    map[int32]*testprotos.Germ{13: s"germ13", 21: s"germ21"},
   	DishMap: map[int32]*teststructs.Dish{
-  		0: &{err: &errors.errorString{s: "EOF"}},
+  		0: &{err: e"EOF"},
 - 		1: nil,
-+ 		1: &{err: &errors.errorString{s: "unexpected EOF"}},
-  		2: &{pb: &testprotos.Dish{Stringer: testprotos.Stringer{X: "dish"}}},
++ 		1: &{err: e"unexpected EOF"},
+  		2: &{pb: s"dish"},
   	},
   	HasPreviousResult: true,
   	DirtyID:           10,

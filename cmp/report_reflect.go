@@ -127,13 +127,18 @@ func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visit
 		return textLine(formatPointer(v))
 	case reflect.Struct:
 		var list textList
+		v := makeAddressable(v) // needed for retrieveUnexportedField
 		for i := 0; i < v.NumField(); i++ {
 			vv := v.Field(i)
 			if value.IsZero(vv) {
 				continue // Elide fields with zero values
 			}
+			sf := t.Field(i)
+			if supportExporters && !isExported(sf.Name) {
+				vv = retrieveUnexportedField(v, sf)
+			}
 			s := opts.WithTypeMode(autoType).FormatValue(vv, false, m)
-			list = append(list, textRecord{Key: t.Field(i).Name, Value: s})
+			list = append(list, textRecord{Key: sf.Name, Value: s})
 		}
 		return textWrap{"{", list, "}"}
 	case reflect.Slice:
