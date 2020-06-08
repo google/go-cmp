@@ -135,7 +135,7 @@ func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visit
 			}
 			sf := t.Field(i)
 			if supportExporters && !isExported(sf.Name) {
-				vv = retrieveUnexportedField(v, sf)
+				vv = retrieveUnexportedField(v, sf, true)
 			}
 			s := opts.WithTypeMode(autoType).FormatValue(vv, false, m)
 			list = append(list, textRecord{Key: sf.Name, Value: s})
