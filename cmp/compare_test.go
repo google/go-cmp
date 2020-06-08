@@ -624,6 +624,35 @@ func comparerTests() []test {
 		y:         struct{ a int }{},
 		wantPanic: strconv.Quote(reflect.TypeOf(namedWithUnexported{}).PkgPath()) + ".(struct { a int })",
 		reason:    "panic on unnamed struct type with unexported field",
+	}, {
+		label: label,
+		x:     struct{ s fmt.Stringer }{new(bytes.Buffer)},
+		y:     struct{ s fmt.Stringer }{new(bytes.Buffer)},
+		opts: []cmp.Option{
+			cmp.AllowUnexported(struct{ s fmt.Stringer }{}),
+			cmp.FilterPath(func(p cmp.Path) bool {
+				if _, ok := p.Last().(cmp.StructField); !ok {
+					return false
+				}
+
+				t := p.Index(-1).Type()
+				vx, vy := p.Index(-1).Values()
+				pvx, pvy := p.Index(-2).Values()
+				switch {
+				case vx.Type() != t:
+					panic(fmt.Sprintf("inconsistent type: %v != %v", vx.Type(), t))
+				case vy.Type() != t:
+					panic(fmt.Sprintf("inconsistent type: %v != %v", vy.Type(), t))
+				case vx.CanAddr() != pvx.CanAddr():
+					panic(fmt.Sprintf("inconsistent addressability: %v != %v", vx.CanAddr(), pvx.CanAddr()))
+				case vy.CanAddr() != pvy.CanAddr():
+					panic(fmt.Sprintf("inconsistent addressability: %v != %v", vy.CanAddr(), pvy.CanAddr()))
+				}
+				return true
+			}, cmp.Ignore()),
+		},
+		wantEqual: true,
+		reason:    "verify that exporter does not leak implementation details",
 	}}
 }
 
