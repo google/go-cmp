@@ -16,6 +16,8 @@ import (
 
 var randBool = rand.New(rand.NewSource(time.Now().Unix())).Intn(2) == 0
 
+const maxColumnLength = 80
+
 type indentMode int
 
 func (n indentMode) appendIndent(b []byte, d diffMode) []byte {
@@ -221,7 +223,7 @@ func (s textList) formatCompactTo(b []byte, d diffMode) ([]byte, textNode) {
 	}
 	// Force multi-lined output when printing a removed/inserted node that
 	// is sufficiently long.
-	if (d == diffInserted || d == diffRemoved) && len(b[n0:]) > 80 {
+	if (d == diffInserted || d == diffRemoved) && len(b[n0:]) > maxColumnLength {
 		multiLine = true
 	}
 	if !multiLine {
@@ -245,6 +247,40 @@ func (s textList) formatExpandedTo(b []byte, d diffMode, n indentMode) []byte {
 		},
 		func(r textRecord) int { return len(r.Value.(textLine)) },
 	)
+
+	// Format lists of simple lists in a batched form.
+	// If the list is sequence of only textLine values,
+	// then batch multiple values on a single line.
+	var isSimple bool
+	for _, r := range s {
+		_, isLine := r.Value.(textLine)
+		isSimple = r.Diff == 0 && r.Key == "" && isLine && r.Comment == nil
+		if !isSimple {
+			break
+		}
+	}
+	if isSimple {
+		n++
+		var batch []byte
+		emitBatch := func() {
+			if len(batch) > 0 {
+				b = n.appendIndent(append(b, '\n'), d)
+				b = append(b, bytes.TrimRight(batch, " ")...)
+				batch = batch[:0]
+			}
+		}
+		for _, r := range s {
+			line := r.Value.(textLine)
+			if len(batch)+len(line)+len(", ") > maxColumnLength {
+				emitBatch()
+			}
+			batch = append(batch, line...)
+			batch = append(batch, ", "...)
+		}
+		emitBatch()
+		n--
+		return n.appendIndent(append(b, '\n'), d)
+	}
 
 	// Format the list as a multi-lined output.
 	n++
