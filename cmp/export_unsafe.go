@@ -26,7 +26,10 @@ func retrieveUnexportedField(v reflect.Value, f reflect.StructField, addr bool) 
 		// If the original parent value was not addressable, shallow copy the
 		// value to make it non-addressable to avoid leaking an implementation
 		// detail of how forcibly exporting a field works.
-		ve = reflect.ValueOf(ve.Interface()).Convert(f.Type)
+		if ve.Kind() == reflect.Interface && ve.IsNil() {
+			return reflect.Zero(f.Type)
+		}
+		return reflect.ValueOf(ve.Interface()).Convert(f.Type)
 	}
 	return ve
 }

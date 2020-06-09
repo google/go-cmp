@@ -627,7 +627,7 @@ func comparerTests() []test {
 	}, {
 		label: label,
 		x:     struct{ s fmt.Stringer }{new(bytes.Buffer)},
-		y:     struct{ s fmt.Stringer }{new(bytes.Buffer)},
+		y:     struct{ s fmt.Stringer }{nil},
 		opts: []cmp.Option{
 			cmp.AllowUnexported(struct{ s fmt.Stringer }{}),
 			cmp.FilterPath(func(p cmp.Path) bool {
