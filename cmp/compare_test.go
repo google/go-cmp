@@ -1068,7 +1068,7 @@ func embeddedTests() []test {
 		return s
 	}
 
-	// TODO(dsnet): Workaround for reflect bug (https://golang.org/issue/21122).
+	// TODO(≥go1.10): Workaround for reflect bug (https://golang.org/issue/21122).
 	wantPanicNotGo110 := func(s string) string {
 		if !flags.AtLeastGo110 {
 			return ""
