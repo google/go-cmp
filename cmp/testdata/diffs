@@ -258,6 +258,11 @@
   	})),
   }
 >>> TestDiff/Transformer#05
+<<< TestDiff//InvalidUTF8
+  interface{}(
+- 	cmp_test.MyString("\xed\xa0\x80"),
+  )
+>>> TestDiff//InvalidUTF8
 <<< TestDiff/Reporter
   cmp_test.MyComposite{
   	... // 3 identical fields

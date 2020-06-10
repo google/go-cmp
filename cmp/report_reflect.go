@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp/internal/flags"
 	"github.com/google/go-cmp/cmp/internal/value"
@@ -235,7 +236,7 @@ func formatString(s string) string {
 	rawInvalid := func(r rune) bool {
 		return r == '`' || r == '\n' || !(unicode.IsPrint(r) || r == '\t')
 	}
-	if strings.IndexFunc(s, rawInvalid) < 0 {
+	if utf8.ValidString(s) && strings.IndexFunc(s, rawInvalid) < 0 {
 		return "`" + s + "`"
 	}
 	return qs
