@@ -138,10 +138,11 @@ func (s textWrap) formatExpandedTo(b []byte, d diffMode, n indentMode) []byte {
 // of the textList.formatCompactTo method.
 type textList []textRecord
 type textRecord struct {
-	Diff    diffMode     // e.g., 0 or '-' or '+'
-	Key     string       // e.g., "MyField"
-	Value   textNode     // textWrap | textLine
-	Comment fmt.Stringer // e.g., "6 identical fields"
+	Diff       diffMode     // e.g., 0 or '-' or '+'
+	Key        string       // e.g., "MyField"
+	Value      textNode     // textWrap | textLine
+	ElideComma bool         // avoid trailing comma
+	Comment    fmt.Stringer // e.g., "6 identical fields"
 }
 
 // AppendEllipsis appends a new ellipsis node to the list if none already
@@ -151,9 +152,9 @@ func (s *textList) AppendEllipsis(ds diffStats) {
 	hasStats := ds != diffStats{}
 	if len(*s) == 0 || !(*s)[len(*s)-1].Value.Equal(textEllipsis) {
 		if hasStats {
-			*s = append(*s, textRecord{Value: textEllipsis, Comment: ds})
+			*s = append(*s, textRecord{Value: textEllipsis, ElideComma: true, Comment: ds})
 		} else {
-			*s = append(*s, textRecord{Value: textEllipsis})
+			*s = append(*s, textRecord{Value: textEllipsis, ElideComma: true})
 		}
 		return
 	}
@@ -292,7 +293,7 @@ func (s textList) formatExpandedTo(b []byte, d diffMode, n indentMode) []byte {
 		b = alignKeyLens[i].appendChar(b, ' ')
 
 		b = r.Value.formatExpandedTo(b, d|r.Diff, n)
-		if !r.Value.Equal(textEllipsis) {
+		if !r.ElideComma {
 			b = append(b, ',')
 		}
 		b = alignValueLens[i].appendChar(b, ' ')
