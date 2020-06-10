@@ -23,13 +23,25 @@ func (opts formatOptions) CanFormatDiffSlice(v *valueNode) bool {
 		return false // Must be formatting in diff mode
 	case v.NumDiff == 0:
 		return false // No differences detected
-	case v.NumIgnored+v.NumCompared+v.NumTransformed > 0:
-		// TODO: Handle the case where someone uses bytes.Equal on a large slice.
-		return false // Some custom option was used to determined equality
 	case !v.ValueX.IsValid() || !v.ValueY.IsValid():
 		return false // Both values must be valid
 	case v.Type.Kind() == reflect.Slice && (v.ValueX.IsNil() || v.ValueY.IsNil()):
 		return false // Both of values have to be non-nil
+	case v.NumIgnored > 0:
+		return false // Some ignore option was used
+	case v.NumTransformed > 0:
+		return false // Some transform option was used
+	case v.NumCompared > 1:
+		return false // More than one comparison was used
+	case v.NumCompared == 1 && v.Type.Name() != "":
+		// The need for cmp to check applicability of options on every element
+		// in a slice is a significant performance detriment for large []byte.
+		// The workaround is to specify Comparer(bytes.Equal),
+		// which enables cmp to compare []byte more efficiently.
+		// If they differ, we still want to provide batched diffing.
+		// The logic disallows named types since they tend to have their own
+		// String method, with nicer formatting than what this provides.
+		return false
 	}
 
 	switch t := v.Type; t.Kind() {
