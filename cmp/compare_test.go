@@ -822,6 +822,11 @@ func reporterTests() []test {
 	)
 
 	return []test{{
+		label:     "/InvalidUTF8",
+		x:         MyString("\xed\xa0\x80"),
+		wantEqual: false,
+		reason:    "invalid UTF-8 should format as quoted string",
+	}, {
 		label:     label,
 		x:         MyComposite{IntsA: []int8{11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29}},
 		y:         MyComposite{IntsA: []int8{10, 11, 21, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29}},
