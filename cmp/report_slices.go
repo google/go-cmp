@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -96,7 +97,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 	}
 	if isText || isBinary {
 		var numLines, lastLineIdx, maxLineLen int
-		isBinary = false
+		isBinary = !utf8.ValidString(sx) || !utf8.ValidString(sy)
 		for i, r := range sx + sy {
 			if !(unicode.IsPrint(r) || unicode.IsSpace(r)) || r == utf8.RuneError {
 				isBinary = true
@@ -131,6 +132,78 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 			},
 		)
 		delim = "\n"
+
+		// If possible, use a custom triple-quote (""") syntax for printing
+		// differences in a string literal. This format is more readable,
+		// but has edge-cases where differences are visually indistinguishable.
+		// This format is avoided under the following conditions:
+		//	• A line starts with `"""`
+		//	• A line starts with "..."
+		//	• A line contains non-printable characters
+		//	• Adjacent different lines differ only by whitespace
+		//
+		// For example:
+		//		"""
+		//		... // 3 identical lines
+		//		foo
+		//		bar
+		//	-	baz
+		//	+	BAZ
+		//		"""
+		isTripleQuoted := true
+		prevDiffLines := map[string]bool{}
+		var list2 textList
+		list2 = append(list2, textRecord{Value: textLine(`"""`), ElideComma: true})
+		for _, r := range list {
+			if !r.Value.Equal(textEllipsis) {
+				line, _ := strconv.Unquote(string(r.Value.(textLine)))
+				line = strings.TrimPrefix(strings.TrimSuffix(line, "\r"), "\r") // trim leading/trailing carriage returns for legacy Windows endline support
+				normLine := strings.Map(func(r rune) rune {
+					if unicode.IsSpace(r) {
+						return -1 // drop whitespace to avoid visually indistinguishable output
+					}
+					return r
+				}, line)
+				isPrintable := func(r rune) bool {
+					return unicode.IsPrint(r) || r == '\t' // specially treat tab as printable
+				}
+				isTripleQuoted = isTripleQuoted &&
+					!strings.HasPrefix(line, `"""`) &&
+					!strings.HasPrefix(line, "...") &&
+					strings.TrimFunc(line, isPrintable) == "" &&
+					(r.Diff == 0 || !prevDiffLines[normLine])
+				if !isTripleQuoted {
+					break
+				}
+				r.Value = textLine(line)
+				r.ElideComma = true
+				prevDiffLines[normLine] = true
+			}
+			if r.Diff == 0 {
+				prevDiffLines = map[string]bool{} // start a new non-adjacent difference group
+			}
+			list2 = append(list2, r)
+		}
+		if r := list2[len(list2)-1]; r.Diff == diffIdentical && len(r.Value.(textLine)) == 0 {
+			list2 = list2[:len(list2)-1] // elide single empty line at the end
+		}
+		list2 = append(list2, textRecord{Value: textLine(`"""`), ElideComma: true})
+		if isTripleQuoted {
+			var out textNode = textWrap{"(", list2, ")"}
+			switch t.Kind() {
+			case reflect.String:
+				if t != reflect.TypeOf(string("")) {
+					out = opts.FormatType(t, out)
+				}
+			case reflect.Slice:
+				// Always emit type for slices since the triple-quote syntax
+				// looks like a string (not a slice).
+				opts = opts.WithTypeMode(emitType)
+				out = opts.FormatType(t, out)
+			}
+			return out
+		}
+
 	// If the text appears to be single-lined text,
 	// then perform differencing in approximately fixed-sized chunks.
 	// The output is printed as quoted strings.
@@ -143,6 +216,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 			},
 		)
 		delim = ""
+
 	// If the text appears to be binary data,
 	// then perform differencing in approximately fixed-sized chunks.
 	// The output is inspired by hexdump.
@@ -159,6 +233,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 				return textRecord{Diff: d, Value: textLine(s), Comment: comment}
 			},
 		)
+
 	// For all other slices of primitive types,
 	// then perform differencing in approximately fixed-sized chunks.
 	// The size of each chunk depends on the width of the element kind.

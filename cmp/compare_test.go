@@ -903,6 +903,78 @@ func reporterTests() []test {
 		wantEqual: false,
 		reason:    "batched textual diff desired since bytes looks like textual data",
 	}, {
+		label:     label + "/TripleQuote",
+		x:         MyComposite{StringA: "aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n"},
+		y:         MyComposite{StringA: "aaa\nbbb\nCCC\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nrrr\nSSS\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n"},
+		wantEqual: false,
+		reason:    "use triple-quote syntax",
+	}, {
+		label: label + "/TripleQuoteSlice",
+		x: []string{
+			"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+			"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		},
+		y: []string{
+			"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\n",
+			"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		},
+		wantEqual: false,
+		reason:    "use triple-quote syntax for slices of strings",
+	}, {
+		label: label + "/TripleQuoteNamedTypes",
+		x: MyComposite{
+			StringB: MyString("aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz"),
+			BytesC:  MyBytes("aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz"),
+		},
+		y: MyComposite{
+			StringB: MyString("aaa\nbbb\nCCC\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nrrr\nSSS\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz"),
+			BytesC:  MyBytes("aaa\nbbb\nCCC\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nrrr\nSSS\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz"),
+		},
+		wantEqual: false,
+		reason:    "use triple-quote syntax for named types",
+	}, {
+		label: label + "/TripleQuoteSliceNamedTypes",
+		x: []MyString{
+			"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+			"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		},
+		y: []MyString{
+			"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\n",
+			"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		},
+		wantEqual: false,
+		reason:    "use triple-quote syntax for slices of named strings",
+	}, {
+		label:     label + "/TripleQuoteEndlines",
+		x:         "aaa\nbbb\nccc\nddd\neee\nfff\nggg\r\nhhh\n\riii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n\r",
+		y:         "aaa\nbbb\nCCC\nddd\neee\nfff\nggg\r\nhhh\n\riii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nrrr\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz",
+		wantEqual: false,
+		reason:    "use triple-quote syntax",
+	}, {
+		label:     label + "/AvoidTripleQuoteAmbiguousQuotes",
+		x:         "aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		y:         "aaa\nbbb\nCCC\nddd\neee\n\"\"\"\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nrrr\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		wantEqual: false,
+		reason:    "avoid triple-quote syntax due to presence of ambiguous triple quotes",
+	}, {
+		label:     label + "/AvoidTripleQuoteAmbiguousEllipsis",
+		x:         "aaa\nbbb\nccc\n...\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		y:         "aaa\nbbb\nCCC\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nrrr\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		wantEqual: false,
+		reason:    "avoid triple-quote syntax due to presence of ambiguous ellipsis",
+	}, {
+		label:     label + "/AvoidTripleQuoteNonPrintable",
+		x:         "aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		y:         "aaa\nbbb\nCCC\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\no\roo\nppp\nqqq\nrrr\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		wantEqual: false,
+		reason:    "use triple-quote syntax",
+	}, {
+		label:     label + "/AvoidTripleQuoteIdenticalWhitespace",
+		x:         "aaa\nbbb\nccc\n ddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		y:         "aaa\nbbb\nccc \nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nrrr\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+		wantEqual: false,
+		reason:    "avoid triple-quote syntax due to visual equivalence of differences",
+	}, {
 		label: label,
 		x: MyComposite{
 			StringA: strings.TrimPrefix(`

@@ -449,6 +449,216 @@
   	... // 9 identical fields
   }
 >>> TestDiff/Reporter#05
+<<< TestDiff/Reporter/TripleQuote
+  cmp_test.MyComposite{
+  	StringA: (
+  		"""
+  		aaa
+  		bbb
+- 		ccc
++ 		CCC
+  		ddd
+  		eee
+  		... // 10 identical lines
+  		ppp
+  		qqq
+- 		RRR
+- 		sss
++ 		rrr
++ 		SSS
+  		ttt
+  		uuu
+  		... // 6 identical lines
+  		"""
+  	),
+  	StringB: "",
+  	BytesA:  nil,
+  	... // 11 identical fields
+  }
+>>> TestDiff/Reporter/TripleQuote
+<<< TestDiff/Reporter/TripleQuoteSlice
+  []string{
+  	(
+  		"""
+  		... // 23 identical lines
+  		xxx
+  		yyy
+- 		zzz
+  		"""
+  	),
+  	"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+  }
+>>> TestDiff/Reporter/TripleQuoteSlice
+<<< TestDiff/Reporter/TripleQuoteNamedTypes
+  cmp_test.MyComposite{
+  	StringA: "",
+  	StringB: (
+  		"""
+  		aaa
+  		bbb
+- 		ccc
++ 		CCC
+  		ddd
+  		eee
+  		... // 10 identical lines
+  		ppp
+  		qqq
+- 		RRR
+- 		sss
++ 		rrr
++ 		SSS
+  		ttt
+  		uuu
+  		... // 5 identical lines
+  		"""
+  	),
+  	BytesA: nil,
+  	BytesB: nil,
+  	BytesC: cmp_test.MyBytes(
+  		"""
+  		aaa
+  		bbb
+- 		ccc
++ 		CCC
+  		ddd
+  		eee
+  		... // 10 identical lines
+  		ppp
+  		qqq
+- 		RRR
+- 		sss
++ 		rrr
++ 		SSS
+  		ttt
+  		uuu
+  		... // 5 identical lines
+  		"""
+  	),
+  	IntsA: nil,
+  	IntsB: nil,
+  	... // 7 identical fields
+  }
+>>> TestDiff/Reporter/TripleQuoteNamedTypes
+<<< TestDiff/Reporter/TripleQuoteSliceNamedTypes
+  []cmp_test.MyString{
+  	(
+  		"""
+  		... // 23 identical lines
+  		xxx
+  		yyy
+- 		zzz
+  		"""
+  	),
+  	"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+  }
+>>> TestDiff/Reporter/TripleQuoteSliceNamedTypes
+<<< TestDiff/Reporter/TripleQuoteEndlines
+  (
+  	"""
+  	aaa
+  	bbb
+- 	ccc
++ 	CCC
+  	ddd
+  	eee
+  	... // 10 identical lines
+  	ppp
+  	qqq
+- 	RRR
++ 	rrr
+  	sss
+  	ttt
+  	... // 4 identical lines
+  	yyy
+  	zzz
+- 	
+  	"""
+  )
+>>> TestDiff/Reporter/TripleQuoteEndlines
+<<< TestDiff/Reporter/AvoidTripleQuoteAmbiguousQuotes
+  strings.Join({
+  	"aaa",
+  	"bbb",
+- 	"ccc",
++ 	"CCC",
+  	"ddd",
+  	"eee",
+- 	"fff",
++ 	`"""`,
+  	"ggg",
+  	"hhh",
+  	... // 7 identical lines
+  	"ppp",
+  	"qqq",
+- 	"RRR",
++ 	"rrr",
+  	"sss",
+  	"ttt",
+  	... // 7 identical lines
+  }, "\n")
+>>> TestDiff/Reporter/AvoidTripleQuoteAmbiguousQuotes
+<<< TestDiff/Reporter/AvoidTripleQuoteAmbiguousEllipsis
+  strings.Join({
+  	"aaa",
+  	"bbb",
+- 	"ccc",
+- 	"...",
++ 	"CCC",
++ 	"ddd",
+  	"eee",
+  	"fff",
+  	... // 9 identical lines
+  	"ppp",
+  	"qqq",
+- 	"RRR",
++ 	"rrr",
+  	"sss",
+  	"ttt",
+  	... // 7 identical lines
+  }, "\n")
+>>> TestDiff/Reporter/AvoidTripleQuoteAmbiguousEllipsis
+<<< TestDiff/Reporter/AvoidTripleQuoteNonPrintable
+  strings.Join({
+  	"aaa",
+  	"bbb",
+- 	"ccc",
++ 	"CCC",
+  	"ddd",
+  	"eee",
+  	... // 7 identical lines
+  	"mmm",
+  	"nnn",
+- 	"ooo",
++ 	"o\roo",
+  	"ppp",
+  	"qqq",
+- 	"RRR",
++ 	"rrr",
+  	"sss",
+  	"ttt",
+  	... // 7 identical lines
+  }, "\n")
+>>> TestDiff/Reporter/AvoidTripleQuoteNonPrintable
+<<< TestDiff/Reporter/AvoidTripleQuoteIdenticalWhitespace
+  strings.Join({
+  	"aaa",
+  	"bbb",
+- 	"ccc",
+- 	" ddd",
++ 	"ccc ",
++ 	"ddd",
+  	"eee",
+  	"fff",
+  	... // 9 identical lines
+  	"ppp",
+  	"qqq",
+- 	"RRR",
++ 	"rrr",
+  	"sss",
+  	"ttt",
+  	... // 7 identical lines
+  }, "\n")
+>>> TestDiff/Reporter/AvoidTripleQuoteIdenticalWhitespace
 <<< TestDiff/Reporter#06
   cmp_test.MyComposite{
   	StringA: strings.Join({
