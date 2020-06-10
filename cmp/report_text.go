@@ -149,7 +149,7 @@ type textRecord struct {
 // exists at the end. If cs is non-zero it coalesces the statistics with the
 // previous diffStats.
 func (s *textList) AppendEllipsis(ds diffStats) {
-	hasStats := ds != diffStats{}
+	hasStats := !ds.IsZero()
 	if len(*s) == 0 || !(*s)[len(*s)-1].Value.Equal(textEllipsis) {
 		if hasStats {
 			*s = append(*s, textRecord{Value: textEllipsis, ElideComma: true, Comment: ds})
@@ -367,6 +367,11 @@ type diffStats struct {
 	NumRemoved   int
 	NumInserted  int
 	NumModified  int
+}
+
+func (s diffStats) IsZero() bool {
+	s.Name = ""
+	return s == diffStats{}
 }
 
 func (s diffStats) NumDiff() int {
