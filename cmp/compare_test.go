@@ -975,6 +975,34 @@ func reporterTests() []test {
 		wantEqual: false,
 		reason:    "avoid triple-quote syntax due to visual equivalence of differences",
 	}, {
+		label:     label + "/LimitMaximumBytesDiffs",
+		x:         []byte("\xcd====\x06\x1f\xc2\xcc\xc2-S=====\x1d\xdfa\xae\x98\x9fH======ǰ\xb7=======\xef====:\\\x94\xe6J\xc7=====\xb4======\n\n\xf7\x94===========\xf2\x9c\xc0f=====4\xf6\xf1\xc3\x17\x82======n\x16`\x91D\xc6\x06=======\x1cE====.===========\xc4\x18=======\x8a\x8d\x0e====\x87\xb1\xa5\x8e\xc3=====z\x0f1\xaeU======G,=======5\xe75\xee\x82\xf4\xce====\x11r===========\xaf]=======z\x05\xb3\x91\x88%\xd2====\n1\x89=====i\xb7\x055\xe6\x81\xd2=============\x883=@̾====\x14\x05\x96%^t\x04=====\xe7Ȉ\x90\x1d============="),
+		y:         []byte("\\====|\x96\xe7SB\xa0\xab=====\xf0\xbd\xa5q\xab\x17;======\xabP\x00=======\xeb====\xa5\x14\xe6O(\xe4=====(======/c@?===========\xd9x\xed\x13=====J\xfc\x918B\x8d======a8A\xebs\x04\xae=======\aC====\x1c===========\x91\"=======uؾ====s\xec\x845\a=====;\xabS9t======\x1f\x1b=======\x80\xab/\xed+:;====\xeaI===========\xabl=======\xb9\xe9\xfdH\x93\x8e\u007f====ח\xe5=====Ig\x88m\xf5\x01V=============\xf7+4\xb0\x92E====\x9fj\xf8&\xd0h\xf9=====\xeeΨ\r\xbf============="),
+		wantEqual: false,
+		reason:    "total bytes difference output is truncated due to excessive number of differences",
+	}, {
+		label:     label + "/LimitMaximumStringDiffs",
+		x:         "a\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\nu\nv\nw\nx\ny\nz\nA\nB\nC\nD\nE\nF\nG\nH\nI\nJ\nK\nL\nM\nN\nO\nP\nQ\nR\nS\nT\nU\nV\nW\nX\nY\nZ\n",
+		y:         "aa\nb\ncc\nd\nee\nf\ngg\nh\nii\nj\nkk\nl\nmm\nn\noo\np\nqq\nr\nss\nt\nuu\nv\nww\nx\nyy\nz\nAA\nB\nCC\nD\nEE\nF\nGG\nH\nII\nJ\nKK\nL\nMM\nN\nOO\nP\nQQ\nR\nSS\nT\nUU\nV\nWW\nX\nYY\nZ\n",
+		wantEqual: false,
+		reason:    "total string difference output is truncated due to excessive number of differences",
+	}, {
+		label: label + "/LimitMaximumSliceDiffs",
+		x: func() (out []struct{ S string }) {
+			for _, s := range strings.Split("a\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\nu\nv\nw\nx\ny\nz\nA\nB\nC\nD\nE\nF\nG\nH\nI\nJ\nK\nL\nM\nN\nO\nP\nQ\nR\nS\nT\nU\nV\nW\nX\nY\nZ\n", "\n") {
+				out = append(out, struct{ S string }{s})
+			}
+			return out
+		}(),
+		y: func() (out []struct{ S string }) {
+			for _, s := range strings.Split("aa\nb\ncc\nd\nee\nf\ngg\nh\nii\nj\nkk\nl\nmm\nn\noo\np\nqq\nr\nss\nt\nuu\nv\nww\nx\nyy\nz\nAA\nB\nCC\nD\nEE\nF\nGG\nH\nII\nJ\nKK\nL\nMM\nN\nOO\nP\nQQ\nR\nSS\nT\nUU\nV\nWW\nX\nYY\nZ\n", "\n") {
+				out = append(out, struct{ S string }{s})
+			}
+			return out
+		}(),
+		wantEqual: false,
+		reason:    "total slice difference output is truncated due to excessive number of differences",
+	}, {
 		label: label,
 		x: MyComposite{
 			StringA: strings.TrimPrefix(`

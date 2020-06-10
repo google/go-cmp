@@ -16,6 +16,10 @@ import (
 	"github.com/google/go-cmp/cmp/internal/diff"
 )
 
+// maxDiffElements is the maximum number of difference elements to format
+// before the remaining differences are coalesced together.
+const maxDiffElements = 32
+
 // CanFormatDiffSlice reports whether we support custom formatting for nodes
 // that are slices of primitive kinds or strings.
 func (opts formatOptions) CanFormatDiffSlice(v *valueNode) bool {
@@ -335,7 +339,13 @@ func (opts formatOptions) formatDiffSlice(
 
 	groups := coalesceAdjacentEdits(name, es)
 	groups = coalesceInterveningIdentical(groups, chunkSize/4)
+	maxGroup := diffStats{Name: name}
 	for i, ds := range groups {
+		if len(list) >= maxDiffElements {
+			maxGroup = maxGroup.Append(ds)
+			continue
+		}
+
 		// Print equal.
 		if ds.NumDiff() == 0 {
 			// Compute the number of leading and trailing equal bytes to print.
@@ -369,7 +379,11 @@ func (opts formatOptions) formatDiffSlice(
 		ny := appendChunks(vy.Slice(0, ds.NumIdentical+ds.NumInserted+ds.NumModified), diffInserted)
 		vy = vy.Slice(ny, vy.Len())
 	}
-	assert(vx.Len() == 0 && vy.Len() == 0)
+	if maxGroup.IsZero() {
+		assert(vx.Len() == 0 && vy.Len() == 0)
+	} else {
+		list.AppendEllipsis(maxGroup)
+	}
 	return list
 }
 

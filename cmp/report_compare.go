@@ -207,7 +207,13 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 	// Handle differencing.
 	var list textList
 	groups := coalesceAdjacentRecords(name, recs)
+	maxGroup := diffStats{Name: name}
 	for i, ds := range groups {
+		if len(list) >= maxDiffElements {
+			maxGroup = maxGroup.Append(ds)
+			continue
+		}
+
 		// Handle equal records.
 		if ds.NumDiff() == 0 {
 			// Compute the number of leading and trailing records to print.
@@ -268,7 +274,11 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 		}
 		recs = recs[ds.NumDiff():]
 	}
-	assert(len(recs) == 0)
+	if maxGroup.IsZero() {
+		assert(len(recs) == 0)
+	} else {
+		list.AppendEllipsis(maxGroup)
+	}
 	return textWrap{"{", list, "}"}
 }
 
