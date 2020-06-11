@@ -159,8 +159,8 @@ func TestDiff(t *testing.T) {
 					}
 				} else {
 					wantDiff := wantDiffs[t.Name()]
-					if gotDiff != wantDiff {
-						t.Fatalf("Diff:\ngot:\n%s\nwant:\n%s\nreason: %v", gotDiff, wantDiff, tt.reason)
+					if diff := cmp.Diff(wantDiff, gotDiff); diff != "" {
+						t.Fatalf("Diff:\ngot:\n%s\nwant:\n%s\ndiff: (-want +got)\n%s\nreason: %v", gotDiff, wantDiff, diff, tt.reason)
 					}
 				}
 				gotEqual := gotDiff == ""

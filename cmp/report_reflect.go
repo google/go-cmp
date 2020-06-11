@@ -21,14 +21,23 @@ type formatValueOptions struct {
 	// methods like error.Error or fmt.Stringer.String.
 	AvoidStringer bool
 
-	// ShallowPointers controls whether to avoid descending into pointers.
+	// PrintShallowPointer controls whether to print the next pointer.
 	// Useful when printing map keys, where pointer comparison is performed
 	// on the pointer address rather than the pointed-at value.
-	ShallowPointers bool
+	PrintShallowPointer bool
 
 	// PrintAddresses controls whether to print the address of all pointers,
 	// slice elements, and maps.
 	PrintAddresses bool
+
+	// VerbosityLevel controls the amount of output to produce.
+	// A higher value produces more output. A value of zero or lower produces
+	// no output (represented using an ellipsis).
+	// If LimitVerbosity is false, then the level is treated as infinite.
+	VerbosityLevel int
+
+	// LimitVerbosity specifies that formatting should respect VerbosityLevel.
+	LimitVerbosity bool
 }
 
 // FormatType prints the type as if it were wrapping s.
@@ -44,6 +53,9 @@ func (opts formatOptions) FormatType(t reflect.Type, s textNode) textNode {
 			}
 		default:
 			return s
+		}
+		if opts.DiffMode == diffIdentical {
+			return s // elide type for identical nodes
 		}
 	case elideType:
 		return s
@@ -86,11 +98,22 @@ func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visit
 		// Avoid calling Error or String methods on nil receivers since many
 		// implementations crash when doing so.
 		if (t.Kind() != reflect.Ptr && t.Kind() != reflect.Interface) || !v.IsNil() {
+			var prefix, strVal string
 			switch v := v.Interface().(type) {
 			case error:
-				return textLine("e" + formatString(v.Error()))
+				prefix, strVal = "e", v.Error()
 			case fmt.Stringer:
-				return textLine("s" + formatString(v.String()))
+				prefix, strVal = "s", v.String()
+			}
+			if prefix != "" {
+				maxLen := len(strVal)
+				if opts.LimitVerbosity {
+					maxLen = (1 << opts.verbosity()) << 5 // 32, 64, 128, 256, etc...
+				}
+				if len(strVal) > maxLen+len(textEllipsis) {
+					return textLine(prefix + formatString(strVal[:maxLen]) + string(textEllipsis))
+				}
+				return textLine(prefix + formatString(strVal))
 			}
 		}
 	}
@@ -123,16 +146,32 @@ func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visit
 	case reflect.Complex64, reflect.Complex128:
 		return textLine(fmt.Sprint(v.Complex()))
 	case reflect.String:
+		maxLen := v.Len()
+		if opts.LimitVerbosity {
+			maxLen = (1 << opts.verbosity()) << 5 // 32, 64, 128, 256, etc...
+		}
+		if v.Len() > maxLen+len(textEllipsis) {
+			return textLine(formatString(v.String()[:maxLen]) + string(textEllipsis))
+		}
 		return textLine(formatString(v.String()))
 	case reflect.UnsafePointer, reflect.Chan, reflect.Func:
 		return textLine(formatPointer(v))
 	case reflect.Struct:
 		var list textList
 		v := makeAddressable(v) // needed for retrieveUnexportedField
+		maxLen := v.NumField()
+		if opts.LimitVerbosity {
+			maxLen = ((1 << opts.verbosity()) >> 1) << 2 // 0, 4, 8, 16, 32, etc...
+			opts.VerbosityLevel--
+		}
 		for i := 0; i < v.NumField(); i++ {
 			vv := v.Field(i)
 			if value.IsZero(vv) {
 				continue // Elide fields with zero values
+			}
+			if len(list) == maxLen {
+				list.AppendEllipsis(diffStats{})
+				break
 			}
 			sf := t.Field(i)
 			if supportExporters && !isExported(sf.Name) {
@@ -147,12 +186,21 @@ func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visit
 			return textNil
 		}
 		if opts.PrintAddresses {
-			ptr = formatPointer(v)
+			ptr = fmt.Sprintf("⟪ptr:0x%x, len:%d, cap:%d⟫", pointerValue(v), v.Len(), v.Cap())
 		}
 		fallthrough
 	case reflect.Array:
+		maxLen := v.Len()
+		if opts.LimitVerbosity {
+			maxLen = ((1 << opts.verbosity()) >> 1) << 2 // 0, 4, 8, 16, 32, etc...
+			opts.VerbosityLevel--
+		}
 		var list textList
 		for i := 0; i < v.Len(); i++ {
+			if len(list) == maxLen {
+				list.AppendEllipsis(diffStats{})
+				break
+			}
 			vi := v.Index(i)
 			if vi.CanAddr() { // Check for cyclic elements
 				p := vi.Addr()
@@ -177,8 +225,17 @@ func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visit
 			return textLine(formatPointer(v))
 		}
 
+		maxLen := v.Len()
+		if opts.LimitVerbosity {
+			maxLen = ((1 << opts.verbosity()) >> 1) << 2 // 0, 4, 8, 16, 32, etc...
+			opts.VerbosityLevel--
+		}
 		var list textList
 		for _, k := range value.SortKeys(v.MapKeys()) {
+			if len(list) == maxLen {
+				list.AppendEllipsis(diffStats{})
+				break
+			}
 			sk := formatMapKey(k)
 			sv := opts.WithTypeMode(elideType).FormatValue(v.MapIndex(k), false, m)
 			list = append(list, textRecord{Key: sk, Value: sv})
@@ -191,11 +248,12 @@ func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visit
 		if v.IsNil() {
 			return textNil
 		}
-		if m.Visit(v) || opts.ShallowPointers {
+		if m.Visit(v) {
 			return textLine(formatPointer(v))
 		}
-		if opts.PrintAddresses {
+		if opts.PrintAddresses || opts.PrintShallowPointer {
 			ptr = formatPointer(v)
+			opts.PrintShallowPointer = false
 		}
 		skipType = true // Let the underlying value print the type instead
 		return textWrap{"&" + ptr, opts.FormatValue(v.Elem(), false, m), ""}
@@ -217,7 +275,7 @@ func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visit
 func formatMapKey(v reflect.Value) string {
 	var opts formatOptions
 	opts.TypeMode = elideType
-	opts.ShallowPointers = true
+	opts.PrintShallowPointer = true
 	s := opts.FormatValue(v, false, visitedPointers{}).String()
 	return strings.TrimSpace(s)
 }
@@ -268,11 +326,14 @@ func formatHex(u uint64) string {
 
 // formatPointer prints the address of the pointer.
 func formatPointer(v reflect.Value) string {
+	return fmt.Sprintf("⟪0x%x⟫", pointerValue(v))
+}
+func pointerValue(v reflect.Value) uintptr {
 	p := v.Pointer()
 	if flags.Deterministic {
 		p = 0xdeadf00f // Only used for stable testing purposes
 	}
-	return fmt.Sprintf("⟪0x%x⟫", p)
+	return p
 }
 
 type visitedPointers map[value.Pointer]struct{}

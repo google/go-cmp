@@ -16,10 +16,6 @@ import (
 	"github.com/google/go-cmp/cmp/internal/diff"
 )
 
-// maxDiffElements is the maximum number of difference elements to format
-// before the remaining differences are coalesced together.
-const maxDiffElements = 32
-
 // CanFormatDiffSlice reports whether we support custom formatting for nodes
 // that are slices of primitive kinds or strings.
 func (opts formatOptions) CanFormatDiffSlice(v *valueNode) bool {
@@ -155,7 +151,8 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 		//	+	BAZ
 		//		"""
 		isTripleQuoted := true
-		prevDiffLines := map[string]bool{}
+		prevRemoveLines := map[string]bool{}
+		prevInsertLines := map[string]bool{}
 		var list2 textList
 		list2 = append(list2, textRecord{Value: textLine(`"""`), ElideComma: true})
 		for _, r := range list {
@@ -171,20 +168,24 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 				isPrintable := func(r rune) bool {
 					return unicode.IsPrint(r) || r == '\t' // specially treat tab as printable
 				}
-				isTripleQuoted = isTripleQuoted &&
-					!strings.HasPrefix(line, `"""`) &&
-					!strings.HasPrefix(line, "...") &&
-					strings.TrimFunc(line, isPrintable) == "" &&
-					(r.Diff == 0 || !prevDiffLines[normLine])
+				isTripleQuoted = !strings.HasPrefix(line, `"""`) && !strings.HasPrefix(line, "...") && strings.TrimFunc(line, isPrintable) == ""
+				switch r.Diff {
+				case diffRemoved:
+					isTripleQuoted = isTripleQuoted && !prevInsertLines[normLine]
+					prevRemoveLines[normLine] = true
+				case diffInserted:
+					isTripleQuoted = isTripleQuoted && !prevRemoveLines[normLine]
+					prevInsertLines[normLine] = true
+				}
 				if !isTripleQuoted {
 					break
 				}
 				r.Value = textLine(line)
 				r.ElideComma = true
-				prevDiffLines[normLine] = true
 			}
-			if r.Diff == 0 {
-				prevDiffLines = map[string]bool{} // start a new non-adjacent difference group
+			if !(r.Diff == diffRemoved || r.Diff == diffInserted) { // start a new non-adjacent difference group
+				prevRemoveLines = map[string]bool{}
+				prevInsertLines = map[string]bool{}
 			}
 			list2 = append(list2, r)
 		}
@@ -337,11 +338,18 @@ func (opts formatOptions) formatDiffSlice(
 		return n0 - v.Len()
 	}
 
+	var numDiffs int
+	maxLen := -1
+	if opts.LimitVerbosity {
+		maxLen = (1 << opts.verbosity()) << 2 // 4, 8, 16, 32, 64, etc...
+		opts.VerbosityLevel--
+	}
+
 	groups := coalesceAdjacentEdits(name, es)
 	groups = coalesceInterveningIdentical(groups, chunkSize/4)
 	maxGroup := diffStats{Name: name}
 	for i, ds := range groups {
-		if len(list) >= maxDiffElements {
+		if maxLen >= 0 && numDiffs >= maxLen {
 			maxGroup = maxGroup.Append(ds)
 			continue
 		}
@@ -374,10 +382,12 @@ func (opts formatOptions) formatDiffSlice(
 		}
 
 		// Print unequal.
+		len0 := len(list)
 		nx := appendChunks(vx.Slice(0, ds.NumIdentical+ds.NumRemoved+ds.NumModified), diffRemoved)
 		vx = vx.Slice(nx, vx.Len())
 		ny := appendChunks(vy.Slice(0, ds.NumIdentical+ds.NumInserted+ds.NumModified), diffInserted)
 		vy = vy.Slice(ny, vy.Len())
+		numDiffs += len(list) - len0
 	}
 	if maxGroup.IsZero() {
 		assert(vx.Len() == 0 && vy.Len() == 0)

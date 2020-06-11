@@ -11,10 +11,6 @@ import (
 	"github.com/google/go-cmp/cmp/internal/value"
 )
 
-// TODO: Enforce limits?
-//	* Enforce maximum number of records to print per node?
-//	* Enforce maximum size in bytes allowed?
-//	* As a heuristic, use less verbosity for equal nodes than unequal nodes.
 // TODO: Enforce unique outputs?
 //	* Avoid Stringer methods if it results in same output?
 //	* Print pointer address if outputs still equal?
@@ -71,10 +67,31 @@ func (opts formatOptions) WithTypeMode(t typeMode) formatOptions {
 	opts.TypeMode = t
 	return opts
 }
+func (opts formatOptions) WithVerbosity(level int) formatOptions {
+	opts.VerbosityLevel = level
+	opts.LimitVerbosity = true
+	return opts
+}
+func (opts formatOptions) verbosity() uint {
+	switch {
+	case opts.VerbosityLevel < 0:
+		return 0
+	case opts.VerbosityLevel > 16:
+		return 16 // some reasonable maximum to avoid shift overflow
+	default:
+		return uint(opts.VerbosityLevel)
+	}
+}
 
 // FormatDiff converts a valueNode tree into a textNode tree, where the later
 // is a textual representation of the differences detected in the former.
 func (opts formatOptions) FormatDiff(v *valueNode) textNode {
+	if opts.DiffMode == diffIdentical {
+		opts = opts.WithVerbosity(1)
+	} else {
+		opts = opts.WithVerbosity(3)
+	}
+
 	// Check whether we have specialized formatting for this node.
 	// This is not necessary, but helpful for producing more readable outputs.
 	if opts.CanFormatDiffSlice(v) {
@@ -124,6 +141,8 @@ func (opts formatOptions) FormatDiff(v *valueNode) textNode {
 		}
 	}
 
+	// TODO: Print cycle reference for pointers, maps, and elements of a slice.
+
 	// Descend into the child value node.
 	if v.TransformerName != "" {
 		out := opts.WithTypeMode(emitType).FormatDiff(v.Value)
@@ -162,12 +181,27 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 		formatKey = formatMapKey
 	}
 
+	maxLen := -1
+	if opts.LimitVerbosity {
+		if opts.DiffMode == diffIdentical {
+			maxLen = ((1 << opts.verbosity()) >> 1) << 2 // 0, 4, 8, 16, 32, etc...
+		} else {
+			maxLen = (1 << opts.verbosity()) << 1 // 2, 4, 8, 16, 32, 64, etc...
+		}
+		opts.VerbosityLevel--
+	}
+
 	// Handle unification.
 	switch opts.DiffMode {
 	case diffIdentical, diffRemoved, diffInserted:
 		var list textList
 		var deferredEllipsis bool // Add final "..." to indicate records were dropped
 		for _, r := range recs {
+			if len(list) == maxLen {
+				deferredEllipsis = true
+				break
+			}
+
 			// Elide struct fields that are zero value.
 			if k == reflect.Struct {
 				var isZero bool
@@ -205,11 +239,12 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 	}
 
 	// Handle differencing.
+	var numDiffs int
 	var list textList
 	groups := coalesceAdjacentRecords(name, recs)
 	maxGroup := diffStats{Name: name}
 	for i, ds := range groups {
-		if len(list) >= maxDiffElements {
+		if maxLen >= 0 && numDiffs >= maxLen {
 			maxGroup = maxGroup.Append(ds)
 			continue
 		}
@@ -273,6 +308,7 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 			}
 		}
 		recs = recs[ds.NumDiff():]
+		numDiffs += ds.NumDiff()
 	}
 	if maxGroup.IsZero() {
 		assert(len(recs) == 0)
