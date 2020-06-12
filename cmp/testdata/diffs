@@ -155,8 +155,8 @@
 >>> TestDiff/Comparer#42
 <<< TestDiff/Comparer#43
   map[*int]string{
-- 	⟪0xdeadf00f⟫: "hello",
-+ 	⟪0xdeadf00f⟫: "world",
+- 	&⟪0xdeadf00f⟫0: "hello",
++ 	&⟪0xdeadf00f⟫0: "world",
   }
 >>> TestDiff/Comparer#43
 <<< TestDiff/Comparer#44
@@ -167,7 +167,7 @@
 >>> TestDiff/Comparer#44
 <<< TestDiff/Comparer#45
   [2][]int{
-  	{..., 1, 2, 3, ..., 4, 5, 6, 7, ..., 8, ..., 9, ...},
+  	{..., 1, 2, 3, ...},
   	{
   		... // 6 ignored and 1 identical elements
 - 		20,
@@ -246,7 +246,7 @@
   	}),
   	Bytes: []uint8(Inverse(SplitBytes, [][]uint8{
   		{0x73, 0x6f, 0x6d, 0x65},
-  		{0x6d, 0x75, 0x6c, 0x74, 0x69},
+  		{0x6d, 0x75, 0x6c, 0x74, ...},
   		{0x6c, 0x69, 0x6e, 0x65},
   		{
 - 			0x62,
@@ -317,17 +317,7 @@
 >>> TestDiff/Reporter/BatchedWithComparer
 <<< TestDiff/Reporter/BatchedLong
   interface{}(
-- 	cmp_test.MyComposite{
-- 		IntsA: []int8{
-- 			0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-- 			22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
-- 			42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
-- 			62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81,
-- 			82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
-- 			101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116,
-- 			117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127,
-- 		},
-- 	},
+- 	cmp_test.MyComposite{IntsA: []int8{0, 1, 2, 3, 4, 5, 6, 7, ...}},
   )
 >>> TestDiff/Reporter/BatchedLong
 <<< TestDiff/Reporter#02
@@ -486,7 +476,7 @@
 - 		zzz
   		"""
   	),
-  	"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+  	"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\n"...,
   }
 >>> TestDiff/Reporter/TripleQuoteSlice
 <<< TestDiff/Reporter/TripleQuoteNamedTypes
@@ -549,7 +539,7 @@
 - 		zzz
   		"""
   	),
-  	"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
+  	"aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\n"...,
   }
 >>> TestDiff/Reporter/TripleQuoteSliceNamedTypes
 <<< TestDiff/Reporter/TripleQuoteEndlines
@@ -661,39 +651,53 @@
 >>> TestDiff/Reporter/AvoidTripleQuoteIdenticalWhitespace
 <<< TestDiff/Reporter/LimitMaximumBytesDiffs
   []uint8{
-- 	0xcd, 0x3d, 0x3d, 0x3d, 0x3d, 0x06, 0x1f, 0xc2, 0xcc, 0xc2, 0x2d, 0x53, // -|.====.....-S|
-+ 	0x5c, 0x3d, 0x3d, 0x3d, 0x3d, 0x7c, 0x96, 0xe7, 0x53, 0x42, 0xa0, 0xab, // +|\====|..SB..|
-  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                           //  |=====|
-- 	0x1d, 0xdf, 0x61, 0xae, 0x98, 0x9f, 0x48,                               // -|..a...H|
-+ 	0xf0, 0xbd, 0xa5, 0x71, 0xab, 0x17, 0x3b,                               // +|...q..;|
-  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                     //  |======|
-- 	0xc7, 0xb0, 0xb7,                                                       // -|...|
-+ 	0xab, 0x50, 0x00,                                                       // +|.P.|
-  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                               //  |=======|
-- 	0xef, 0x3d, 0x3d, 0x3d, 0x3d, 0x3a, 0x5c, 0x94, 0xe6, 0x4a, 0xc7,       // -|.====:\..J.|
-+ 	0xeb, 0x3d, 0x3d, 0x3d, 0x3d, 0xa5, 0x14, 0xe6, 0x4f, 0x28, 0xe4,       // +|.====...O(.|
-  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                           //  |=====|
-- 	0xb4,                                                                   // -|.|
-+ 	0x28,                                                                   // +|(|
-  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                     //  |======|
-- 	0x0a, 0x0a, 0xf7, 0x94,                                                 // -|....|
-+ 	0x2f, 0x63, 0x40, 0x3f,                                                 // +|/c@?|
-  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,       //  |===========|
-- 	0xf2, 0x9c, 0xc0, 0x66,                                                 // -|...f|
-+ 	0xd9, 0x78, 0xed, 0x13,                                                 // +|.x..|
-  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                           //  |=====|
-- 	0x34, 0xf6, 0xf1, 0xc3, 0x17, 0x82,                                     // -|4.....|
-+ 	0x4a, 0xfc, 0x91, 0x38, 0x42, 0x8d,                                     // +|J..8B.|
-  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                     //  |======|
-- 	0x6e, 0x16, 0x60, 0x91, 0x44, 0xc6, 0x06,                               // -|n.`.D..|
-+ 	0x61, 0x38, 0x41, 0xeb, 0x73, 0x04, 0xae,                               // +|a8A.s..|
-  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                               //  |=======|
-- 	0x1c, 0x45, 0x3d, 0x3d, 0x3d, 0x3d, 0x2e,                               // -|.E====.|
-+ 	0x07, 0x43, 0x3d, 0x3d, 0x3d, 0x3d, 0x1c,                               // +|.C====.|
-  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,       //  |===========|
-- 	0xc4, 0x18,                                                             // -|..|
-+ 	0x91, 0x22,                                                             // +|."|
-  	... // 95 identical, 61 removed, and 61 inserted bytes
+- 	0xcd, 0x3d, 0x3d, 0x3d, 0x3d, 0x06, 0x1f, 0xc2, 0xcc, 0xc2, 0x2d, 0x53,                         // -|.====.....-S|
++ 	0x5c, 0x3d, 0x3d, 0x3d, 0x3d, 0x7c, 0x96, 0xe7, 0x53, 0x42, 0xa0, 0xab,                         // +|\====|..SB..|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                                   //  |=====|
+- 	0x1d, 0xdf, 0x61, 0xae, 0x98, 0x9f, 0x48,                                                       // -|..a...H|
++ 	0xf0, 0xbd, 0xa5, 0x71, 0xab, 0x17, 0x3b,                                                       // +|...q..;|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                             //  |======|
+- 	0xc7, 0xb0, 0xb7,                                                                               // -|...|
++ 	0xab, 0x50, 0x00,                                                                               // +|.P.|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                       //  |=======|
+- 	0xef, 0x3d, 0x3d, 0x3d, 0x3d, 0x3a, 0x5c, 0x94, 0xe6, 0x4a, 0xc7,                               // -|.====:\..J.|
++ 	0xeb, 0x3d, 0x3d, 0x3d, 0x3d, 0xa5, 0x14, 0xe6, 0x4f, 0x28, 0xe4,                               // +|.====...O(.|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                                   //  |=====|
+- 	0xb4,                                                                                           // -|.|
++ 	0x28,                                                                                           // +|(|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                             //  |======|
+- 	0x0a, 0x0a, 0xf7, 0x94,                                                                         // -|....|
++ 	0x2f, 0x63, 0x40, 0x3f,                                                                         // +|/c@?|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                               //  |===========|
+- 	0xf2, 0x9c, 0xc0, 0x66,                                                                         // -|...f|
++ 	0xd9, 0x78, 0xed, 0x13,                                                                         // +|.x..|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                                   //  |=====|
+- 	0x34, 0xf6, 0xf1, 0xc3, 0x17, 0x82,                                                             // -|4.....|
++ 	0x4a, 0xfc, 0x91, 0x38, 0x42, 0x8d,                                                             // +|J..8B.|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                             //  |======|
+- 	0x6e, 0x16, 0x60, 0x91, 0x44, 0xc6, 0x06,                                                       // -|n.`.D..|
++ 	0x61, 0x38, 0x41, 0xeb, 0x73, 0x04, 0xae,                                                       // +|a8A.s..|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                       //  |=======|
+- 	0x1c, 0x45, 0x3d, 0x3d, 0x3d, 0x3d, 0x2e,                                                       // -|.E====.|
++ 	0x07, 0x43, 0x3d, 0x3d, 0x3d, 0x3d, 0x1c,                                                       // +|.C====.|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                               //  |===========|
+- 	0xc4, 0x18,                                                                                     // -|..|
++ 	0x91, 0x22,                                                                                     // +|."|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                       //  |=======|
+- 	0x8a, 0x8d, 0x0e, 0x3d, 0x3d, 0x3d, 0x3d, 0x87, 0xb1, 0xa5, 0x8e, 0xc3, 0x3d, 0x3d, 0x3d, 0x3d, // -|...====.....====|
+- 	0x3d, 0x7a, 0x0f, 0x31, 0xae, 0x55, 0x3d,                                                       // -|=z.1.U=|
++ 	0x75, 0xd8, 0xbe, 0x3d, 0x3d, 0x3d, 0x3d, 0x73, 0xec, 0x84, 0x35, 0x07, 0x3d, 0x3d, 0x3d, 0x3d, // +|u..====s..5.====|
++ 	0x3d, 0x3b, 0xab, 0x53, 0x39, 0x74,                                                             // +|=;.S9t|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                                   //  |=====|
+- 	0x47, 0x2c, 0x3d,                                                                               // -|G,=|
++ 	0x3d, 0x1f, 0x1b,                                                                               // +|=..|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                                             //  |======|
+- 	0x35, 0xe7, 0x35, 0xee, 0x82, 0xf4, 0xce, 0x3d, 0x3d, 0x3d, 0x3d, 0x11, 0x72, 0x3d,             // -|5.5....====.r=|
++ 	0x3d, 0x80, 0xab, 0x2f, 0xed, 0x2b, 0x3a, 0x3b, 0x3d, 0x3d, 0x3d, 0x3d, 0xea, 0x49,             // +|=../.+:;====.I|
+  	0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,                                     //  |==========|
+- 	0xaf, 0x5d, 0x3d,                                                                               // -|.]=|
++ 	0x3d, 0xab, 0x6c,                                                                               // +|=.l|
+  	... // 51 identical, 34 removed, and 35 inserted bytes
   }
 >>> TestDiff/Reporter/LimitMaximumBytesDiffs
 <<< TestDiff/Reporter/LimitMaximumStringDiffs
@@ -731,7 +735,22 @@
   	t
 - 	u
 + 	uu
-  	... // 17 identical, 15 removed, and 15 inserted lines
+  	v
+- 	w
++ 	ww
+  	x
+- 	y
++ 	yy
+  	z
+- 	A
++ 	AA
+  	B
+- 	C
++ 	CC
+  	D
+- 	E
++ 	EE
+  	... // 12 identical, 10 removed, and 10 inserted lines
   	"""
   )
 >>> TestDiff/Reporter/LimitMaximumStringDiffs
@@ -769,30 +788,47 @@
   	{S: "t"},
 - 	{S: "u"},
 + 	{S: "uu"},
-  	... // 17 identical and 15 modified elements
+  	{S: "v"},
+- 	{S: "w"},
++ 	{S: "ww"},
+  	{S: "x"},
+- 	{S: "y"},
++ 	{S: "yy"},
+  	{S: "z"},
+- 	{S: "A"},
++ 	{S: "AA"},
+  	{S: "B"},
+- 	{S: "C"},
++ 	{S: "CC"},
+  	{S: "D"},
+- 	{S: "E"},
++ 	{S: "EE"},
+  	... // 12 identical and 10 modified elements
   }
 >>> TestDiff/Reporter/LimitMaximumSliceDiffs
 <<< TestDiff/Reporter#06
   cmp_test.MyComposite{
-  	StringA: strings.Join({
-- 		"Package cmp determines equality of values.",
-+ 		"Package cmp determines equality of value.",
-  		"",
-  		"This package is intended to be a more powerful and safer alternative to",
+  	StringA: (
+  		"""
+- 		Package cmp determines equality of values.
++ 		Package cmp determines equality of value.
+  		
+  		This package is intended to be a more powerful and safer alternative to
   		... // 6 identical lines
-  		"For example, an equality function may report floats as equal so long as they",
-  		"are within some tolerance of each other.",
-- 		"",
-- 		"• Types that have an Equal method may use that method to determine equality.",
-- 		"This allows package authors to determine the equality operation for the types",
-- 		"that they define.",
-  		"",
-  		"• If no custom equality functions are used and no Equal method is defined,",
+  		For example, an equality function may report floats as equal so long as they
+  		are within some tolerance of each other.
+- 		
+- 		• Types that have an Equal method may use that method to determine equality.
+- 		This allows package authors to determine the equality operation for the types
+- 		that they define.
+  		
+  		• If no custom equality functions are used and no Equal method is defined,
   		... // 3 identical lines
-  		"by using an Ignore option (see cmpopts.IgnoreUnexported) or explicitly compared",
-  		"using the AllowUnexported option.",
-- 		"",
-  	}, "\n"),
+  		by using an Ignore option (see cmpopts.IgnoreUnexported) or explicitly compared
+  		using the AllowUnexported option.
+- 		
+  		"""
+  	),
   	StringB: "",
   	BytesA:  nil,
   	... // 11 identical fields
@@ -1032,28 +1068,28 @@
 >>> TestDiff/EqualMethod/StructF
 <<< TestDiff/EqualMethod/StructA1#01
   teststructs.StructA1{
-  	StructA: teststructs.StructA{X: "NotEqual"},
+  	StructA: {X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
 >>> TestDiff/EqualMethod/StructA1#01
 <<< TestDiff/EqualMethod/StructA1#03
   &teststructs.StructA1{
-  	StructA: teststructs.StructA{X: "NotEqual"},
+  	StructA: {X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
 >>> TestDiff/EqualMethod/StructA1#03
 <<< TestDiff/EqualMethod/StructB1#01
   teststructs.StructB1{
-  	StructB: teststructs.StructB(Inverse(Ref, &teststructs.StructB{X: "NotEqual"})),
+  	StructB: Inverse(Ref, &teststructs.StructB{X: "NotEqual"}),
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
 >>> TestDiff/EqualMethod/StructB1#01
 <<< TestDiff/EqualMethod/StructB1#03
   &teststructs.StructB1{
-  	StructB: teststructs.StructB(Inverse(Ref, &teststructs.StructB{X: "NotEqual"})),
+  	StructB: Inverse(Ref, &teststructs.StructB{X: "NotEqual"}),
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
@@ -1084,28 +1120,28 @@
 >>> TestDiff/EqualMethod/StructF1
 <<< TestDiff/EqualMethod/StructA2#01
   teststructs.StructA2{
-  	StructA: &teststructs.StructA{X: "NotEqual"},
+  	StructA: &{X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
 >>> TestDiff/EqualMethod/StructA2#01
 <<< TestDiff/EqualMethod/StructA2#03
   &teststructs.StructA2{
-  	StructA: &teststructs.StructA{X: "NotEqual"},
+  	StructA: &{X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
 >>> TestDiff/EqualMethod/StructA2#03
 <<< TestDiff/EqualMethod/StructB2#01
   teststructs.StructB2{
-  	StructB: &teststructs.StructB{X: "NotEqual"},
+  	StructB: &{X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
 >>> TestDiff/EqualMethod/StructB2#01
 <<< TestDiff/EqualMethod/StructB2#03
   &teststructs.StructB2{
-  	StructB: &teststructs.StructB{X: "NotEqual"},
+  	StructB: &{X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
@@ -1145,17 +1181,17 @@
   				Name: "BarBuzzBravo",
   				Mods: 2,
   				Alphas: map[string]*cmp_test.CycleAlpha{
-  					"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}},
+  					"Bar": &{Name: "Bar", Bravos: {...}},
   					"Buzz": &{
   						Name: "Buzz",
   						Bravos: map[string]*cmp_test.CycleBravo{
-  							"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫}}}}}}, "Buzz": ⟪0xdeadf00f⟫}},
+  							"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: {...}},
   							"BuzzBarBravo": &{
 - 								ID:     103,
 + 								ID:     0,
   								Name:   "BuzzBarBravo",
   								Mods:   0,
-  								Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}, "Buzz": ⟪0xdeadf00f⟫}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}},
+  								Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}},
   							},
   						},
   					},
@@ -1167,7 +1203,7 @@
   				Name: "BuzzBarBravo",
   				Mods: 0,
   				Alphas: map[string]*cmp_test.CycleAlpha{
-  					"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}},
+  					"Bar": &{Name: "Bar", Bravos: {...}},
   					"Buzz": &{
   						Name: "Buzz",
   						Bravos: map[string]*cmp_test.CycleBravo{
@@ -1176,9 +1212,9 @@
 + 								ID:     0,
   								Name:   "BarBuzzBravo",
   								Mods:   2,
-  								Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}, "Buzz": ⟪0xdeadf00f⟫}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}},
+  								Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}},
   							},
-  							"BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}, "Buzz": ⟪0xdeadf00f⟫}},
+  							"BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: {...}},
   						},
   					},
   				},
@@ -1197,17 +1233,17 @@
   					"Bar": &{
   						Name: "Bar",
   						Bravos: map[string]*cmp_test.CycleBravo{
-  							"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫}}}}}}, "Buzz": ⟪0xdeadf00f⟫}},
+  							"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: {...}},
   							"BuzzBarBravo": &{
 - 								ID:     103,
 + 								ID:     0,
   								Name:   "BuzzBarBravo",
   								Mods:   0,
-  								Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}, "Buzz": ⟪0xdeadf00f⟫}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}},
+  								Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}},
   							},
   						},
   					},
-  					"Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}, "Buzz": ⟪0xdeadf00f⟫}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}},
+  					"Buzz": &{Name: "Buzz", Bravos: {...}},
   				},
   			},
   			"BuzzBarBravo": &{
@@ -1224,12 +1260,12 @@
 + 								ID:     0,
   								Name:   "BarBuzzBravo",
   								Mods:   2,
-  								Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}, "Buzz": ⟪0xdeadf00f⟫}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}},
+  								Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}},
   							},
-  							"BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}, "Buzz": ⟪0xdeadf00f⟫}},
+  							"BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: {...}},
   						},
   					},
-  					"Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}, "Buzz": ⟪0xdeadf00f⟫}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}},
+  					"Buzz": &{Name: "Buzz", Bravos: {...}},
   				},
   			},
   		},
@@ -1242,7 +1278,7 @@
 + 				ID:     0,
   				Name:   "FooBravo",
   				Mods:   100,
-  				Alphas: map[string]*cmp_test.CycleAlpha{"Foo": &{Name: "Foo", Bravos: map[string]*cmp_test.CycleBravo{"FooBravo": &{Name: "FooBravo", Mods: 100, Alphas: map[string]*cmp_test.CycleAlpha{"Foo": ⟪0xdeadf00f⟫}}}}},
+  				Alphas: {"Foo": &{Name: "Foo", Bravos: {...}}},
   			},
   		},
   	},
@@ -1258,11 +1294,11 @@
   				Name: "BarBuzzBravo",
   				Mods: 2,
   				Alphas: map[string]*cmp_test.CycleAlpha{
-  					"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}},
+  					"Bar": &{Name: "Bar", Bravos: {...}},
   					"Buzz": &{
   						Name: "Buzz",
   						Bravos: map[string]*cmp_test.CycleBravo{
-  							"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫}}}}}}, "Buzz": ⟪0xdeadf00f⟫}},
+  							"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: {...}},
   							"BuzzBarBravo": &{
   								ID:     103,
   								Name:   "BuzzBarBravo",
@@ -1270,31 +1306,13 @@
 - 								Alphas: nil,
 + 								Alphas: map[string]*cmp_test.CycleAlpha{
 + 									"Bar": &{
-+ 										Name: "Bar",
-+ 										Bravos: map[string]*cmp_test.CycleBravo{
-+ 											"BarBuzzBravo": &{
-+ 												ID:   102,
-+ 												Name: "BarBuzzBravo",
-+ 												Mods: 2,
-+ 												Alphas: map[string]*cmp_test.CycleAlpha{
-+ 													"Bar": ⟪0xdeadf00f⟫,
-+ 													"Buzz": &{
-+ 														Name: "Buzz",
-+ 														Bravos: map[string]*cmp_test.CycleBravo{
-+ 															"BarBuzzBravo": ⟪0xdeadf00f⟫,
-+ 															"BuzzBarBravo": &{
-+ 																ID:     103,
-+ 																Name:   "BuzzBarBravo",
-+ 																Alphas: map[string]*cmp_test.CycleAlpha(⟪0xdeadf00f⟫),
-+ 															},
-+ 														},
-+ 													},
-+ 												},
-+ 											},
-+ 											"BuzzBarBravo": ⟪0xdeadf00f⟫,
-+ 										},
++ 										Name:   "Bar",
++ 										Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{...}, "BuzzBarBravo": &{...}},
 + 									},
-+ 									"Buzz": ⟪0xdeadf00f⟫,
++ 									"Buzz": &{
++ 										Name:   "Buzz",
++ 										Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫},
++ 									},
 + 								},
   							},
   						},
@@ -1306,35 +1324,18 @@
   				Name: "BuzzBarBravo",
   				Mods: 0,
   				Alphas: map[string]*cmp_test.CycleAlpha{
-  					"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}},
+  					"Bar": &{Name: "Bar", Bravos: {...}},
   					"Buzz": &{
   						Name: "Buzz",
   						Bravos: map[string]*cmp_test.CycleBravo{
-  							"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}, "Buzz": ⟪0xdeadf00f⟫}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}}},
+  							"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}}},
 - 							"BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo"},
 + 							"BuzzBarBravo": &{
 + 								ID:   103,
 + 								Name: "BuzzBarBravo",
 + 								Alphas: map[string]*cmp_test.CycleAlpha{
-+ 									"Bar": &{
-+ 										Name: "Bar",
-+ 										Bravos: map[string]*cmp_test.CycleBravo{
-+ 											"BarBuzzBravo": &{
-+ 												ID:   102,
-+ 												Name: "BarBuzzBravo",
-+ 												Mods: 2,
-+ 												Alphas: map[string]*cmp_test.CycleAlpha{
-+ 													"Bar": ⟪0xdeadf00f⟫,
-+ 													"Buzz": &{
-+ 														Name:   "Buzz",
-+ 														Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫},
-+ 													},
-+ 												},
-+ 											},
-+ 											"BuzzBarBravo": ⟪0xdeadf00f⟫,
-+ 										},
-+ 									},
-+ 									"Buzz": ⟪0xdeadf00f⟫,
++ 									"Bar":  &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{...}},
++ 									"Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{...}},
 + 								},
 + 							},
   						},
@@ -1346,7 +1347,7 @@
   	"Buzz": &{
   		Name: "Buzz",
   		Bravos: map[string]*cmp_test.CycleBravo{
-  			"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫}}}}}}, "Buzz": ⟪0xdeadf00f⟫}}, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}, "Buzz": ⟪0xdeadf00f⟫}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}}}}}, "Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: map[string]*cmp_test.CycleAlpha{"Bar": ⟪0xdeadf00f⟫, "Buzz": ⟪0xdeadf00f⟫}}}}, "Buzz": ⟪0xdeadf00f⟫}}, "BuzzBarBravo": ⟪0xdeadf00f⟫}}}},
+  			"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: {"Bar": &{Name: "Bar", Bravos: {"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: {...}}, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}}}}}, "Buzz": &{Name: "Buzz", Bravos: {...}}}},
   			"BuzzBarBravo": &{
   				ID:     103,
   				Name:   "BuzzBarBravo",
@@ -1354,36 +1355,18 @@
 - 				Alphas: nil,
 + 				Alphas: map[string]*cmp_test.CycleAlpha{
 + 					"Bar": &{
-+ 						Name: "Bar",
-+ 						Bravos: map[string]*cmp_test.CycleBravo{
-+ 							"BarBuzzBravo": &{
-+ 								ID:   102,
-+ 								Name: "BarBuzzBravo",
-+ 								Mods: 2,
-+ 								Alphas: map[string]*cmp_test.CycleAlpha{
-+ 									"Bar": ⟪0xdeadf00f⟫,
-+ 									"Buzz": &{
-+ 										Name: "Buzz",
-+ 										Bravos: map[string]*cmp_test.CycleBravo{
-+ 											"BarBuzzBravo": ⟪0xdeadf00f⟫,
-+ 											"BuzzBarBravo": &{
-+ 												ID:     103,
-+ 												Name:   "BuzzBarBravo",
-+ 												Alphas: map[string]*cmp_test.CycleAlpha(⟪0xdeadf00f⟫),
-+ 											},
-+ 										},
-+ 									},
-+ 								},
-+ 							},
-+ 							"BuzzBarBravo": ⟪0xdeadf00f⟫,
-+ 						},
++ 						Name:   "Bar",
++ 						Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{...}, "BuzzBarBravo": &{...}},
 + 					},
-+ 					"Buzz": ⟪0xdeadf00f⟫,
++ 					"Buzz": &{
++ 						Name:   "Buzz",
++ 						Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫},
++ 					},
 + 				},
   			},
   		},
   	},
-  	"Foo": &{Name: "Foo", Bravos: map[string]*cmp_test.CycleBravo{"FooBravo": &{ID: 101, Name: "FooBravo", Mods: 100, Alphas: map[string]*cmp_test.CycleAlpha{"Foo": &{Name: "Foo", Bravos: map[string]*cmp_test.CycleBravo{"FooBravo": &{ID: 101, Name: "FooBravo", Mods: 100, Alphas: map[string]*cmp_test.CycleAlpha{"Foo": ⟪0xdeadf00f⟫}}}}}}}},
+  	"Foo": &{Name: "Foo", Bravos: {"FooBravo": &{ID: 101, Name: "FooBravo", Mods: 100, Alphas: {"Foo": &{Name: "Foo", Bravos: {...}}}}}},
   }
 >>> TestDiff/Cycle#08
 <<< TestDiff/Project1#02
@@ -1468,7 +1451,7 @@
 - 								"bar",
 - 								"baz",
   							},
-  							ChangeType: []testprotos.SummerType{1, 2, 3},
+  							ChangeType: {1, 2, 3},
   							... // 1 ignored field
   						},
   						... // 1 ignored field
@@ -1496,7 +1479,7 @@
   		},
   	},
   	CleanGerms: nil,
-  	GermMap:    map[int32]*testprotos.Germ{13: s"germ13", 21: s"germ21"},
+  	GermMap:    {13: s"germ13", 21: s"germ21"},
   	... // 7 identical fields
   }
 >>> TestDiff/Project2#02
@@ -1511,7 +1494,7 @@
   		}),
   	},
   	CleanGerms: nil,
-  	GermMap:    map[int32]*testprotos.Germ{13: s"germ13", 21: s"germ21"},
+  	GermMap:    {13: s"germ13", 21: s"germ21"},
   	DishMap: map[int32]*teststructs.Dish{
   		0: &{err: e"EOF"},
 - 		1: nil,
