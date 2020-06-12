@@ -160,12 +160,6 @@
   }
 >>> TestDiff/Comparer#43
 <<< TestDiff/Comparer#44
-  (*int)(
-- 	&0,
-+ 	&0,
-  )
->>> TestDiff/Comparer#44
-<<< TestDiff/Comparer#45
   [2][]int{
   	{..., 1, 2, 3, ...},
   	{
@@ -175,8 +169,8 @@
   		... // 3 ignored elements
   	},
   }
->>> TestDiff/Comparer#45
-<<< TestDiff/Comparer#46
+>>> TestDiff/Comparer#44
+<<< TestDiff/Comparer#45
   [2]map[string]int{
   	{"KEEP3": 3, "keep1": 1, "keep2": 2, ...},
   	{
@@ -185,7 +179,7 @@
 + 		"keep2": 2,
   	},
   }
->>> TestDiff/Comparer#46
+>>> TestDiff/Comparer#45
 <<< TestDiff/Transformer
   uint8(Inverse(λ, uint16(Inverse(λ, uint32(Inverse(λ, uint64(
 - 	0,
@@ -258,6 +252,81 @@
   	})),
   }
 >>> TestDiff/Transformer#05
+<<< TestDiff/Reporter/AmbiguousType
+  interface{}(
+- 	"github.com/google/go-cmp/cmp/internal/teststructs/foo1".Bar{},
++ 	"github.com/google/go-cmp/cmp/internal/teststructs/foo2".Bar{},
+  )
+>>> TestDiff/Reporter/AmbiguousType
+<<< TestDiff/Reporter/AmbiguousPointer
+  (*int)(
+- 	&⟪0xdeadf00f⟫0,
++ 	&⟪0xdeadf00f⟫0,
+  )
+>>> TestDiff/Reporter/AmbiguousPointer
+<<< TestDiff/Reporter/AmbiguousPointerStruct
+  struct{ I *int }{
+- 	I: &⟪0xdeadf00f⟫0,
++ 	I: &⟪0xdeadf00f⟫0,
+  }
+>>> TestDiff/Reporter/AmbiguousPointerStruct
+<<< TestDiff/Reporter/AmbiguousPointerSlice
+  []*int{
+- 	&⟪0xdeadf00f⟫0,
++ 	&⟪0xdeadf00f⟫0,
+  }
+>>> TestDiff/Reporter/AmbiguousPointerSlice
+<<< TestDiff/Reporter/AmbiguousPointerMap
+  map[string]*int{
+- 	"zero": &⟪0xdeadf00f⟫0,
++ 	"zero": &⟪0xdeadf00f⟫0,
+  }
+>>> TestDiff/Reporter/AmbiguousPointerMap
+<<< TestDiff/Reporter/AmbiguousStringer
+  interface{}(
+- 	cmp_test.Stringer("hello"),
++ 	&cmp_test.Stringer("hello"),
+  )
+>>> TestDiff/Reporter/AmbiguousStringer
+<<< TestDiff/Reporter/AmbiguousStringerStruct
+  struct{ S fmt.Stringer }{
+- 	S: cmp_test.Stringer("hello"),
++ 	S: &cmp_test.Stringer("hello"),
+  }
+>>> TestDiff/Reporter/AmbiguousStringerStruct
+<<< TestDiff/Reporter/AmbiguousStringerSlice
+  []fmt.Stringer{
+- 	cmp_test.Stringer("hello"),
++ 	&cmp_test.Stringer("hello"),
+  }
+>>> TestDiff/Reporter/AmbiguousStringerSlice
+<<< TestDiff/Reporter/AmbiguousStringerMap
+  map[string]fmt.Stringer{
+- 	"zero": cmp_test.Stringer("hello"),
++ 	"zero": &cmp_test.Stringer("hello"),
+  }
+>>> TestDiff/Reporter/AmbiguousStringerMap
+<<< TestDiff/Reporter/AmbiguousSliceHeader
+  []int(
+- 	⟪ptr:0xdeadf00f, len:0, cap:5⟫{},
++ 	⟪ptr:0xdeadf00f, len:0, cap:1000⟫{},
+  )
+>>> TestDiff/Reporter/AmbiguousSliceHeader
+<<< TestDiff/Reporter/AmbiguousStringerMapKey
+  map[interface{}]string{
+- 	nil:                                                                     "nil",
++ 	&⟪0xdeadf00f⟫"github.com/google/go-cmp/cmp_test".Stringer("hello"):      "goodbye",
+- 	"github.com/google/go-cmp/cmp_test".Stringer("hello"):                   "goodbye",
+- 	"github.com/google/go-cmp/cmp/internal/teststructs/foo1".Bar{S: "fizz"}: "buzz",
++ 	"github.com/google/go-cmp/cmp/internal/teststructs/foo2".Bar{S: "fizz"}: "buzz",
+  }
+>>> TestDiff/Reporter/AmbiguousStringerMapKey
+<<< TestDiff/Reporter/NonAmbiguousStringerMapKey
+  map[interface{}]string{
++ 	s"fizz":  "buzz",
+- 	s"hello": "goodbye",
+  }
+>>> TestDiff/Reporter/NonAmbiguousStringerMapKey
 <<< TestDiff//InvalidUTF8
   interface{}(
 - 	cmp_test.MyString("\xed\xa0\x80"),

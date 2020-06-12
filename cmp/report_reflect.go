@@ -30,6 +30,10 @@ type formatValueOptions struct {
 	// slice elements, and maps.
 	PrintAddresses bool
 
+	// QualifiedNames controls whether FormatType uses the fully qualified name
+	// (including the full package path as opposed to just the package name).
+	QualifiedNames bool
+
 	// VerbosityLevel controls the amount of output to produce.
 	// A higher value produces more output. A value of zero or lower produces
 	// no output (represented using an ellipsis).
@@ -62,7 +66,7 @@ func (opts formatOptions) FormatType(t reflect.Type, s textNode) textNode {
 	}
 
 	// Determine the type label, applying special handling for unnamed types.
-	typeName := t.String()
+	typeName := value.TypeString(t, opts.QualifiedNames)
 	if t.Name() == "" {
 		// According to Go grammar, certain type literals contain symbols that
 		// do not strongly bind to the next lexicographical token (e.g., *T).
@@ -70,8 +74,6 @@ func (opts formatOptions) FormatType(t reflect.Type, s textNode) textNode {
 		case reflect.Chan, reflect.Func, reflect.Ptr:
 			typeName = "(" + typeName + ")"
 		}
-		typeName = strings.Replace(typeName, "struct {", "struct{", -1)
-		typeName = strings.Replace(typeName, "interface {", "interface{", -1)
 	}
 
 	// Avoid wrap the value in parenthesis if unnecessary.
@@ -236,7 +238,7 @@ func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visit
 				list.AppendEllipsis(diffStats{})
 				break
 			}
-			sk := formatMapKey(k)
+			sk := formatMapKey(k, false)
 			sv := opts.WithTypeMode(elideType).FormatValue(v.MapIndex(k), false, m)
 			list = append(list, textRecord{Key: sk, Value: sv})
 		}
@@ -272,10 +274,13 @@ func (opts formatOptions) FormatValue(v reflect.Value, withinSlice bool, m visit
 
 // formatMapKey formats v as if it were a map key.
 // The result is guaranteed to be a single line.
-func formatMapKey(v reflect.Value) string {
+func formatMapKey(v reflect.Value, disambiguate bool) string {
 	var opts formatOptions
+	opts.DiffMode = diffIdentical
 	opts.TypeMode = elideType
 	opts.PrintShallowPointer = true
+	opts.AvoidStringer = disambiguate
+	opts.QualifiedNames = disambiguate
 	s := opts.FormatValue(v, false, visitedPointers{}).String()
 	return strings.TrimSpace(s)
 }

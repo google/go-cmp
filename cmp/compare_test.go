@@ -29,6 +29,8 @@ import (
 
 	pb "github.com/google/go-cmp/cmp/internal/testprotos"
 	ts "github.com/google/go-cmp/cmp/internal/teststructs"
+	foo1 "github.com/google/go-cmp/cmp/internal/teststructs/foo1"
+	foo2 "github.com/google/go-cmp/cmp/internal/teststructs/foo2"
 )
 
 func init() {
@@ -101,7 +103,12 @@ func mustFormatGolden(path string, in []struct{ Name, Data string }) {
 
 var now = time.Date(2009, time.November, 10, 23, 00, 00, 00, time.UTC)
 
-func intPtr(n int) *int { return &n }
+func newInt(n int) *int { return &n }
+
+type Stringer string
+
+func newStringer(s string) fmt.Stringer { return (*Stringer)(&s) }
+func (s Stringer) String() string       { return string(s) }
 
 type test struct {
 	label     string       // Test name
@@ -149,6 +156,7 @@ func TestDiff(t *testing.T) {
 			}()
 
 			// TODO: Require every test case to provide a reason.
+			// TODO: Forbid any test cases with the same name.
 			if tt.wantPanic == "" {
 				if gotPanic != "" {
 					t.Fatalf("unexpected panic message: %s\nreason: %v", gotPanic, tt.reason)
@@ -295,26 +303,26 @@ func comparerTests() []test {
 		wantPanic: "cannot handle unexported field",
 	}, {
 		label:     label,
-		x:         &struct{ A *int }{intPtr(4)},
-		y:         &struct{ A *int }{intPtr(4)},
+		x:         &struct{ A *int }{newInt(4)},
+		y:         &struct{ A *int }{newInt(4)},
 		wantEqual: true,
 	}, {
 		label:     label,
-		x:         &struct{ A *int }{intPtr(4)},
-		y:         &struct{ A *int }{intPtr(5)},
+		x:         &struct{ A *int }{newInt(4)},
+		y:         &struct{ A *int }{newInt(5)},
 		wantEqual: false,
 	}, {
 		label: label,
-		x:     &struct{ A *int }{intPtr(4)},
-		y:     &struct{ A *int }{intPtr(5)},
+		x:     &struct{ A *int }{newInt(4)},
+		y:     &struct{ A *int }{newInt(5)},
 		opts: []cmp.Option{
 			cmp.Comparer(func(x, y int) bool { return true }),
 		},
 		wantEqual: true,
 	}, {
 		label: label,
-		x:     &struct{ A *int }{intPtr(4)},
-		y:     &struct{ A *int }{intPtr(5)},
+		x:     &struct{ A *int }{newInt(4)},
+		y:     &struct{ A *int }{newInt(5)},
 		opts: []cmp.Option{
 			cmp.Comparer(func(x, y *int) bool { return x != nil && y != nil }),
 		},
@@ -554,15 +562,6 @@ func comparerTests() []test {
 		y: map[*int]string{
 			new(int): "world",
 		},
-		wantEqual: false,
-	}, {
-		label: label,
-		x:     intPtr(0),
-		y:     intPtr(0),
-		opts: []cmp.Option{
-			cmp.Comparer(func(x, y *int) bool { return x == y }),
-		},
-		// TODO: This diff output is unhelpful and should show the address.
 		wantEqual: false,
 	}, {
 		label: label,
@@ -822,6 +821,100 @@ func reporterTests() []test {
 	)
 
 	return []test{{
+		label:     label + "/AmbiguousType",
+		x:         foo1.Bar{},
+		y:         foo2.Bar{},
+		wantEqual: false,
+		reason:    "reporter should display the qualified type name to disambiguate between the two values",
+	}, {
+		label: label + "/AmbiguousPointer",
+		x:     newInt(0),
+		y:     newInt(0),
+		opts: []cmp.Option{
+			cmp.Comparer(func(x, y *int) bool { return x == y }),
+		},
+		wantEqual: false,
+		reason:    "reporter should display the address to disambiguate between the two values",
+	}, {
+		label: label + "/AmbiguousPointerStruct",
+		x:     struct{ I *int }{newInt(0)},
+		y:     struct{ I *int }{newInt(0)},
+		opts: []cmp.Option{
+			cmp.Comparer(func(x, y *int) bool { return x == y }),
+		},
+		wantEqual: false,
+		reason:    "reporter should display the address to disambiguate between the two struct fields",
+	}, {
+		label: label + "/AmbiguousPointerSlice",
+		x:     []*int{newInt(0)},
+		y:     []*int{newInt(0)},
+		opts: []cmp.Option{
+			cmp.Comparer(func(x, y *int) bool { return x == y }),
+		},
+		wantEqual: false,
+		reason:    "reporter should display the address to disambiguate between the two slice elements",
+	}, {
+		label: label + "/AmbiguousPointerMap",
+		x:     map[string]*int{"zero": newInt(0)},
+		y:     map[string]*int{"zero": newInt(0)},
+		opts: []cmp.Option{
+			cmp.Comparer(func(x, y *int) bool { return x == y }),
+		},
+		wantEqual: false,
+		reason:    "reporter should display the address to disambiguate between the two map values",
+	}, {
+		label:     label + "/AmbiguousStringer",
+		x:         Stringer("hello"),
+		y:         newStringer("hello"),
+		wantEqual: false,
+		reason:    "reporter should avoid calling String to disambiguate between the two values",
+	}, {
+		label:     label + "/AmbiguousStringerStruct",
+		x:         struct{ S fmt.Stringer }{Stringer("hello")},
+		y:         struct{ S fmt.Stringer }{newStringer("hello")},
+		wantEqual: false,
+		reason:    "reporter should avoid calling String to disambiguate between the two struct fields",
+	}, {
+		label:     label + "/AmbiguousStringerSlice",
+		x:         []fmt.Stringer{Stringer("hello")},
+		y:         []fmt.Stringer{newStringer("hello")},
+		wantEqual: false,
+		reason:    "reporter should avoid calling String to disambiguate between the two slice elements",
+	}, {
+		label:     label + "/AmbiguousStringerMap",
+		x:         map[string]fmt.Stringer{"zero": Stringer("hello")},
+		y:         map[string]fmt.Stringer{"zero": newStringer("hello")},
+		wantEqual: false,
+		reason:    "reporter should avoid calling String to disambiguate between the two map values",
+	}, {
+		label: label + "/AmbiguousSliceHeader",
+		x:     make([]int, 0, 5),
+		y:     make([]int, 0, 1000),
+		opts: []cmp.Option{
+			cmp.Comparer(func(x, y []int) bool { return cap(x) == cap(y) }),
+		},
+		wantEqual: false,
+		reason:    "reporter should display the slice header to disambiguate between the two slice values",
+	}, {
+		label: label + "/AmbiguousStringerMapKey",
+		x: map[interface{}]string{
+			nil:               "nil",
+			Stringer("hello"): "goodbye",
+			foo1.Bar{"fizz"}:  "buzz",
+		},
+		y: map[interface{}]string{
+			newStringer("hello"): "goodbye",
+			foo2.Bar{"fizz"}:     "buzz",
+		},
+		wantEqual: false,
+		reason:    "reporter should avoid calling String to disambiguate between the two map keys",
+	}, {
+		label:     label + "/NonAmbiguousStringerMapKey",
+		x:         map[interface{}]string{Stringer("hello"): "goodbye"},
+		y:         map[interface{}]string{newStringer("fizz"): "buzz"},
+		wantEqual: false,
+		reason:    "reporter should call String as there is no ambiguity between the two map keys",
+	}, {
 		label:     "/InvalidUTF8",
 		x:         MyString("\xed\xa0\x80"),
 		wantEqual: false,
@@ -2146,7 +2239,7 @@ func project1Tests() []test {
 						Target: "corporation",
 						Immutable: &ts.GoatImmutable{
 							ID:      "southbay",
-							State:   (*pb.Goat_States)(intPtr(5)),
+							State:   (*pb.Goat_States)(newInt(5)),
 							Started: now,
 						},
 					},
@@ -2174,7 +2267,7 @@ func project1Tests() []test {
 			Immutable: &ts.EagleImmutable{
 				ID:          "eagleID",
 				Birthday:    now,
-				MissingCall: (*pb.Eagle_MissingCalls)(intPtr(55)),
+				MissingCall: (*pb.Eagle_MissingCalls)(newInt(55)),
 			},
 		}
 	}
@@ -2219,7 +2312,7 @@ func project1Tests() []test {
 		x: func() ts.Eagle {
 			eg := createEagle()
 			eg.Dreamers[1].Animal[0].(ts.Goat).Immutable.ID = "southbay2"
-			eg.Dreamers[1].Animal[0].(ts.Goat).Immutable.State = (*pb.Goat_States)(intPtr(6))
+			eg.Dreamers[1].Animal[0].(ts.Goat).Immutable.State = (*pb.Goat_States)(newInt(6))
 			eg.Slaps[0].Immutable.MildSlap = false
 			return eg
 		}(),
