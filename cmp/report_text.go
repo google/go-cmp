@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp/internal/flags"
 )
@@ -239,14 +240,14 @@ func (s textList) formatExpandedTo(b []byte, d diffMode, n indentMode) []byte {
 			_, isLine := r.Value.(textLine)
 			return r.Key == "" || !isLine
 		},
-		func(r textRecord) int { return len(r.Key) },
+		func(r textRecord) int { return utf8.RuneCountInString(r.Key) },
 	)
 	alignValueLens := s.alignLens(
 		func(r textRecord) bool {
 			_, isLine := r.Value.(textLine)
 			return !isLine || r.Value.Equal(textEllipsis) || r.Comment == nil
 		},
-		func(r textRecord) int { return len(r.Value.(textLine)) },
+		func(r textRecord) int { return utf8.RuneCount(r.Value.(textLine)) },
 	)
 
 	// Format lists of simple lists in a batched form.

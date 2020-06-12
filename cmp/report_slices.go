@@ -26,8 +26,8 @@ func (opts formatOptions) CanFormatDiffSlice(v *valueNode) bool {
 		return false // No differences detected
 	case !v.ValueX.IsValid() || !v.ValueY.IsValid():
 		return false // Both values must be valid
-	case v.Type.Kind() == reflect.Slice && (v.ValueX.IsNil() || v.ValueY.IsNil()):
-		return false // Both of values have to be non-nil
+	case v.Type.Kind() == reflect.Slice && (v.ValueX.Len() == 0 || v.ValueY.Len() == 0):
+		return false // Both slice values have to be non-empty
 	case v.NumIgnored > 0:
 		return false // Some ignore option was used
 	case v.NumTransformed > 0:

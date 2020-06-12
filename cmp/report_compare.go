@@ -11,10 +11,6 @@ import (
 	"github.com/google/go-cmp/cmp/internal/value"
 )
 
-// TODO: Enforce unique outputs?
-//	* Avoid Stringer methods if it results in same output?
-//	* Print pointer address if outputs still equal?
-
 // numContextRecords is the number of surrounding equal records to print.
 const numContextRecords = 2
 
@@ -83,6 +79,22 @@ func (opts formatOptions) verbosity() uint {
 	}
 }
 
+const maxVerbosityPreset = 3
+
+// verbosityPreset modifies the verbosity settings given an index
+// between 0 and maxVerbosityPreset, inclusive.
+func verbosityPreset(opts formatOptions, i int) formatOptions {
+	opts.VerbosityLevel = int(opts.verbosity()) + 2*i
+	if i > 0 {
+		opts.AvoidStringer = true
+	}
+	if i >= maxVerbosityPreset {
+		opts.PrintAddresses = true
+		opts.QualifiedNames = true
+	}
+	return opts
+}
+
 // FormatDiff converts a valueNode tree into a textNode tree, where the later
 // is a textual representation of the differences detected in the former.
 func (opts formatOptions) FormatDiff(v *valueNode) textNode {
@@ -125,6 +137,11 @@ func (opts formatOptions) FormatDiff(v *valueNode) textNode {
 			var list textList
 			outx := opts.WithTypeMode(elideType).FormatValue(v.ValueX, withinSlice, visitedPointers{})
 			outy := opts.WithTypeMode(elideType).FormatValue(v.ValueY, withinSlice, visitedPointers{})
+			for i := 0; i <= maxVerbosityPreset && outx != nil && outy != nil && outx.Equal(outy); i++ {
+				opts2 := verbosityPreset(opts, i).WithTypeMode(elideType)
+				outx = opts2.FormatValue(v.ValueX, withinSlice, visitedPointers{})
+				outy = opts2.FormatValue(v.ValueY, withinSlice, visitedPointers{})
+			}
 			if outx != nil {
 				list = append(list, textRecord{Diff: '-', Value: outx})
 			}
@@ -178,7 +195,7 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 	case reflect.Map:
 		name = "entry"
 		opts = opts.WithTypeMode(elideType)
-		formatKey = formatMapKey
+		formatKey = func(v reflect.Value) string { return formatMapKey(v, false) }
 	}
 
 	maxLen := -1
@@ -241,6 +258,7 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 	// Handle differencing.
 	var numDiffs int
 	var list textList
+	var keys []reflect.Value // invariant: len(list) == len(keys)
 	groups := coalesceAdjacentRecords(name, recs)
 	maxGroup := diffStats{Name: name}
 	for i, ds := range groups {
@@ -274,14 +292,19 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 			for _, r := range recs[:numLo] {
 				out := opts.WithDiffMode(diffIdentical).FormatDiff(r.Value)
 				list = append(list, textRecord{Key: formatKey(r.Key), Value: out})
+				keys = append(keys, r.Key)
 			}
 			if numEqual > numLo+numHi {
 				ds.NumIdentical -= numLo + numHi
 				list.AppendEllipsis(ds)
+				for len(keys) < len(list) {
+					keys = append(keys, reflect.Value{})
+				}
 			}
 			for _, r := range recs[numEqual-numHi : numEqual] {
 				out := opts.WithDiffMode(diffIdentical).FormatDiff(r.Value)
 				list = append(list, textRecord{Key: formatKey(r.Key), Value: out})
+				keys = append(keys, r.Key)
 			}
 			recs = recs[numEqual:]
 			continue
@@ -293,18 +316,27 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 			case opts.CanFormatDiffSlice(r.Value):
 				out := opts.FormatDiffSlice(r.Value)
 				list = append(list, textRecord{Key: formatKey(r.Key), Value: out})
+				keys = append(keys, r.Key)
 			case r.Value.NumChildren == r.Value.MaxDepth:
 				outx := opts.WithDiffMode(diffRemoved).FormatDiff(r.Value)
 				outy := opts.WithDiffMode(diffInserted).FormatDiff(r.Value)
+				for i := 0; i <= maxVerbosityPreset && outx != nil && outy != nil && outx.Equal(outy); i++ {
+					opts2 := verbosityPreset(opts, i)
+					outx = opts2.WithDiffMode(diffRemoved).FormatDiff(r.Value)
+					outy = opts2.WithDiffMode(diffInserted).FormatDiff(r.Value)
+				}
 				if outx != nil {
 					list = append(list, textRecord{Diff: diffRemoved, Key: formatKey(r.Key), Value: outx})
+					keys = append(keys, r.Key)
 				}
 				if outy != nil {
 					list = append(list, textRecord{Diff: diffInserted, Key: formatKey(r.Key), Value: outy})
+					keys = append(keys, r.Key)
 				}
 			default:
 				out := opts.FormatDiff(r.Value)
 				list = append(list, textRecord{Key: formatKey(r.Key), Value: out})
+				keys = append(keys, r.Key)
 			}
 		}
 		recs = recs[ds.NumDiff():]
@@ -314,7 +346,39 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind) te
 		assert(len(recs) == 0)
 	} else {
 		list.AppendEllipsis(maxGroup)
+		for len(keys) < len(list) {
+			keys = append(keys, reflect.Value{})
+		}
 	}
+	assert(len(list) == len(keys))
+
+	// For maps, the default formatting logic uses fmt.Stringer which may
+	// produce ambiguous output. Avoid calling String to disambiguate.
+	if k == reflect.Map {
+		var ambiguous bool
+		seenKeys := map[string]reflect.Value{}
+		for i, currKey := range keys {
+			if currKey.IsValid() {
+				strKey := list[i].Key
+				prevKey, seen := seenKeys[strKey]
+				if seen && prevKey.CanInterface() && currKey.CanInterface() {
+					ambiguous = prevKey.Interface() != currKey.Interface()
+					if ambiguous {
+						break
+					}
+				}
+				seenKeys[strKey] = currKey
+			}
+		}
+		if ambiguous {
+			for i, k := range keys {
+				if k.IsValid() {
+					list[i].Key = formatMapKey(k, true)
+				}
+			}
+		}
+	}
+
 	return textWrap{"{", list, "}"}
 }
 
