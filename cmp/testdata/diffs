@@ -1222,124 +1222,124 @@
   }
 >>> TestDiff/EqualMethod/StructNo/Inequal
 <<< TestDiff/Cycle/PointersInequal
-  &&cmp_test.P(
-- 	&⟪0xdeadf00f⟫,
-+ 	&&⟪0xdeadf00f⟫,
+  &&⟪ref#0⟫cmp_test.P(
+- 	&⟪ref#0⟫(...),
++ 	&&⟪ref#0⟫(...),
   )
 >>> TestDiff/Cycle/PointersInequal
 <<< TestDiff/Cycle/SlicesInequal
   cmp_test.S{
-- 	{{{*(*cmp_test.S)(⟪0xdeadf00f⟫)}}},
-+ 	{{{{*(*cmp_test.S)(⟪0xdeadf00f⟫)}}}},
+- 	⟪ref#0⟫{⟪ref#0⟫(...)},
++ 	⟪ref#1⟫{{⟪ref#1⟫(...)}},
   }
 >>> TestDiff/Cycle/SlicesInequal
 <<< TestDiff/Cycle/MapsInequal
-  cmp_test.M{
-- 	0: {0: ⟪0xdeadf00f⟫},
-+ 	0: {0: {0: ⟪0xdeadf00f⟫}},
+  cmp_test.M⟪ref#0⟫{
+- 	0: ⟪ref#0⟫(...),
++ 	0: {0: ⟪ref#0⟫(...)},
   }
 >>> TestDiff/Cycle/MapsInequal
 <<< TestDiff/Cycle/GraphInequalZeroed
   map[string]*cmp_test.CycleAlpha{
-  	"Bar": &{
+  	"Bar": &⟪ref#0⟫{
   		Name: "Bar",
   		Bravos: map[string]*cmp_test.CycleBravo{
-  			"BarBuzzBravo": &{
+  			"BarBuzzBravo": &⟪ref#1⟫{
 - 				ID:   102,
 + 				ID:   0,
   				Name: "BarBuzzBravo",
   				Mods: 2,
   				Alphas: map[string]*cmp_test.CycleAlpha{
-  					"Bar": &{Name: "Bar", Bravos: {...}},
-  					"Buzz": &{
+  					"Bar": &⟪ref#0⟫(...),
+  					"Buzz": &⟪ref#2⟫{
   						Name: "Buzz",
   						Bravos: map[string]*cmp_test.CycleBravo{
-  							"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: {...}},
-  							"BuzzBarBravo": &{
+  							"BarBuzzBravo": &⟪ref#1⟫(...),
+  							"BuzzBarBravo": &⟪ref#3⟫{
 - 								ID:     103,
 + 								ID:     0,
   								Name:   "BuzzBarBravo",
   								Mods:   0,
-  								Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}},
+  								Alphas: {"Bar": &⟪ref#0⟫(...), "Buzz": &⟪ref#2⟫(...)},
   							},
   						},
   					},
   				},
   			},
-  			"BuzzBarBravo": &{
+  			"BuzzBarBravo": &⟪ref#3⟫{
 - 				ID:   103,
 + 				ID:   0,
   				Name: "BuzzBarBravo",
   				Mods: 0,
   				Alphas: map[string]*cmp_test.CycleAlpha{
-  					"Bar": &{Name: "Bar", Bravos: {...}},
-  					"Buzz": &{
+  					"Bar": &⟪ref#0⟫(...),
+  					"Buzz": &⟪ref#2⟫{
   						Name: "Buzz",
   						Bravos: map[string]*cmp_test.CycleBravo{
-  							"BarBuzzBravo": &{
+  							"BarBuzzBravo": &⟪ref#1⟫{
 - 								ID:     102,
 + 								ID:     0,
   								Name:   "BarBuzzBravo",
   								Mods:   2,
-  								Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}},
+  								Alphas: {"Bar": &⟪ref#0⟫(...), "Buzz": &⟪ref#2⟫(...)},
   							},
-  							"BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: {...}},
+  							"BuzzBarBravo": &⟪ref#3⟫(...),
   						},
   					},
   				},
   			},
   		},
   	},
-  	"Buzz": &{
+  	"Buzz": &⟪ref#2⟫{
   		Name: "Buzz",
   		Bravos: map[string]*cmp_test.CycleBravo{
-  			"BarBuzzBravo": &{
+  			"BarBuzzBravo": &⟪ref#1⟫{
 - 				ID:   102,
 + 				ID:   0,
   				Name: "BarBuzzBravo",
   				Mods: 2,
   				Alphas: map[string]*cmp_test.CycleAlpha{
-  					"Bar": &{
+  					"Bar": &⟪ref#0⟫{
   						Name: "Bar",
   						Bravos: map[string]*cmp_test.CycleBravo{
-  							"BarBuzzBravo": &{Name: "BarBuzzBravo", Mods: 2, Alphas: {...}},
-  							"BuzzBarBravo": &{
+  							"BarBuzzBravo": &⟪ref#1⟫(...),
+  							"BuzzBarBravo": &⟪ref#3⟫{
 - 								ID:     103,
 + 								ID:     0,
   								Name:   "BuzzBarBravo",
   								Mods:   0,
-  								Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}},
+  								Alphas: {"Bar": &⟪ref#0⟫(...), "Buzz": &⟪ref#2⟫(...)},
   							},
   						},
   					},
-  					"Buzz": &{Name: "Buzz", Bravos: {...}},
+  					"Buzz": &⟪ref#2⟫(...),
   				},
   			},
-  			"BuzzBarBravo": &{
+  			"BuzzBarBravo": &⟪ref#3⟫{
 - 				ID:   103,
 + 				ID:   0,
   				Name: "BuzzBarBravo",
   				Mods: 0,
   				Alphas: map[string]*cmp_test.CycleAlpha{
-  					"Bar": &{
+  					"Bar": &⟪ref#0⟫{
   						Name: "Bar",
   						Bravos: map[string]*cmp_test.CycleBravo{
-  							"BarBuzzBravo": &{
+  							"BarBuzzBravo": &⟪ref#1⟫{
 - 								ID:     102,
 + 								ID:     0,
   								Name:   "BarBuzzBravo",
   								Mods:   2,
-  								Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}},
+  								Alphas: {"Bar": &⟪ref#0⟫(...), "Buzz": &⟪ref#2⟫(...)},
   							},
-  							"BuzzBarBravo": &{Name: "BuzzBarBravo", Alphas: {...}},
+  							"BuzzBarBravo": &⟪ref#3⟫(...),
   						},
   					},
-  					"Buzz": &{Name: "Buzz", Bravos: {...}},
+  					"Buzz": &⟪ref#2⟫(...),
   				},
   			},
   		},
   	},
-  	"Foo": &{
+  	"Foo": &⟪ref#4⟫{
   		Name: "Foo",
   		Bravos: map[string]*cmp_test.CycleBravo{
   			"FooBravo": &{
@@ -1347,7 +1347,7 @@
 + 				ID:     0,
   				Name:   "FooBravo",
   				Mods:   100,
-  				Alphas: {"Foo": &{Name: "Foo", Bravos: {...}}},
+  				Alphas: {"Foo": &⟪ref#4⟫(...)},
   			},
   		},
   	},
@@ -1355,87 +1355,68 @@
 >>> TestDiff/Cycle/GraphInequalZeroed
 <<< TestDiff/Cycle/GraphInequalStruct
   map[string]*cmp_test.CycleAlpha{
-  	"Bar": &{
+  	"Bar": &⟪ref#0⟫{
   		Name: "Bar",
   		Bravos: map[string]*cmp_test.CycleBravo{
-  			"BarBuzzBravo": &{
+  			"BarBuzzBravo": &⟪ref#1⟫{
   				ID:   102,
   				Name: "BarBuzzBravo",
   				Mods: 2,
   				Alphas: map[string]*cmp_test.CycleAlpha{
-  					"Bar": &{Name: "Bar", Bravos: {...}},
-  					"Buzz": &{
+  					"Bar": &⟪ref#0⟫(...),
+  					"Buzz": &⟪ref#2⟫{
   						Name: "Buzz",
   						Bravos: map[string]*cmp_test.CycleBravo{
-  							"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: {...}},
-  							"BuzzBarBravo": &{
+  							"BarBuzzBravo": &⟪ref#1⟫(...),
+  							"BuzzBarBravo": &⟪ref#3⟫{
   								ID:     103,
   								Name:   "BuzzBarBravo",
   								Mods:   0,
 - 								Alphas: nil,
-+ 								Alphas: map[string]*cmp_test.CycleAlpha{
-+ 									"Bar": &{
-+ 										Name:   "Bar",
-+ 										Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{...}, "BuzzBarBravo": &{...}},
-+ 									},
-+ 									"Buzz": &{
-+ 										Name:   "Buzz",
-+ 										Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫},
-+ 									},
-+ 								},
++ 								Alphas: map[string]*cmp_test.CycleAlpha{"Bar": &⟪ref#0⟫(...), "Buzz": &⟪ref#2⟫(...)},
   							},
   						},
   					},
   				},
   			},
-  			"BuzzBarBravo": &{
+  			"BuzzBarBravo": &⟪ref#3⟫{
   				ID:   103,
   				Name: "BuzzBarBravo",
   				Mods: 0,
   				Alphas: map[string]*cmp_test.CycleAlpha{
-  					"Bar": &{Name: "Bar", Bravos: {...}},
-  					"Buzz": &{
+  					"Bar": &⟪ref#0⟫(...),
+  					"Buzz": &⟪ref#2⟫{
   						Name: "Buzz",
   						Bravos: map[string]*cmp_test.CycleBravo{
-  							"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}}},
+  							"BarBuzzBravo": &⟪ref#1⟫{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: {"Bar": &⟪ref#0⟫(...), "Buzz": &⟪ref#2⟫(...)}},
 - 							"BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo"},
-+ 							"BuzzBarBravo": &{
-+ 								ID:   103,
-+ 								Name: "BuzzBarBravo",
-+ 								Alphas: map[string]*cmp_test.CycleAlpha{
-+ 									"Bar":  &{Name: "Bar", Bravos: map[string]*cmp_test.CycleBravo{...}},
-+ 									"Buzz": &{Name: "Buzz", Bravos: map[string]*cmp_test.CycleBravo{...}},
-+ 								},
-+ 							},
++ 							"BuzzBarBravo": &⟪ref#3⟫(...),
   						},
   					},
   				},
   			},
   		},
   	},
-  	"Buzz": &{
+  	"Buzz": &⟪ref#2⟫{
   		Name: "Buzz",
   		Bravos: map[string]*cmp_test.CycleBravo{
-  			"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: {"Bar": &{Name: "Bar", Bravos: {"BarBuzzBravo": &{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: {...}}, "BuzzBarBravo": &{ID: 103, Name: "BuzzBarBravo", Alphas: {"Bar": &{Name: "Bar", Bravos: {...}}, "Buzz": &{Name: "Buzz", Bravos: {...}}}}}}, "Buzz": &{Name: "Buzz", Bravos: {...}}}},
-  			"BuzzBarBravo": &{
+  			"BarBuzzBravo": &⟪ref#1⟫{ID: 102, Name: "BarBuzzBravo", Mods: 2, Alphas: {"Bar": &⟪ref#0⟫{Name: "Bar", Bravos: {"BarBuzzBravo": &⟪ref#1⟫(...), "BuzzBarBravo": &⟪ref#3⟫{ID: 103, Name: "BuzzBarBravo", Alphas: {"Bar": &⟪ref#0⟫(...), "Buzz": &⟪ref#2⟫(...)}}}}, "Buzz": &⟪ref#2⟫(...)}},
+  			"BuzzBarBravo": &⟪ref#3⟫{
   				ID:     103,
   				Name:   "BuzzBarBravo",
   				Mods:   0,
 - 				Alphas: nil,
 + 				Alphas: map[string]*cmp_test.CycleAlpha{
-+ 					"Bar": &{
++ 					"Bar": &⟪ref#0⟫{
 + 						Name:   "Bar",
-+ 						Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &{...}, "BuzzBarBravo": &{...}},
++ 						Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": &⟪ref#1⟫{...}, "BuzzBarBravo": &⟪ref#3⟫(...)},
 + 					},
-+ 					"Buzz": &{
-+ 						Name:   "Buzz",
-+ 						Bravos: map[string]*cmp_test.CycleBravo{"BarBuzzBravo": ⟪0xdeadf00f⟫, "BuzzBarBravo": ⟪0xdeadf00f⟫},
-+ 					},
++ 					"Buzz": &⟪ref#2⟫(...),
 + 				},
   			},
   		},
   	},
-  	"Foo": &{Name: "Foo", Bravos: {"FooBravo": &{ID: 101, Name: "FooBravo", Mods: 100, Alphas: {"Foo": &{Name: "Foo", Bravos: {...}}}}}},
+  	"Foo": &⟪ref#4⟫{Name: "Foo", Bravos: {"FooBravo": &{ID: 101, Name: "FooBravo", Mods: 100, Alphas: {"Foo": &⟪ref#4⟫(...)}}}},
   }
 >>> TestDiff/Cycle/GraphInequalStruct
 <<< TestDiff/Project1/ProtoInequal

@@ -94,21 +94,22 @@ type textNode interface {
 // textWrap is a wrapper that concatenates a prefix and/or a suffix
 // to the underlying node.
 type textWrap struct {
-	Prefix string   // e.g., "bytes.Buffer{"
-	Value  textNode // textWrap | textList | textLine
-	Suffix string   // e.g., "}"
+	Prefix   string      // e.g., "bytes.Buffer{"
+	Value    textNode    // textWrap | textList | textLine
+	Suffix   string      // e.g., "}"
+	Metadata interface{} // arbitrary metadata; has no effect on formatting
 }
 
-func (s textWrap) Len() int {
+func (s *textWrap) Len() int {
 	return len(s.Prefix) + s.Value.Len() + len(s.Suffix)
 }
-func (s1 textWrap) Equal(s2 textNode) bool {
-	if s2, ok := s2.(textWrap); ok {
+func (s1 *textWrap) Equal(s2 textNode) bool {
+	if s2, ok := s2.(*textWrap); ok {
 		return s1.Prefix == s2.Prefix && s1.Value.Equal(s2.Value) && s1.Suffix == s2.Suffix
 	}
 	return false
 }
-func (s textWrap) String() string {
+func (s *textWrap) String() string {
 	var d diffMode
 	var n indentMode
 	_, s2 := s.formatCompactTo(nil, d)
@@ -117,7 +118,7 @@ func (s textWrap) String() string {
 	b = append(b, '\n')              // Trailing newline
 	return string(b)
 }
-func (s textWrap) formatCompactTo(b []byte, d diffMode) ([]byte, textNode) {
+func (s *textWrap) formatCompactTo(b []byte, d diffMode) ([]byte, textNode) {
 	n0 := len(b) // Original buffer length
 	b = append(b, s.Prefix...)
 	b, s.Value = s.Value.formatCompactTo(b, d)
@@ -127,7 +128,7 @@ func (s textWrap) formatCompactTo(b []byte, d diffMode) ([]byte, textNode) {
 	}
 	return b, s
 }
-func (s textWrap) formatExpandedTo(b []byte, d diffMode, n indentMode) []byte {
+func (s *textWrap) formatExpandedTo(b []byte, d diffMode, n indentMode) []byte {
 	b = append(b, s.Prefix...)
 	b = s.Value.formatExpandedTo(b, d, n)
 	b = append(b, s.Suffix...)
@@ -195,7 +196,7 @@ func (s1 textList) Equal(s2 textNode) bool {
 }
 
 func (s textList) String() string {
-	return textWrap{"{", s, "}"}.String()
+	return (&textWrap{Prefix: "{", Value: s, Suffix: "}"}).String()
 }
 
 func (s textList) formatCompactTo(b []byte, d diffMode) ([]byte, textNode) {

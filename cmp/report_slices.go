@@ -112,7 +112,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 			}
 		}
 		isText = !isBinary
-		isLinedText = isText && numLines >= 4 && maxLineLen <= 256
+		isLinedText = isText && numLines >= 4 && maxLineLen <= 1024
 	}
 
 	// Format the string into printable records.
@@ -194,7 +194,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 		}
 		list2 = append(list2, textRecord{Value: textLine(`"""`), ElideComma: true})
 		if isTripleQuoted {
-			var out textNode = textWrap{"(", list2, ")"}
+			var out textNode = &textWrap{Prefix: "(", Value: list2, Suffix: ")"}
 			switch t.Kind() {
 			case reflect.String:
 				if t != reflect.TypeOf(string("")) {
@@ -281,7 +281,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 	}
 
 	// Wrap the output with appropriate type information.
-	var out textNode = textWrap{"{", list, "}"}
+	var out textNode = &textWrap{Prefix: "{", Value: list, Suffix: "}"}
 	if !isText {
 		// The "{...}" byte-sequence literal is not valid Go syntax for strings.
 		// Emit the type for extra clarity (e.g. "string{...}").
@@ -292,12 +292,12 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 	}
 	switch t.Kind() {
 	case reflect.String:
-		out = textWrap{"strings.Join(", out, fmt.Sprintf(", %q)", delim)}
+		out = &textWrap{Prefix: "strings.Join(", Value: out, Suffix: fmt.Sprintf(", %q)", delim)}
 		if t != reflect.TypeOf(string("")) {
 			out = opts.FormatType(t, out)
 		}
 	case reflect.Slice:
-		out = textWrap{"bytes.Join(", out, fmt.Sprintf(", %q)", delim)}
+		out = &textWrap{Prefix: "bytes.Join(", Value: out, Suffix: fmt.Sprintf(", %q)", delim)}
 		if t != reflect.TypeOf([]byte(nil)) {
 			out = opts.FormatType(t, out)
 		}
