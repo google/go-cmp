@@ -1,54 +1,54 @@
-<<< TestDiff/Comparer#09
+<<< TestDiff/Comparer/StructInequal
   struct{ A int; B int; C int }{
   	A: 1,
   	B: 2,
 - 	C: 3,
 + 	C: 4,
   }
->>> TestDiff/Comparer#09
-<<< TestDiff/Comparer#12
+>>> TestDiff/Comparer/StructInequal
+<<< TestDiff/Comparer/PointerStructInequal
   &struct{ A *int }{
 - 	A: &4,
 + 	A: &5,
   }
->>> TestDiff/Comparer#12
-<<< TestDiff/Comparer#16
+>>> TestDiff/Comparer/PointerStructInequal
+<<< TestDiff/Comparer/StructNestedPointerInequal
   &struct{ R *bytes.Buffer }{
 - 	R: s"",
 + 	R: nil,
   }
->>> TestDiff/Comparer#16
-<<< TestDiff/Comparer#23
+>>> TestDiff/Comparer/StructNestedPointerInequal
+<<< TestDiff/Comparer/RegexpInequal
   []*regexp.Regexp{
   	nil,
 - 	s"a*b*c*",
 + 	s"a*b*d*",
   }
->>> TestDiff/Comparer#23
-<<< TestDiff/Comparer#25
+>>> TestDiff/Comparer/RegexpInequal
+<<< TestDiff/Comparer/TriplePointerInequal
   &&&int(
 - 	0,
 + 	1,
   )
->>> TestDiff/Comparer#25
-<<< TestDiff/Comparer#28
+>>> TestDiff/Comparer/TriplePointerInequal
+<<< TestDiff/Comparer/StringerInequal
   struct{ fmt.Stringer }(
 - 	s"hello",
 + 	s"hello2",
   )
->>> TestDiff/Comparer#28
-<<< TestDiff/Comparer#29
+>>> TestDiff/Comparer/StringerInequal
+<<< TestDiff/Comparer/DifferingHash
   [16]uint8{
 - 	0x0c, 0xc1, 0x75, 0xb9, 0xc0, 0xf1, 0xb6, 0xa8, 0x31, 0xc3, 0x99, 0xe2, 0x69, 0x77, 0x26, 0x61,
 + 	0x92, 0xeb, 0x5f, 0xfe, 0xe6, 0xae, 0x2f, 0xec, 0x3a, 0xd7, 0x1c, 0x77, 0x75, 0x31, 0x57, 0x8f,
   }
->>> TestDiff/Comparer#29
-<<< TestDiff/Comparer#30
+>>> TestDiff/Comparer/DifferingHash
+<<< TestDiff/Comparer/NilStringer
   interface{}(
 - 	&fmt.Stringer(nil),
   )
->>> TestDiff/Comparer#30
-<<< TestDiff/Comparer#31
+>>> TestDiff/Comparer/NilStringer
+<<< TestDiff/Comparer/TarHeaders
   []cmp_test.tarHeader{
   	{
   		... // 4 identical fields
@@ -101,8 +101,8 @@
   		... // 6 identical fields
   	},
   }
->>> TestDiff/Comparer#31
-<<< TestDiff/Comparer#36
+>>> TestDiff/Comparer/TarHeaders
+<<< TestDiff/Comparer/IrreflexiveComparison
   []int{
 - 	Inverse(λ, float64(NaN)),
 + 	Inverse(λ, float64(NaN)),
@@ -125,19 +125,19 @@
 - 	Inverse(λ, float64(NaN)),
 + 	Inverse(λ, float64(NaN)),
   }
->>> TestDiff/Comparer#36
-<<< TestDiff/Comparer#37
+>>> TestDiff/Comparer/IrreflexiveComparison
+<<< TestDiff/Comparer/StringerMapKey
   map[*testprotos.Stringer]*testprotos.Stringer(
 - 	{s"hello": s"world"},
 + 	nil,
   )
->>> TestDiff/Comparer#37
-<<< TestDiff/Comparer#38
+>>> TestDiff/Comparer/StringerMapKey
+<<< TestDiff/Comparer/StringerBacktick
   interface{}(
 - 	[]*testprotos.Stringer{s`multi\nline\nline\nline`},
   )
->>> TestDiff/Comparer#38
-<<< TestDiff/Comparer#42
+>>> TestDiff/Comparer/StringerBacktick
+<<< TestDiff/Comparer/DynamicMap
   []interface{}{
   	map[string]interface{}{
   		"avg":  float64(0.278),
@@ -152,14 +152,14 @@
   		"name": string("Sammy Sosa"),
   	},
   }
->>> TestDiff/Comparer#42
-<<< TestDiff/Comparer#43
+>>> TestDiff/Comparer/DynamicMap
+<<< TestDiff/Comparer/MapKeyPointer
   map[*int]string{
 - 	&⟪0xdeadf00f⟫0: "hello",
 + 	&⟪0xdeadf00f⟫0: "world",
   }
->>> TestDiff/Comparer#43
-<<< TestDiff/Comparer#44
+>>> TestDiff/Comparer/MapKeyPointer
+<<< TestDiff/Comparer/IgnoreSliceElements
   [2][]int{
   	{..., 1, 2, 3, ...},
   	{
@@ -169,8 +169,8 @@
   		... // 3 ignored elements
   	},
   }
->>> TestDiff/Comparer#44
-<<< TestDiff/Comparer#45
+>>> TestDiff/Comparer/IgnoreSliceElements
+<<< TestDiff/Comparer/IgnoreMapEntries
   [2]map[string]int{
   	{"KEEP3": 3, "keep1": 1, "keep2": 2, ...},
   	{
@@ -179,14 +179,14 @@
 + 		"keep2": 2,
   	},
   }
->>> TestDiff/Comparer#45
-<<< TestDiff/Transformer
+>>> TestDiff/Comparer/IgnoreMapEntries
+<<< TestDiff/Transformer/Uints
   uint8(Inverse(λ, uint16(Inverse(λ, uint32(Inverse(λ, uint64(
 - 	0,
 + 	1,
   )))))))
->>> TestDiff/Transformer
-<<< TestDiff/Transformer#02
+>>> TestDiff/Transformer/Uints
+<<< TestDiff/Transformer/Filtered
   []int{
   	Inverse(λ, int64(0)),
 - 	Inverse(λ, int64(-5)),
@@ -195,14 +195,14 @@
 - 	Inverse(λ, int64(-1)),
 + 	Inverse(λ, int64(-5)),
   }
->>> TestDiff/Transformer#02
-<<< TestDiff/Transformer#03
+>>> TestDiff/Transformer/Filtered
+<<< TestDiff/Transformer/DisjointOutput
   int(Inverse(λ, interface{}(
 - 	string("zero"),
 + 	float64(1),
   )))
->>> TestDiff/Transformer#03
-<<< TestDiff/Transformer#04
+>>> TestDiff/Transformer/DisjointOutput
+<<< TestDiff/Transformer/JSON
   string(Inverse(ParseJSON, map[string]interface{}{
   	"address": map[string]interface{}{
 - 		"city":          string("Los Angeles"),
@@ -228,8 +228,8 @@
   	},
 + 	"spouse": nil,
   }))
->>> TestDiff/Transformer#04
-<<< TestDiff/Transformer#05
+>>> TestDiff/Transformer/JSON
+<<< TestDiff/Transformer/AcyclicString
   cmp_test.StringBytes{
   	String: Inverse(SplitString, []string{
   		"some",
@@ -251,7 +251,7 @@
   		},
   	})),
   }
->>> TestDiff/Transformer#05
+>>> TestDiff/Transformer/AcyclicString
 <<< TestDiff/Reporter/AmbiguousType
   interface{}(
 - 	"github.com/google/go-cmp/cmp/internal/teststructs/foo1".Bar{},
@@ -327,12 +327,12 @@
 - 	s"hello": "goodbye",
   }
 >>> TestDiff/Reporter/NonAmbiguousStringerMapKey
-<<< TestDiff//InvalidUTF8
+<<< TestDiff/Reporter/InvalidUTF8
   interface{}(
 - 	cmp_test.MyString("\xed\xa0\x80"),
   )
->>> TestDiff//InvalidUTF8
-<<< TestDiff/Reporter
+>>> TestDiff/Reporter/InvalidUTF8
+<<< TestDiff/Reporter/UnbatchedSlice
   cmp_test.MyComposite{
   	... // 3 identical fields
   	BytesB: nil,
@@ -350,8 +350,8 @@
   	IntsC: nil,
   	... // 6 identical fields
   }
->>> TestDiff/Reporter
-<<< TestDiff/Reporter#01
+>>> TestDiff/Reporter/UnbatchedSlice
+<<< TestDiff/Reporter/BatchedSlice
   cmp_test.MyComposite{
   	... // 3 identical fields
   	BytesB: nil,
@@ -367,7 +367,7 @@
   	IntsC: nil,
   	... // 6 identical fields
   }
->>> TestDiff/Reporter#01
+>>> TestDiff/Reporter/BatchedSlice
 <<< TestDiff/Reporter/BatchedWithComparer
   cmp_test.MyComposite{
   	StringA: "",
@@ -389,7 +389,7 @@
 - 	cmp_test.MyComposite{IntsA: []int8{0, 1, 2, 3, 4, 5, 6, 7, ...}},
   )
 >>> TestDiff/Reporter/BatchedLong
-<<< TestDiff/Reporter#02
+<<< TestDiff/Reporter/BatchedNamedAndUnnamed
   cmp_test.MyComposite{
   	StringA: "",
   	StringB: "",
@@ -442,8 +442,8 @@
 + 		9.5, 8.5, 7.5,
   	},
   }
->>> TestDiff/Reporter#02
-<<< TestDiff/Reporter#03
+>>> TestDiff/Reporter/BatchedNamedAndUnnamed
+<<< TestDiff/Reporter/BinaryHexdump
   cmp_test.MyComposite{
   	StringA: "",
   	StringB: "",
@@ -464,8 +464,8 @@
   	BytesC: nil,
   	... // 9 identical fields
   }
->>> TestDiff/Reporter#03
-<<< TestDiff/Reporter#04
+>>> TestDiff/Reporter/BinaryHexdump
+<<< TestDiff/Reporter/StringHexdump
   cmp_test.MyComposite{
   	StringA: "",
   	StringB: cmp_test.MyString{
@@ -489,8 +489,8 @@
   	BytesB: nil,
   	... // 10 identical fields
   }
->>> TestDiff/Reporter#04
-<<< TestDiff/Reporter#05
+>>> TestDiff/Reporter/StringHexdump
+<<< TestDiff/Reporter/BinaryString
   cmp_test.MyComposite{
   	StringA: "",
   	StringB: "",
@@ -507,7 +507,7 @@
   	BytesC: nil,
   	... // 9 identical fields
   }
->>> TestDiff/Reporter#05
+>>> TestDiff/Reporter/BinaryString
 <<< TestDiff/Reporter/TripleQuote
   cmp_test.MyComposite{
   	StringA: (
@@ -875,7 +875,7 @@
   	... // 12 identical and 10 modified elements
   }
 >>> TestDiff/Reporter/LimitMaximumSliceDiffs
-<<< TestDiff/Reporter#06
+<<< TestDiff/Reporter/MultilineString
   cmp_test.MyComposite{
   	StringA: (
   		"""
@@ -902,8 +902,8 @@
   	BytesA:  nil,
   	... // 11 identical fields
   }
->>> TestDiff/Reporter#06
-<<< TestDiff/Reporter#07
+>>> TestDiff/Reporter/MultilineString
+<<< TestDiff/Reporter/Slices
   cmp_test.MyComposite{
   	StringA: "",
   	StringB: "",
@@ -932,8 +932,8 @@
 - 	FloatsC: cmp_test.MyFloats{7.5, 8.5, 9.5},
 + 	FloatsC: nil,
   }
->>> TestDiff/Reporter#07
-<<< TestDiff/Reporter#08
+>>> TestDiff/Reporter/Slices
+<<< TestDiff/Reporter/EmptySlices
   cmp_test.MyComposite{
   	StringA: "",
   	StringB: "",
@@ -962,8 +962,8 @@
 - 	FloatsC: cmp_test.MyFloats{},
 + 	FloatsC: nil,
   }
->>> TestDiff/Reporter#08
-<<< TestDiff/EmbeddedStruct/ParentStructA#04
+>>> TestDiff/Reporter/EmptySlices
+<<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{
 - 		Public:  1,
@@ -972,8 +972,8 @@
 + 		private: 3,
   	},
   }
->>> TestDiff/EmbeddedStruct/ParentStructA#04
-<<< TestDiff/EmbeddedStruct/ParentStructB#04
+>>> TestDiff/EmbeddedStruct/ParentStructA/Inequal
+<<< TestDiff/EmbeddedStruct/ParentStructB/Inequal
   teststructs.ParentStructB{
   	PublicStruct: teststructs.PublicStruct{
 - 		Public:  1,
@@ -982,8 +982,8 @@
 + 		private: 3,
   	},
   }
->>> TestDiff/EmbeddedStruct/ParentStructB#04
-<<< TestDiff/EmbeddedStruct/ParentStructC#04
+>>> TestDiff/EmbeddedStruct/ParentStructB/Inequal
+<<< TestDiff/EmbeddedStruct/ParentStructC/Inequal
   teststructs.ParentStructC{
   	privateStruct: teststructs.privateStruct{
 - 		Public:  1,
@@ -996,8 +996,8 @@
 - 	private: 4,
 + 	private: 5,
   }
->>> TestDiff/EmbeddedStruct/ParentStructC#04
-<<< TestDiff/EmbeddedStruct/ParentStructD#04
+>>> TestDiff/EmbeddedStruct/ParentStructC/Inequal
+<<< TestDiff/EmbeddedStruct/ParentStructD/Inequal
   teststructs.ParentStructD{
   	PublicStruct: teststructs.PublicStruct{
 - 		Public:  1,
@@ -1010,8 +1010,8 @@
 - 	private: 4,
 + 	private: 5,
   }
->>> TestDiff/EmbeddedStruct/ParentStructD#04
-<<< TestDiff/EmbeddedStruct/ParentStructE#05
+>>> TestDiff/EmbeddedStruct/ParentStructD/Inequal
+<<< TestDiff/EmbeddedStruct/ParentStructE/Inequal
   teststructs.ParentStructE{
   	privateStruct: teststructs.privateStruct{
 - 		Public:  1,
@@ -1026,8 +1026,8 @@
 + 		private: 5,
   	},
   }
->>> TestDiff/EmbeddedStruct/ParentStructE#05
-<<< TestDiff/EmbeddedStruct/ParentStructF#05
+>>> TestDiff/EmbeddedStruct/ParentStructE/Inequal
+<<< TestDiff/EmbeddedStruct/ParentStructF/Inequal
   teststructs.ParentStructF{
   	privateStruct: teststructs.privateStruct{
 - 		Public:  1,
@@ -1046,8 +1046,8 @@
 - 	private: 6,
 + 	private: 7,
   }
->>> TestDiff/EmbeddedStruct/ParentStructF#05
-<<< TestDiff/EmbeddedStruct/ParentStructG#04
+>>> TestDiff/EmbeddedStruct/ParentStructF/Inequal
+<<< TestDiff/EmbeddedStruct/ParentStructG/Inequal
   &teststructs.ParentStructG{
   	privateStruct: &teststructs.privateStruct{
 - 		Public:  1,
@@ -1056,8 +1056,8 @@
 + 		private: 3,
   	},
   }
->>> TestDiff/EmbeddedStruct/ParentStructG#04
-<<< TestDiff/EmbeddedStruct/ParentStructH#05
+>>> TestDiff/EmbeddedStruct/ParentStructG/Inequal
+<<< TestDiff/EmbeddedStruct/ParentStructH/Inequal
   &teststructs.ParentStructH{
   	PublicStruct: &teststructs.PublicStruct{
 - 		Public:  1,
@@ -1066,8 +1066,8 @@
 + 		private: 3,
   	},
   }
->>> TestDiff/EmbeddedStruct/ParentStructH#05
-<<< TestDiff/EmbeddedStruct/ParentStructI#06
+>>> TestDiff/EmbeddedStruct/ParentStructH/Inequal
+<<< TestDiff/EmbeddedStruct/ParentStructI/Inequal
   &teststructs.ParentStructI{
   	privateStruct: &teststructs.privateStruct{
 - 		Public:  1,
@@ -1082,8 +1082,8 @@
 + 		private: 5,
   	},
   }
->>> TestDiff/EmbeddedStruct/ParentStructI#06
-<<< TestDiff/EmbeddedStruct/ParentStructJ#05
+>>> TestDiff/EmbeddedStruct/ParentStructI/Inequal
+<<< TestDiff/EmbeddedStruct/ParentStructJ/Inequal
   &teststructs.ParentStructJ{
   	privateStruct: &teststructs.privateStruct{
 - 		Public:  1,
@@ -1110,136 +1110,136 @@
 + 		private: 7,
   	},
   }
->>> TestDiff/EmbeddedStruct/ParentStructJ#05
-<<< TestDiff/EqualMethod/StructB
+>>> TestDiff/EmbeddedStruct/ParentStructJ/Inequal
+<<< TestDiff/EqualMethod/StructB/ValueInequal
   teststructs.StructB{
 - 	X: "NotEqual",
 + 	X: "not_equal",
   }
->>> TestDiff/EqualMethod/StructB
-<<< TestDiff/EqualMethod/StructD
+>>> TestDiff/EqualMethod/StructB/ValueInequal
+<<< TestDiff/EqualMethod/StructD/ValueInequal
   teststructs.StructD{
 - 	X: "NotEqual",
 + 	X: "not_equal",
   }
->>> TestDiff/EqualMethod/StructD
-<<< TestDiff/EqualMethod/StructE
+>>> TestDiff/EqualMethod/StructD/ValueInequal
+<<< TestDiff/EqualMethod/StructE/ValueInequal
   teststructs.StructE{
 - 	X: "NotEqual",
 + 	X: "not_equal",
   }
->>> TestDiff/EqualMethod/StructE
-<<< TestDiff/EqualMethod/StructF
+>>> TestDiff/EqualMethod/StructE/ValueInequal
+<<< TestDiff/EqualMethod/StructF/ValueInequal
   teststructs.StructF{
 - 	X: "NotEqual",
 + 	X: "not_equal",
   }
->>> TestDiff/EqualMethod/StructF
-<<< TestDiff/EqualMethod/StructA1#01
+>>> TestDiff/EqualMethod/StructF/ValueInequal
+<<< TestDiff/EqualMethod/StructA1/ValueInequal
   teststructs.StructA1{
   	StructA: {X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructA1#01
-<<< TestDiff/EqualMethod/StructA1#03
+>>> TestDiff/EqualMethod/StructA1/ValueInequal
+<<< TestDiff/EqualMethod/StructA1/PointerInequal
   &teststructs.StructA1{
   	StructA: {X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructA1#03
-<<< TestDiff/EqualMethod/StructB1#01
+>>> TestDiff/EqualMethod/StructA1/PointerInequal
+<<< TestDiff/EqualMethod/StructB1/ValueInequal
   teststructs.StructB1{
-  	StructB: Inverse(Ref, &teststructs.StructB{X: "NotEqual"}),
+  	StructB: Inverse(Addr, &teststructs.StructB{X: "NotEqual"}),
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructB1#01
-<<< TestDiff/EqualMethod/StructB1#03
+>>> TestDiff/EqualMethod/StructB1/ValueInequal
+<<< TestDiff/EqualMethod/StructB1/PointerInequal
   &teststructs.StructB1{
-  	StructB: Inverse(Ref, &teststructs.StructB{X: "NotEqual"}),
+  	StructB: Inverse(Addr, &teststructs.StructB{X: "NotEqual"}),
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructB1#03
-<<< TestDiff/EqualMethod/StructD1
+>>> TestDiff/EqualMethod/StructB1/PointerInequal
+<<< TestDiff/EqualMethod/StructD1/ValueInequal
   teststructs.StructD1{
 - 	StructD: teststructs.StructD{X: "NotEqual"},
 + 	StructD: teststructs.StructD{X: "not_equal"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructD1
-<<< TestDiff/EqualMethod/StructE1
+>>> TestDiff/EqualMethod/StructD1/ValueInequal
+<<< TestDiff/EqualMethod/StructE1/ValueInequal
   teststructs.StructE1{
 - 	StructE: teststructs.StructE{X: "NotEqual"},
 + 	StructE: teststructs.StructE{X: "not_equal"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructE1
-<<< TestDiff/EqualMethod/StructF1
+>>> TestDiff/EqualMethod/StructE1/ValueInequal
+<<< TestDiff/EqualMethod/StructF1/ValueInequal
   teststructs.StructF1{
 - 	StructF: teststructs.StructF{X: "NotEqual"},
 + 	StructF: teststructs.StructF{X: "not_equal"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructF1
-<<< TestDiff/EqualMethod/StructA2#01
+>>> TestDiff/EqualMethod/StructF1/ValueInequal
+<<< TestDiff/EqualMethod/StructA2/ValueInequal
   teststructs.StructA2{
   	StructA: &{X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructA2#01
-<<< TestDiff/EqualMethod/StructA2#03
+>>> TestDiff/EqualMethod/StructA2/ValueInequal
+<<< TestDiff/EqualMethod/StructA2/PointerInequal
   &teststructs.StructA2{
   	StructA: &{X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructA2#03
-<<< TestDiff/EqualMethod/StructB2#01
+>>> TestDiff/EqualMethod/StructA2/PointerInequal
+<<< TestDiff/EqualMethod/StructB2/ValueInequal
   teststructs.StructB2{
   	StructB: &{X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructB2#01
-<<< TestDiff/EqualMethod/StructB2#03
+>>> TestDiff/EqualMethod/StructB2/ValueInequal
+<<< TestDiff/EqualMethod/StructB2/PointerInequal
   &teststructs.StructB2{
   	StructB: &{X: "NotEqual"},
 - 	X:       "NotEqual",
 + 	X:       "not_equal",
   }
->>> TestDiff/EqualMethod/StructB2#03
-<<< TestDiff/EqualMethod/StructNo
+>>> TestDiff/EqualMethod/StructB2/PointerInequal
+<<< TestDiff/EqualMethod/StructNo/Inequal
   teststructs.StructNo{
 - 	X: "NotEqual",
 + 	X: "not_equal",
   }
->>> TestDiff/EqualMethod/StructNo
-<<< TestDiff/Cycle#01
+>>> TestDiff/EqualMethod/StructNo/Inequal
+<<< TestDiff/Cycle/PointersInequal
   &&cmp_test.P(
 - 	&⟪0xdeadf00f⟫,
 + 	&&⟪0xdeadf00f⟫,
   )
->>> TestDiff/Cycle#01
-<<< TestDiff/Cycle#03
+>>> TestDiff/Cycle/PointersInequal
+<<< TestDiff/Cycle/SlicesInequal
   cmp_test.S{
 - 	{{{*(*cmp_test.S)(⟪0xdeadf00f⟫)}}},
 + 	{{{{*(*cmp_test.S)(⟪0xdeadf00f⟫)}}}},
   }
->>> TestDiff/Cycle#03
-<<< TestDiff/Cycle#05
+>>> TestDiff/Cycle/SlicesInequal
+<<< TestDiff/Cycle/MapsInequal
   cmp_test.M{
 - 	0: {0: ⟪0xdeadf00f⟫},
 + 	0: {0: {0: ⟪0xdeadf00f⟫}},
   }
->>> TestDiff/Cycle#05
-<<< TestDiff/Cycle#07
+>>> TestDiff/Cycle/MapsInequal
+<<< TestDiff/Cycle/GraphInequalZeroed
   map[string]*cmp_test.CycleAlpha{
   	"Bar": &{
   		Name: "Bar",
@@ -1352,8 +1352,8 @@
   		},
   	},
   }
->>> TestDiff/Cycle#07
-<<< TestDiff/Cycle#08
+>>> TestDiff/Cycle/GraphInequalZeroed
+<<< TestDiff/Cycle/GraphInequalStruct
   map[string]*cmp_test.CycleAlpha{
   	"Bar": &{
   		Name: "Bar",
@@ -1437,8 +1437,8 @@
   	},
   	"Foo": &{Name: "Foo", Bravos: {"FooBravo": &{ID: 101, Name: "FooBravo", Mods: 100, Alphas: {"Foo": &{Name: "Foo", Bravos: {...}}}}}},
   }
->>> TestDiff/Cycle#08
-<<< TestDiff/Project1#02
+>>> TestDiff/Cycle/GraphInequalStruct
+<<< TestDiff/Project1/ProtoInequal
   teststructs.Eagle{
   	... // 4 identical fields
   	Dreamers: nil,
@@ -1462,8 +1462,8 @@
   	PrankRating:   "",
   	... // 2 identical fields
   }
->>> TestDiff/Project1#02
-<<< TestDiff/Project1#04
+>>> TestDiff/Project1/ProtoInequal
+<<< TestDiff/Project1/Inequal
   teststructs.Eagle{
   	... // 2 identical fields
   	Desc:     "some description",
@@ -1535,8 +1535,8 @@
   	PrankRating:   "",
   	... // 2 identical fields
   }
->>> TestDiff/Project1#04
-<<< TestDiff/Project2#02
+>>> TestDiff/Project1/Inequal
+<<< TestDiff/Project2/InequalOrder
   teststructs.GermBatch{
   	DirtyGerms: map[int32][]*testprotos.Germ{
   		17: {s"germ1"},
@@ -1551,8 +1551,8 @@
   	GermMap:    {13: s"germ13", 21: s"germ21"},
   	... // 7 identical fields
   }
->>> TestDiff/Project2#02
-<<< TestDiff/Project2#04
+>>> TestDiff/Project2/InequalOrder
+<<< TestDiff/Project2/Inequal
   teststructs.GermBatch{
   	DirtyGerms: map[int32][]*testprotos.Germ{
 + 		17: {s"germ1"},
@@ -1578,8 +1578,8 @@
   	TotalDirtyGerms:   0,
   	InfectedAt:        s"2009-11-10 23:00:00 +0000 UTC",
   }
->>> TestDiff/Project2#04
-<<< TestDiff/Project3#03
+>>> TestDiff/Project2/Inequal
+<<< TestDiff/Project3/Inequal
   teststructs.Dirt{
 - 	table:   &teststructs.MockTable{state: []string{"a", "c"}},
 + 	table:   &teststructs.MockTable{state: []string{"a", "b", "c"}},
@@ -1597,8 +1597,8 @@
   	lastTime: 54321,
   	... // 1 ignored field
   }
->>> TestDiff/Project3#03
-<<< TestDiff/Project4#03
+>>> TestDiff/Project3/Inequal
+<<< TestDiff/Project4/Inequal
   teststructs.Cartel{
   	Headquarter: teststructs.Headquarter{
   		id:       5,
@@ -1639,4 +1639,4 @@
 - 		&{poisonType: 2, manufacturer: "acme2"},
   	},
   }
->>> TestDiff/Project4#03
+>>> TestDiff/Project4/Inequal
