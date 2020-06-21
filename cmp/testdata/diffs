@@ -252,6 +252,18 @@
   	})),
   }
 >>> TestDiff/Transformer/AcyclicString
+<<< TestDiff/Reporter/PanicStringer
+  struct{ X fmt.Stringer }{
+- 	X: struct{ fmt.Stringer }{},
++ 	X: s"",
+  }
+>>> TestDiff/Reporter/PanicStringer
+<<< TestDiff/Reporter/PanicError
+  struct{ X error }{
+- 	X: struct{ error }{},
++ 	X: e"",
+  }
+>>> TestDiff/Reporter/PanicError
 <<< TestDiff/Reporter/AmbiguousType
   interface{}(
 - 	"github.com/google/go-cmp/cmp/internal/teststructs/foo1".Bar{},

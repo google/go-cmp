@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -874,6 +875,18 @@ func reporterTests() []test {
 	)
 
 	return []test{{
+		label:     label + "/PanicStringer",
+		x:         struct{ X fmt.Stringer }{struct{ fmt.Stringer }{nil}},
+		y:         struct{ X fmt.Stringer }{bytes.NewBuffer(nil)},
+		wantEqual: false,
+		reason:    "panic from fmt.Stringer should not crash the reporter",
+	}, {
+		label:     label + "/PanicError",
+		x:         struct{ X error }{struct{ error }{nil}},
+		y:         struct{ X error }{errors.New("")},
+		wantEqual: false,
+		reason:    "panic from error should not crash the reporter",
+	}, {
 		label:     label + "/AmbiguousType",
 		x:         foo1.Bar{},
 		y:         foo2.Bar{},

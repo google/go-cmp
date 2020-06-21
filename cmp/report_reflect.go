@@ -125,12 +125,18 @@ func (opts formatOptions) FormatValue(v reflect.Value, parentKind reflect.Kind, 
 		// implementations crash when doing so.
 		if (t.Kind() != reflect.Ptr && t.Kind() != reflect.Interface) || !v.IsNil() {
 			var prefix, strVal string
-			switch v := v.Interface().(type) {
-			case error:
-				prefix, strVal = "e", v.Error()
-			case fmt.Stringer:
-				prefix, strVal = "s", v.String()
-			}
+			func() {
+				// Swallow and ignore any panics from String or Error.
+				defer func() { recover() }()
+				switch v := v.Interface().(type) {
+				case error:
+					strVal = v.Error()
+					prefix = "e"
+				case fmt.Stringer:
+					strVal = v.String()
+					prefix = "s"
+				}
+			}()
 			if prefix != "" {
 				maxLen := len(strVal)
 				if opts.LimitVerbosity {
