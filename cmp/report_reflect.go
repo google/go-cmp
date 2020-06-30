@@ -15,7 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp/internal/value"
 )
 
-type formatValueOptions struct {
+type FormatValueOptions struct {
 	// AvoidStringer controls whether to avoid calling custom stringer
 	// methods like error.Error or fmt.Stringer.String.
 	AvoidStringer bool
@@ -40,7 +40,7 @@ type formatValueOptions struct {
 
 // FormatType prints the type as if it were wrapping s.
 // This may return s as-is depending on the current type and TypeMode mode.
-func (opts formatOptions) FormatType(t reflect.Type, s textNode) textNode {
+func (opts FormatOptions) FormatType(t reflect.Type, s textNode) textNode {
 	// Check whether to emit the type or not.
 	switch opts.TypeMode {
 	case autoType:
@@ -103,7 +103,7 @@ func wrapParens(s textNode) textNode {
 
 // FormatValue prints the reflect.Value, taking extra care to avoid descending
 // into pointers already in ptrs. As pointers are visited, ptrs is also updated.
-func (opts formatOptions) FormatValue(v reflect.Value, parentKind reflect.Kind, ptrs *pointerReferences) (out textNode) {
+func (opts FormatOptions) FormatValue(v reflect.Value, parentKind reflect.Kind, ptrs *pointerReferences) (out textNode) {
 	if !v.IsValid() {
 		return nil
 	}
@@ -304,7 +304,7 @@ func (opts formatOptions) FormatValue(v reflect.Value, parentKind reflect.Kind, 
 // formatMapKey formats v as if it were a map key.
 // The result is guaranteed to be a single line.
 func formatMapKey(v reflect.Value, disambiguate bool, ptrs *pointerReferences) string {
-	var opts formatOptions
+	var opts FormatOptions
 	opts.DiffMode = diffIdentical
 	opts.TypeMode = elideType
 	opts.PrintAddresses = disambiguate

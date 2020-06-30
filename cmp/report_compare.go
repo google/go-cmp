@@ -35,7 +35,7 @@ const (
 	autoType
 )
 
-type formatOptions struct {
+type FormatOptions struct {
 	// DiffMode controls the output mode of FormatDiff.
 	//
 	// If diffUnknown,   then produce a diff of the x and y values.
@@ -52,23 +52,23 @@ type formatOptions struct {
 	TypeMode typeMode
 
 	// formatValueOptions are options specific to printing reflect.Values.
-	formatValueOptions
+	FormatValueOptions
 }
 
-func (opts formatOptions) WithDiffMode(d diffMode) formatOptions {
+func (opts FormatOptions) WithDiffMode(d diffMode) FormatOptions {
 	opts.DiffMode = d
 	return opts
 }
-func (opts formatOptions) WithTypeMode(t typeMode) formatOptions {
+func (opts FormatOptions) WithTypeMode(t typeMode) FormatOptions {
 	opts.TypeMode = t
 	return opts
 }
-func (opts formatOptions) WithVerbosity(level int) formatOptions {
+func (opts FormatOptions) WithVerbosity(level int) FormatOptions {
 	opts.VerbosityLevel = level
 	opts.LimitVerbosity = true
 	return opts
 }
-func (opts formatOptions) verbosity() uint {
+func (opts FormatOptions) verbosity() uint {
 	switch {
 	case opts.VerbosityLevel < 0:
 		return 0
@@ -83,7 +83,7 @@ const maxVerbosityPreset = 3
 
 // verbosityPreset modifies the verbosity settings given an index
 // between 0 and maxVerbosityPreset, inclusive.
-func verbosityPreset(opts formatOptions, i int) formatOptions {
+func verbosityPreset(opts FormatOptions, i int) FormatOptions {
 	opts.VerbosityLevel = int(opts.verbosity()) + 2*i
 	if i > 0 {
 		opts.AvoidStringer = true
@@ -97,7 +97,7 @@ func verbosityPreset(opts formatOptions, i int) formatOptions {
 
 // FormatDiff converts a valueNode tree into a textNode tree, where the later
 // is a textual representation of the differences detected in the former.
-func (opts formatOptions) FormatDiff(v *valueNode, ptrs *pointerReferences) (out textNode) {
+func (opts FormatOptions) FormatDiff(v *valueNode, ptrs *pointerReferences) (out textNode) {
 	if opts.DiffMode == diffIdentical {
 		opts = opts.WithVerbosity(1)
 	} else {
@@ -200,7 +200,7 @@ func (opts formatOptions) FormatDiff(v *valueNode, ptrs *pointerReferences) (out
 	}
 }
 
-func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind, ptrs *pointerReferences) textNode {
+func (opts FormatOptions) formatDiffList(recs []reportRecord, k reflect.Kind, ptrs *pointerReferences) textNode {
 	// Derive record name based on the data structure kind.
 	var name string
 	var formatKey func(reflect.Value) string

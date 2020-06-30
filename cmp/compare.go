@@ -123,7 +123,7 @@ func Diff(x, y interface{}, opts ...Option) string {
 		s.result = diff.Result{} // Reset results
 	}
 
-	r := new(defaultReporter)
+	r := new(DefaultReporter)
 	s.reporters = append(s.reporters, reporter{r})
 	s.compareAny(rootStep(x, y))
 	d := r.String()

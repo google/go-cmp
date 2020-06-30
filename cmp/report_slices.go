@@ -18,7 +18,7 @@ import (
 
 // CanFormatDiffSlice reports whether we support custom formatting for nodes
 // that are slices of primitive kinds or strings.
-func (opts formatOptions) CanFormatDiffSlice(v *valueNode) bool {
+func (opts FormatOptions) CanFormatDiffSlice(v *valueNode) bool {
 	switch {
 	case opts.DiffMode != diffUnknown:
 		return false // Must be formatting in diff mode
@@ -74,7 +74,7 @@ func (opts formatOptions) CanFormatDiffSlice(v *valueNode) bool {
 // FormatDiffSlice prints a diff for the slices (or strings) represented by v.
 // This provides custom-tailored logic to make printing of differences in
 // textual strings and slices of primitive kinds more readable.
-func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
+func (opts FormatOptions) FormatDiffSlice(v *valueNode) textNode {
 	assert(opts.DiffMode == diffUnknown)
 	t, vx, vy := v.Type, v.ValueX, v.ValueY
 
@@ -317,7 +317,7 @@ func formatASCII(s string) string {
 	return string(b)
 }
 
-func (opts formatOptions) formatDiffSlice(
+func (opts FormatOptions) formatDiffSlice(
 	vx, vy reflect.Value, chunkSize int, name string,
 	makeRec func(reflect.Value, diffMode) textRecord,
 ) (list textList) {
