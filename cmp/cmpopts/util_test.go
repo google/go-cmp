@@ -1223,7 +1223,7 @@ func TestPanic(t *testing.T) {
 		label:     "IgnoreFields",
 		fnc:       IgnoreFields,
 		args:      args(&Foo1{}, "Alpha"),
-		wantPanic: "must be a struct",
+		wantPanic: "must be a non-pointer struct",
 		reason:    "the type must be a struct (not pointer to a struct)",
 	}, {
 		label:  "IgnoreFields",
@@ -1304,13 +1304,13 @@ func TestPanic(t *testing.T) {
 		label:     "IgnoreUnexported",
 		fnc:       IgnoreUnexported,
 		args:      args(nil),
-		wantPanic: "invalid struct type",
+		wantPanic: "must be a non-pointer struct",
 		reason:    "input must not be nil value",
 	}, {
 		label:     "IgnoreUnexported",
 		fnc:       IgnoreUnexported,
 		args:      args(&Foo1{}),
-		wantPanic: "invalid struct type",
+		wantPanic: "must be a non-pointer struct",
 		reason:    "input must be a struct type (not a pointer to a struct)",
 	}, {
 		label:  "IgnoreUnexported",
