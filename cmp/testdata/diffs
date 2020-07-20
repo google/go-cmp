@@ -730,6 +730,39 @@
   	... // 7 identical lines
   }, "\n")
 >>> TestDiff/Reporter/AvoidTripleQuoteIdenticalWhitespace
+<<< TestDiff/Reporter/TripleQuoteStringer
+  []fmt.Stringer{
+  	s"package main\n\nimport (\n\t\"fmt\"\n)\n\nfunc main() {\n\tfmt.Println(\"Hel"...,
+- 	(
+- 		s"""
+- 		package main
+- 		
+- 		import (
+- 			"fmt"
+- 			"math/rand"
+- 		)
+- 		
+- 		func main() {
+- 			fmt.Println("My favorite number is", rand.Intn(10))
+- 		}
+- 		s"""
+- 	),
++ 	(
++ 		s"""
++ 		package main
++ 		
++ 		import (
++ 			"fmt"
++ 			"math"
++ 		)
++ 		
++ 		func main() {
++ 			fmt.Printf("Now you have %g problems.\n", math.Sqrt(7))
++ 		}
++ 		s"""
++ 	),
+  }
+>>> TestDiff/Reporter/TripleQuoteStringer
 <<< TestDiff/Reporter/LimitMaximumBytesDiffs
   []uint8{
 - 	0xcd, 0x3d, 0x3d, 0x3d, 0x3d, 0x06, 0x1f, 0xc2, 0xcc, 0xc2, 0x2d, 0x53,                         // -|.====.....-S|
