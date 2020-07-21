@@ -1134,6 +1134,19 @@ func reporterTests() []test {
 		wantEqual: false,
 		reason:    "avoid triple-quote syntax due to visual equivalence of differences",
 	}, {
+		label: label + "/TripleQuoteStringer",
+		x: []fmt.Stringer{
+			bytes.NewBuffer([]byte("package main\n\nimport (\n\t\"fmt\"\n)\n\nfunc main() {\n\tfmt.Println(\"Hello, playground\")\n}\n")),
+			bytes.NewBuffer([]byte("package main\n\nimport (\n\t\"fmt\"\n\t\"math/rand\"\n)\n\nfunc main() {\n\tfmt.Println(\"My favorite number is\", rand.Intn(10))\n}\n")),
+		},
+		y: []fmt.Stringer{
+			bytes.NewBuffer([]byte("package main\n\nimport (\n\t\"fmt\"\n)\n\nfunc main() {\n\tfmt.Println(\"Hello, playground\")\n}\n")),
+			bytes.NewBuffer([]byte("package main\n\nimport (\n\t\"fmt\"\n\t\"math\"\n)\n\nfunc main() {\n\tfmt.Printf(\"Now you have %g problems.\\n\", math.Sqrt(7))\n}\n")),
+		},
+		opts:      []cmp.Option{cmp.Comparer(func(x, y fmt.Stringer) bool { return x.String() == y.String() })},
+		wantEqual: false,
+		reason:    "multi-line String output should be formatted with triple quote",
+	}, {
 		label:     label + "/LimitMaximumBytesDiffs",
 		x:         []byte("\xcd====\x06\x1f\xc2\xcc\xc2-S=====\x1d\xdfa\xae\x98\x9fH======ǰ\xb7=======\xef====:\\\x94\xe6J\xc7=====\xb4======\n\n\xf7\x94===========\xf2\x9c\xc0f=====4\xf6\xf1\xc3\x17\x82======n\x16`\x91D\xc6\x06=======\x1cE====.===========\xc4\x18=======\x8a\x8d\x0e====\x87\xb1\xa5\x8e\xc3=====z\x0f1\xaeU======G,=======5\xe75\xee\x82\xf4\xce====\x11r===========\xaf]=======z\x05\xb3\x91\x88%\xd2====\n1\x89=====i\xb7\x055\xe6\x81\xd2=============\x883=@̾====\x14\x05\x96%^t\x04=====\xe7Ȉ\x90\x1d============="),
 		y:         []byte("\\====|\x96\xe7SB\xa0\xab=====\xf0\xbd\xa5q\xab\x17;======\xabP\x00=======\xeb====\xa5\x14\xe6O(\xe4=====(======/c@?===========\xd9x\xed\x13=====J\xfc\x918B\x8d======a8A\xebs\x04\xae=======\aC====\x1c===========\x91\"=======uؾ====s\xec\x845\a=====;\xabS9t======\x1f\x1b=======\x80\xab/\xed+:;====\xeaI===========\xabl=======\xb9\xe9\xfdH\x93\x8e\u007f====ח\xe5=====Ig\x88m\xf5\x01V=============\xf7+4\xb0\x92E====\x9fj\xf8&\xd0h\xf9=====\xeeΨ\r\xbf============="),
