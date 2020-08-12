@@ -22,6 +22,9 @@ matrix:
         - go test -v -race ./...
     - go: 1.14.x
       script:
+        - go test -v -race ./...
+    - go: 1.15.x
+      script:
         - diff -u <(echo -n) <(gofmt -d .)
         - go test -v -race ./...
     - go: master
