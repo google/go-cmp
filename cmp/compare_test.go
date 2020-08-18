@@ -696,6 +696,19 @@ func comparerTests() []test {
 		},
 		wantEqual: true,
 		reason:    "verify that exporter does not leak implementation details",
+	}, {
+		label:     label + "/ErrorPanic",
+		x:         io.EOF,
+		y:         io.EOF,
+		wantPanic: "consider using cmpopts.EquateErrors",
+		reason:    "suggest cmpopts.EquateErrors when accessing unexported fields of error types",
+	}, {
+		label:     label + "/ErrorEqual",
+		x:         io.EOF,
+		y:         io.EOF,
+		opts:      []cmp.Option{cmpopts.EquateErrors()},
+		wantEqual: true,
+		reason:    "cmpopts.EquateErrors should equate these two errors as sentinel values",
 	}}
 }
 
