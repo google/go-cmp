@@ -7,7 +7,12 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/google/go-cmp/cmp/internal/flags"
 )
+
+func init() {
+	flags.Deterministic = true
+}
 
 // Use IgnoreFields to ignore fields on a type when comparing.
 // Provide an interface of the type, and the field names to ignore.
@@ -28,7 +33,7 @@ func ExampleIgnoreFields_testing() {
 	//   	SSID:      "CoffeeShopWiFi",
 	// - 	IPAddress: s"192.168.0.2",
 	// + 	IPAddress: s"192.168.0.1",
-	//   	NetMask:   net.IPMask{0xff, 0xff, 0x00, 0x00},
+	//   	NetMask:   {0xff, 0xff, 0x00, 0x00},
 	//   	Clients: []cmpopts_test.Client{
 	//   		... // 3 identical elements
 	//   		{Hostname: "espresso", ...},
@@ -40,6 +45,7 @@ func ExampleIgnoreFields_testing() {
 	// + 		},
 	//   	},
 	//   }
+
 }
 
 type (
