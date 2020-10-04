@@ -1,4 +1,4 @@
-// Copyright 2017, The Go Authors. All rights reserved.
+// Copyright 2020, The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -25,8 +25,9 @@ func ExampleIgnoreFields_testing() {
 	// and want be the expected golden data.
 	got, want := MakeGatewayInfo()
 
-	// Note that the Diff will still potentially show ignored fields as different,
-	// but only because they are adjacent to other fields that are also different.
+	// While the specified fields will be semantically ignored for the comparison,
+	// the fields may be printed in the diff when displaying entire values
+	// that are already determined to be different.
 	if diff := cmp.Diff(want, got, cmpopts.IgnoreFields(Client{}, "IPAddress")); diff != "" {
 		t.Errorf("MakeGatewayInfo() mismatch (-want +got):\n%s", diff)
 	}
