@@ -18,8 +18,9 @@ func init() {
 	flags.Deterministic = true
 }
 
-// Use IgnoreFields to ignore fields on a type when comparing.
-// Provide an interface of the type and the field names to ignore.
+// Use IgnoreFields to ignore fields on a struct type when comparing
+// by providing a value of the type and the field names to ignore.
+// Typically, a zero value of the type is used (e.g., foo.MyStruct{}).
 func ExampleIgnoreFields_testing() {
 	// Let got be the hypothetical value obtained from some logic under test
 	// and want be the expected golden data.
