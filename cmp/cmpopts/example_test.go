@@ -1,3 +1,7 @@
+// Copyright 2017, The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package cmpopts_test
 
 import (
@@ -15,7 +19,7 @@ func init() {
 }
 
 // Use IgnoreFields to ignore fields on a type when comparing.
-// Provide an interface of the type, and the field names to ignore.
+// Provide an interface of the type and the field names to ignore.
 func ExampleIgnoreFields_testing() {
 	// Let got be the hypothetical value obtained from some logic under test
 	// and want be the expected golden data.
@@ -45,7 +49,6 @@ func ExampleIgnoreFields_testing() {
 	// + 		},
 	//   	},
 	//   }
-
 }
 
 type (
