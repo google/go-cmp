@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/google/go-cmp/cmp/internal/function"
+	"github.com/google/go-cmp/cmp/internal/value"
 )
 
 // Option configures for specific behavior of Equal and Diff. In particular,
@@ -161,7 +162,7 @@ func FilterValues(f interface{}, opt Option) Option {
 	}
 	if opt := normalizeOption(opt); opt != nil {
 		vf := &valuesFilter{fnc: v, opt: opt}
-		if ti := v.Type().In(0); ti.Kind() != reflect.Interface || ti.NumMethod() > 0 {
+		if ti := v.Type().In(0); !value.IsEmptyInterface(ti) {
 			vf.typ = ti
 		}
 		return vf
@@ -286,7 +287,7 @@ func Transformer(name string, f interface{}) Option {
 		panic(fmt.Sprintf("invalid name: %q", name))
 	}
 	tr := &transformer{name: name, fnc: reflect.ValueOf(f)}
-	if ti := v.Type().In(0); ti.Kind() != reflect.Interface || ti.NumMethod() > 0 {
+	if ti := v.Type().In(0); !value.IsEmptyInterface(ti) {
 		tr.typ = ti
 	}
 	return tr
@@ -345,7 +346,7 @@ func Comparer(f interface{}) Option {
 		panic(fmt.Sprintf("invalid comparer function: %T", f))
 	}
 	cm := &comparer{fnc: v}
-	if ti := v.Type().In(0); ti.Kind() != reflect.Interface || ti.NumMethod() > 0 {
+	if ti := v.Type().In(0); !value.IsEmptyInterface(ti) {
 		cm.typ = ti
 	}
 	return cm
