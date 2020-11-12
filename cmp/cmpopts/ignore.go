@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/internal/function"
-	"github.com/google/go-cmp/cmp/internal/value"
 )
 
 // IgnoreFields returns an Option that ignores fields of the
@@ -83,7 +82,7 @@ func newIfaceFilter(ifaces interface{}) (tf ifaceFilter) {
 			panic("struct cannot have named fields")
 		case fi.Type.Kind() != reflect.Interface:
 			panic("embedded field must be an interface type")
-		case value.IsEmptyInterface(fi.Type):
+		case fi.Type.NumMethod() == 0:
 			// This matches everything; why would you ever want this?
 			panic("cannot ignore empty interface")
 		default:
