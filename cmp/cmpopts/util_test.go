@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"golang.org/x/xerrors"
 )
 
 type (
@@ -531,14 +530,14 @@ func TestOptions(t *testing.T) {
 		reason:    "user-defined EOF is not exactly equal",
 	}, {
 		label:     "EquateErrors",
-		x:         xerrors.Errorf("wrapped: %w", io.EOF),
+		x:         fmt.Errorf("wrapped: %w", io.EOF),
 		y:         io.EOF,
 		opts:      []cmp.Option{EquateErrors()},
 		wantEqual: true,
 		reason:    "wrapped io.EOF is equal according to errors.Is",
 	}, {
 		label:     "EquateErrors",
-		x:         xerrors.Errorf("wrapped: %w", io.EOF),
+		x:         fmt.Errorf("wrapped: %w", io.EOF),
 		y:         io.EOF,
 		wantEqual: false,
 		reason:    "wrapped io.EOF is not equal without EquateErrors option",
@@ -585,14 +584,14 @@ func TestOptions(t *testing.T) {
 		reason:    "user-defined EOF is not exactly equal",
 	}, {
 		label:     "EquateErrors",
-		x:         xerrors.Errorf("wrapped: %w", io.EOF),
+		x:         fmt.Errorf("wrapped: %w", io.EOF),
 		y:         io.EOF,
 		opts:      []cmp.Option{EquateErrors()},
 		wantEqual: true,
 		reason:    "wrapped io.EOF is equal according to errors.Is",
 	}, {
 		label:     "EquateErrors",
-		x:         xerrors.Errorf("wrapped: %w", io.EOF),
+		x:         fmt.Errorf("wrapped: %w", io.EOF),
 		y:         io.EOF,
 		wantEqual: false,
 		reason:    "wrapped io.EOF is not equal without EquateErrors option",
@@ -639,14 +638,14 @@ func TestOptions(t *testing.T) {
 		reason:    "user-defined EOF is not exactly equal",
 	}, {
 		label:     "EquateErrors",
-		x:         struct{ E error }{xerrors.Errorf("wrapped: %w", io.EOF)},
+		x:         struct{ E error }{fmt.Errorf("wrapped: %w", io.EOF)},
 		y:         struct{ E error }{io.EOF},
 		opts:      []cmp.Option{EquateErrors()},
 		wantEqual: true,
 		reason:    "wrapped io.EOF is equal according to errors.Is",
 	}, {
 		label:     "EquateErrors",
-		x:         struct{ E error }{xerrors.Errorf("wrapped: %w", io.EOF)},
+		x:         struct{ E error }{fmt.Errorf("wrapped: %w", io.EOF)},
 		y:         struct{ E error }{io.EOF},
 		wantEqual: false,
 		reason:    "wrapped io.EOF is not equal without EquateErrors option",

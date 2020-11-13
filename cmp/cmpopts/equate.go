@@ -6,12 +6,12 @@
 package cmpopts
 
 import (
+	"errors"
 	"math"
 	"reflect"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"golang.org/x/xerrors"
 )
 
 func equateAlways(_, _ interface{}) bool { return true }
@@ -152,5 +152,5 @@ func compareErrors(x, y interface{}) bool {
 	xe := x.(error)
 	ye := y.(error)
 	// TODO(≥go1.13): Use standard definition of errors.Is.
-	return xerrors.Is(xe, ye) || xerrors.Is(ye, xe)
+	return errors.Is(xe, ye) || errors.Is(ye, xe)
 }
