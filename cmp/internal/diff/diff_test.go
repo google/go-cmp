@@ -10,13 +10,7 @@ import (
 	"strings"
 	"testing"
 	"unicode"
-
-	"github.com/google/go-cmp/cmp/internal/flags"
 )
-
-func init() {
-	flags.Deterministic = true
-}
 
 func TestDifference(t *testing.T) {
 	tests := []struct {
@@ -24,7 +18,7 @@ func TestDifference(t *testing.T) {
 		// they can be used by the test author to indicate a missing symbol
 		// in one of the lists.
 		x, y string
-		want string
+		want string // '|' separated list of possible outputs
 	}{{
 		x:    "",
 		y:    "",
@@ -36,7 +30,7 @@ func TestDifference(t *testing.T) {
 	}, {
 		x:    "##",
 		y:    "# ",
-		want: ".X",
+		want: ".X|X.",
 	}, {
 		x:    "a#",
 		y:    "A ",
@@ -48,7 +42,7 @@ func TestDifference(t *testing.T) {
 	}, {
 		x:    "# ",
 		y:    "##",
-		want: ".Y",
+		want: ".Y|Y.",
 	}, {
 		x:    " #",
 		y:    "@#",
@@ -148,7 +142,7 @@ func TestDifference(t *testing.T) {
 	}, {
 		x:    "ABCAB BA ",
 		y:    "  C BABAC",
-		want: "XX.X.Y..Y",
+		want: "XX.X.Y..Y|XX.Y.X..Y",
 	}, {
 		x:    "# ####  ###",
 		y:    "#y####yy###",
@@ -164,7 +158,7 @@ func TestDifference(t *testing.T) {
 	}, {
 		x:    "0 12z3x 456789 x x 0",
 		y:    "0y12Z3 y456789y y y0",
-		want: ".Y..M.XY......YXYXY.",
+		want: ".Y..M.XY......YXYXY.|.Y..M.XY......XYXYY.",
 	}, {
 		x:    "0 2 4 6 8 ..................abXXcdEXF.ghXi",
 		y:    " 1 3 5 7 9..................AB  CDE F.GH I",
@@ -216,7 +210,7 @@ func TestDifference(t *testing.T) {
 	}, {
 		x:    "0123456789     ",
 		y:    "     5678901234",
-		want: "XXXXX.....YYYYY",
+		want: "XXXXX.....YYYYY|YYYYY.....XXXXX",
 	}, {
 		x:    "0123456789    ",
 		y:    "    4567890123",
@@ -252,9 +246,14 @@ func TestDifference(t *testing.T) {
 			x := strings.Replace(tt.x, " ", "", -1)
 			y := strings.Replace(tt.y, " ", "", -1)
 			es := testStrings(t, x, y)
-			if got := es.String(); got != tt.want {
-				t.Errorf("Difference(%s, %s):\ngot  %s\nwant %s", x, y, got, tt.want)
+			var want string
+			got := es.String()
+			for _, want = range strings.Split(tt.want, "|") {
+				if got == want {
+					return
+				}
 			}
+			t.Errorf("Difference(%s, %s):\ngot  %s\nwant %s", x, y, got, want)
 		})
 	}
 }
