@@ -1014,6 +1014,28 @@
 + 	&⟪0xdeadf00f⟫⟪ptr:0xdeadf00f, len:1048576, cap:1048576⟫{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, ...}: 0,
   }
 >>> TestDiff/Reporter/LargeMapKey
+<<< TestDiff/Reporter/LargeStringInInterface
+  struct{ X interface{} }{
+  	X: strings.Join({
+  		... // 485 identical bytes
+  		"s mus. Pellentesque mi lorem, consectetur id porttitor id, solli",
+  		"citudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis",
+- 		".",
++ 		",",
+  	}, ""),
+  }
+>>> TestDiff/Reporter/LargeStringInInterface
+<<< TestDiff/Reporter/LargeBytesInInterface
+  struct{ X interface{} }{
+  	X: bytes.Join({
+  		... // 485 identical bytes
+  		"s mus. Pellentesque mi lorem, consectetur id porttitor id, solli",
+  		"citudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis",
+- 		".",
++ 		",",
+  	}, ""),
+  }
+>>> TestDiff/Reporter/LargeBytesInInterface
 <<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{
