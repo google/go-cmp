@@ -338,8 +338,11 @@ func (opts formatOptions) formatDiffSlice(
 	vx, vy reflect.Value, chunkSize int, name string,
 	makeRec func(reflect.Value, diffMode) textRecord,
 ) (list textList) {
-	es := diff.Difference(vx.Len(), vy.Len(), func(ix int, iy int) diff.Result {
-		return diff.BoolResult(vx.Index(ix).Interface() == vy.Index(iy).Interface())
+	eq := func(ix, iy int) bool {
+		return vx.Index(ix).Interface() == vy.Index(iy).Interface()
+	}
+	es := diff.Difference(vx.Len(), vy.Len(), func(ix, iy int) diff.Result {
+		return diff.BoolResult(eq(ix, iy))
 	})
 
 	appendChunks := func(v reflect.Value, d diffMode) int {
@@ -364,6 +367,7 @@ func (opts formatOptions) formatDiffSlice(
 
 	groups := coalesceAdjacentEdits(name, es)
 	groups = coalesceInterveningIdentical(groups, chunkSize/4)
+	groups = cleanupSurroundingIdentical(groups, eq)
 	maxGroup := diffStats{Name: name}
 	for i, ds := range groups {
 		if maxLen >= 0 && numDiffs >= maxLen {
@@ -416,25 +420,36 @@ func (opts formatOptions) formatDiffSlice(
 
 // coalesceAdjacentEdits coalesces the list of edits into groups of adjacent
 // equal or unequal counts.
+//
+// Example:
+//
+//	Input:  "..XXY...Y"
+//	Output: [
+//		{NumIdentical: 2},
+//		{NumRemoved: 2, NumInserted 1},
+//		{NumIdentical: 3},
+//		{NumInserted: 1},
+//	]
+//
 func coalesceAdjacentEdits(name string, es diff.EditScript) (groups []diffStats) {
-	var prevCase int // Arbitrary index into which case last occurred
-	lastStats := func(i int) *diffStats {
-		if prevCase != i {
+	var prevMode byte
+	lastStats := func(mode byte) *diffStats {
+		if prevMode != mode {
 			groups = append(groups, diffStats{Name: name})
-			prevCase = i
+			prevMode = mode
 		}
 		return &groups[len(groups)-1]
 	}
 	for _, e := range es {
 		switch e {
 		case diff.Identity:
-			lastStats(1).NumIdentical++
+			lastStats('=').NumIdentical++
 		case diff.UniqueX:
-			lastStats(2).NumRemoved++
+			lastStats('!').NumRemoved++
 		case diff.UniqueY:
-			lastStats(2).NumInserted++
+			lastStats('!').NumInserted++
 		case diff.Modified:
-			lastStats(2).NumModified++
+			lastStats('!').NumModified++
 		}
 	}
 	return groups
@@ -444,6 +459,35 @@ func coalesceAdjacentEdits(name string, es diff.EditScript) (groups []diffStats)
 // equal groups into adjacent unequal groups that currently result in a
 // dual inserted/removed printout. This acts as a high-pass filter to smooth
 // out high-frequency changes within the windowSize.
+//
+// Example:
+//
+//	WindowSize: 16,
+//	Input: [
+//		{NumIdentical: 61},              // group 0
+//		{NumRemoved: 3, NumInserted: 1}, // group 1
+//		{NumIdentical: 6},               // ├── coalesce
+//		{NumInserted: 2},                // ├── coalesce
+//		{NumIdentical: 1},               // ├── coalesce
+//		{NumRemoved: 9},                 // └── coalesce
+//		{NumIdentical: 64},              // group 2
+//		{NumRemoved: 3, NumInserted: 1}, // group 3
+//		{NumIdentical: 6},               // ├── coalesce
+//		{NumInserted: 2},                // ├── coalesce
+//		{NumIdentical: 1},               // ├── coalesce
+//		{NumRemoved: 7},                 // ├── coalesce
+//		{NumIdentical: 1},               // ├── coalesce
+//		{NumRemoved: 2},                 // └── coalesce
+//		{NumIdentical: 63},              // group 4
+//	]
+//	Output: [
+//		{NumIdentical: 61},
+//		{NumIdentical: 7, NumRemoved: 12, NumInserted: 3},
+//		{NumIdentical: 64},
+//		{NumIdentical: 8, NumRemoved: 12, NumInserted: 3},
+//		{NumIdentical: 63},
+//	]
+//
 func coalesceInterveningIdentical(groups []diffStats, windowSize int) []diffStats {
 	groups, groupsOrig := groups[:0], groups
 	for i, ds := range groupsOrig {
@@ -460,6 +504,94 @@ func coalesceInterveningIdentical(groups []diffStats, windowSize int) []diffStat
 			}
 		}
 		groups = append(groups, ds)
+	}
+	return groups
+}
+
+// cleanupSurroundingIdentical scans through all unequal groups, and
+// moves any leading sequence of equal elements to the preceding equal group and
+// moves and trailing sequence of equal elements to the succeeding equal group.
+//
+// This is necessary since coalesceInterveningIdentical may coalesce edit groups
+// together such that leading/trailing spans of equal elements becomes possible.
+// Note that this can occur even with an optimal diffing algorithm.
+//
+// Example:
+//
+//	Input: [
+//		{NumIdentical: 61},
+//		{NumIdentical: 1 , NumRemoved: 11, NumInserted: 2}, // assume 3 leading identical elements
+//		{NumIdentical: 67},
+//		{NumIdentical: 7, NumRemoved: 12, NumInserted: 3},  // assume 10 trailing identical elements
+//		{NumIdentical: 54},
+//	]
+//	Output: [
+//		{NumIdentical: 64}, // incremented by 3
+//		{NumRemoved: 9},
+//		{NumIdentical: 67},
+//		{NumRemoved: 9},
+//		{NumIdentical: 64}, // incremented by 10
+//	]
+//
+func cleanupSurroundingIdentical(groups []diffStats, eq func(i, j int) bool) []diffStats {
+	var ix, iy int // indexes into sequence x and y
+	for i, ds := range groups {
+		// Handle equal group.
+		if ds.NumDiff() == 0 {
+			ix += ds.NumIdentical
+			iy += ds.NumIdentical
+			continue
+		}
+
+		// Handle unequal group.
+		nx := ds.NumIdentical + ds.NumRemoved + ds.NumModified
+		ny := ds.NumIdentical + ds.NumInserted + ds.NumModified
+		var numLeadingIdentical, numTrailingIdentical int
+		for i := 0; i < nx && i < ny && eq(ix+i, iy+i); i++ {
+			numLeadingIdentical++
+		}
+		for i := 0; i < nx && i < ny && eq(ix+nx-1-i, iy+ny-1-i); i++ {
+			numTrailingIdentical++
+		}
+		if numIdentical := numLeadingIdentical + numTrailingIdentical; numIdentical > 0 {
+			if numLeadingIdentical > 0 {
+				// Remove leading identical span from this group and
+				// insert it into the preceding group.
+				if i-1 >= 0 {
+					groups[i-1].NumIdentical += numLeadingIdentical
+				} else {
+					// No preceding group exists, so prepend a new group,
+					// but do so after we finish iterating over all groups.
+					defer func() {
+						groups = append([]diffStats{{Name: groups[0].Name, NumIdentical: numLeadingIdentical}}, groups...)
+					}()
+				}
+				// Increment indexes since the preceding group would have handled this.
+				ix += numLeadingIdentical
+				iy += numLeadingIdentical
+			}
+			if numTrailingIdentical > 0 {
+				// Remove trailing identical span from this group and
+				// insert it into the succeeding group.
+				if i+1 < len(groups) {
+					groups[i+1].NumIdentical += numTrailingIdentical
+				} else {
+					// No succeeding group exists, so append a new group,
+					// but do so after we finish iterating over all groups.
+					defer func() {
+						groups = append(groups, diffStats{Name: groups[len(groups)-1].Name, NumIdentical: numTrailingIdentical})
+					}()
+				}
+				// Do not increment indexes since the succeeding group will handle this.
+			}
+
+			// Update this group since some identical elements were removed.
+			nx -= numIdentical
+			ny -= numIdentical
+			groups[i] = diffStats{Name: ds.Name, NumRemoved: nx, NumInserted: ny}
+		}
+		ix += nx
+		iy += ny
 	}
 	return groups
 }

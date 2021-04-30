@@ -1046,6 +1046,25 @@
 + 	},
   }
 >>> TestDiff/Reporter/LargeStandaloneString
+<<< TestDiff/Reporter/SurroundingEqualElements
+  strings.Join({
+  	"org-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=aa",
+- 	",#=_value",
+  	` _value=2 11	org-4747474747474747,bucket-4242424242424242:m,tag1`,
+  	"=a,tag2=bb",
+- 	",#=_value",
+  	` _value=2 21	org-4747474747474747,bucket-4242424242424242:m,tag1`,
+  	"=b,tag2=cc",
+- 	",#=_value",
+  	` _value=1 21	org-4747474747474747,bucket-4242424242424242:m,tag1`,
+  	"=a,tag2=dd",
+- 	",#=_value",
+  	` _value=3 31	org-4747474747474747,bucket-4242424242424242:m,tag1`,
+  	"=c",
+- 	",#=_value",
+  	` _value=4 41	`,
+  }, "")
+>>> TestDiff/Reporter/SurroundingEqualElements
 <<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{
