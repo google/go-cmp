@@ -98,6 +98,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 	// Auto-detect the type of the data.
 	var isLinedText, isText, isBinary bool
 	var sx, sy string
+	var ssx, ssy []string
 	switch {
 	case t.Kind() == reflect.String:
 		sx, sy = vx.String(), vy.String()
@@ -130,6 +131,22 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 		}
 		isText = !isBinary
 		isLinedText = isText && numLines >= 4 && maxLineLen <= 1024
+
+		// Avoid diffing by lines if it produces a significantly more complex
+		// edit script than diffing by bytes.
+		if isLinedText {
+			ssx = strings.Split(sx, "\n")
+			ssy = strings.Split(sy, "\n")
+			esLines := diff.Difference(len(ssx), len(ssy), func(ix, iy int) diff.Result {
+				return diff.BoolResult(ssx[ix] == ssy[iy])
+			})
+			esBytes := diff.Difference(len(sx), len(sy), func(ix, iy int) diff.Result {
+				return diff.BoolResult(sx[ix] == sy[iy])
+			})
+			efficiencyLines := float64(esLines.Dist()) / float64(len(esLines))
+			efficiencyBytes := float64(esBytes.Dist()) / float64(len(esBytes))
+			isLinedText = efficiencyLines < 4*efficiencyBytes
+		}
 	}
 
 	// Format the string into printable records.
@@ -139,8 +156,6 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 	// If the text appears to be multi-lined text,
 	// then perform differencing across individual lines.
 	case isLinedText:
-		ssx := strings.Split(sx, "\n")
-		ssy := strings.Split(sy, "\n")
 		list = opts.formatDiffSlice(
 			reflect.ValueOf(ssx), reflect.ValueOf(ssy), 1, "line",
 			func(v reflect.Value, d diffMode) textRecord {

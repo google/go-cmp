@@ -1307,6 +1307,11 @@ using the AllowUnexported option.`, "\n"),
 		x:      "org-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=aa,#=_value _value=2 11\torg-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=bb,#=_value _value=2 21\torg-4747474747474747,bucket-4242424242424242:m,tag1=b,tag2=cc,#=_value _value=1 21\torg-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=dd,#=_value _value=3 31\torg-4747474747474747,bucket-4242424242424242:m,tag1=c,#=_value _value=4 41\t",
 		y:      "org-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=aa _value=2 11\torg-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=bb _value=2 21\torg-4747474747474747,bucket-4242424242424242:m,tag1=b,tag2=cc _value=1 21\torg-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=dd _value=3 31\torg-4747474747474747,bucket-4242424242424242:m,tag1=c _value=4 41\t",
 		reason: "leading/trailing equal spans should not appear in diff lines",
+	}, {
+		label:  label + "/AllLinesDiffer",
+		x:      "d5c14bdf6bac81c27afc5429500ed750\n25483503b557c606dad4f144d27ae10b\n90bdbcdbb6ea7156068e3dcfb7459244\n978f480a6e3cced51e297fbff9a506b7\n",
+		y:      "Xd5c14bdf6bac81c27afc5429500ed750\nX25483503b557c606dad4f144d27ae10b\nX90bdbcdbb6ea7156068e3dcfb7459244\nX978f480a6e3cced51e297fbff9a506b7\n",
+		reason: "all lines are different, so diffing based on lines is pointless",
 	}}
 }
 
