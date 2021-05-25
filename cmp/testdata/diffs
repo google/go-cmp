@@ -1065,6 +1065,18 @@
   	` _value=4 41	`,
   }, "")
 >>> TestDiff/Reporter/SurroundingEqualElements
+<<< TestDiff/Reporter/AllLinesDiffer
+  strings.Join({
++ 	"X",
+  	"d5c14bdf6bac81c27afc5429500ed750\n",
++ 	"X",
+  	"25483503b557c606dad4f144d27ae10b\n",
++ 	"X",
+  	"90bdbcdbb6ea7156068e3dcfb7459244\n",
++ 	"X",
+  	"978f480a6e3cced51e297fbff9a506b7\n",
+  }, "")
+>>> TestDiff/Reporter/AllLinesDiffer
 <<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{
