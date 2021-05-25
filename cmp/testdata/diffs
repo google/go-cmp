@@ -1065,6 +1065,25 @@
   	` _value=4 41	`,
   }, "")
 >>> TestDiff/Reporter/SurroundingEqualElements
+<<< TestDiff/Reporter/MostlyTextString
+  strings.Join({
+  	"org-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=aa",
+- 	",\xff=_value",
+  	" _value=2 11\norg-4747474747474747,bucket-4242424242424242:m,tag1",
+  	"=a,tag2=bb",
+- 	",\xff=_value",
+  	" _value=2 21\norg-4747474747474747,bucket-4242424242424242:m,tag1",
+  	"=b,tag2=cc",
+- 	",\xff=_value",
+  	" _value=1 21\norg-4747474747474747,bucket-4242424242424242:m,tag1",
+  	"=a,tag2=dd",
+- 	",\xff=_value",
+  	" _value=3 31\norg-4747474747474747,bucket-4242424242424242:m,tag1",
+  	"=c",
+- 	",\xff=_value",
+  	" _value=4 41\n",
+  }, "")
+>>> TestDiff/Reporter/MostlyTextString
 <<< TestDiff/Reporter/AllLinesDiffer
   strings.Join({
 + 	"X",

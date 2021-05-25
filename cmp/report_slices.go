@@ -7,6 +7,7 @@ package cmp
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -96,16 +97,16 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 	}
 
 	// Auto-detect the type of the data.
-	var isLinedText, isText, isBinary bool
 	var sx, sy string
 	var ssx, ssy []string
+	var isString, isMostlyText, isPureLinedText, isBinary bool
 	switch {
 	case t.Kind() == reflect.String:
 		sx, sy = vx.String(), vy.String()
-		isText = true // Initial estimate, verify later
+		isString = true
 	case t.Kind() == reflect.Slice && t.Elem() == reflect.TypeOf(byte(0)):
 		sx, sy = string(vx.Bytes()), string(vy.Bytes())
-		isBinary = true // Initial estimate, verify later
+		isString = true
 	case t.Kind() == reflect.Array:
 		// Arrays need to be addressable for slice operations to work.
 		vx2, vy2 := reflect.New(t).Elem(), reflect.New(t).Elem()
@@ -113,13 +114,12 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 		vy2.Set(vy)
 		vx, vy = vx2, vy2
 	}
-	if isText || isBinary {
-		var numLines, lastLineIdx, maxLineLen int
-		isBinary = !utf8.ValidString(sx) || !utf8.ValidString(sy)
+	if isString {
+		var numTotalRunes, numValidRunes, numLines, lastLineIdx, maxLineLen int
 		for i, r := range sx + sy {
-			if !(unicode.IsPrint(r) || unicode.IsSpace(r)) || r == utf8.RuneError {
-				isBinary = true
-				break
+			numTotalRunes++
+			if (unicode.IsPrint(r) || unicode.IsSpace(r)) && r != utf8.RuneError {
+				numValidRunes++
 			}
 			if r == '\n' {
 				if maxLineLen < i-lastLineIdx {
@@ -129,12 +129,14 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 				numLines++
 			}
 		}
-		isText = !isBinary
-		isLinedText = isText && numLines >= 4 && maxLineLen <= 1024
+		isPureText := numValidRunes == numTotalRunes
+		isMostlyText = float64(numValidRunes) > math.Floor(0.90*float64(numTotalRunes))
+		isPureLinedText = isPureText && numLines >= 4 && maxLineLen <= 1024
+		isBinary = !isMostlyText
 
 		// Avoid diffing by lines if it produces a significantly more complex
 		// edit script than diffing by bytes.
-		if isLinedText {
+		if isPureLinedText {
 			ssx = strings.Split(sx, "\n")
 			ssy = strings.Split(sy, "\n")
 			esLines := diff.Difference(len(ssx), len(ssy), func(ix, iy int) diff.Result {
@@ -145,7 +147,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 			})
 			efficiencyLines := float64(esLines.Dist()) / float64(len(esLines))
 			efficiencyBytes := float64(esBytes.Dist()) / float64(len(esBytes))
-			isLinedText = efficiencyLines < 4*efficiencyBytes
+			isPureLinedText = efficiencyLines < 4*efficiencyBytes
 		}
 	}
 
@@ -155,7 +157,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 	switch {
 	// If the text appears to be multi-lined text,
 	// then perform differencing across individual lines.
-	case isLinedText:
+	case isPureLinedText:
 		list = opts.formatDiffSlice(
 			reflect.ValueOf(ssx), reflect.ValueOf(ssy), 1, "line",
 			func(v reflect.Value, d diffMode) textRecord {
@@ -244,7 +246,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 	// If the text appears to be single-lined text,
 	// then perform differencing in approximately fixed-sized chunks.
 	// The output is printed as quoted strings.
-	case isText:
+	case isMostlyText:
 		list = opts.formatDiffSlice(
 			reflect.ValueOf(sx), reflect.ValueOf(sy), 64, "byte",
 			func(v reflect.Value, d diffMode) textRecord {
@@ -252,7 +254,6 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 				return textRecord{Diff: d, Value: textLine(s)}
 			},
 		)
-		delim = ""
 
 	// If the text appears to be binary data,
 	// then perform differencing in approximately fixed-sized chunks.
@@ -314,7 +315,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 
 	// Wrap the output with appropriate type information.
 	var out textNode = &textWrap{Prefix: "{", Value: list, Suffix: "}"}
-	if !isText {
+	if !isMostlyText {
 		// The "{...}" byte-sequence literal is not valid Go syntax for strings.
 		// Emit the type for extra clarity (e.g. "string{...}").
 		if t.Kind() == reflect.String {
