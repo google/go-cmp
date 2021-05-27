@@ -657,8 +657,8 @@ func comparerTests() []test {
 		reason:    "all zero map entries are ignored (even if missing)",
 	}, {
 		label:     label + "/PanicUnexportedNamed",
-		x:         namedWithUnexported{},
-		y:         namedWithUnexported{},
+		x:         namedWithUnexported{unexported: "x"},
+		y:         namedWithUnexported{unexported: "y"},
 		wantPanic: strconv.Quote(reflect.TypeOf(namedWithUnexported{}).PkgPath()) + ".namedWithUnexported",
 		reason:    "panic on named struct type with unexported field",
 	}, {
@@ -1279,11 +1279,11 @@ using the AllowUnexported option.`, "\n"),
 	}, {
 		label: label + "/LargeMapKey",
 		x: map[*[]byte]int{func() *[]byte {
-			b := make([]byte, 1<<20, 1<<20)
+			b := make([]byte, 1<<20)
 			return &b
 		}(): 0},
 		y: map[*[]byte]int{func() *[]byte {
-			b := make([]byte, 1<<20, 1<<20)
+			b := make([]byte, 1<<20)
 			return &b
 		}(): 0},
 		reason: "printing map keys should have some verbosity limit imposed",

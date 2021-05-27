@@ -98,9 +98,9 @@ func ExampleOption_equalNaNs() {
 		return (math.IsNaN(x) && math.IsNaN(y)) || x == y
 	})
 
-	x := []float64{1.0, math.NaN(), math.E, -0.0, +0.0}
-	y := []float64{1.0, math.NaN(), math.E, -0.0, +0.0}
-	z := []float64{1.0, math.NaN(), math.Pi, -0.0, +0.0} // Pi constant instead of E
+	x := []float64{1.0, math.NaN(), math.E, 0.0}
+	y := []float64{1.0, math.NaN(), math.E, 0.0}
+	z := []float64{1.0, math.NaN(), math.Pi, 0.0} // Pi constant instead of E
 
 	fmt.Println(cmp.Equal(x, y, opt))
 	fmt.Println(cmp.Equal(y, z, opt))
@@ -216,7 +216,7 @@ func ExampleOption_sortedSlice() {
 type otherString string
 
 func (x otherString) Equal(y otherString) bool {
-	return strings.ToLower(string(x)) == strings.ToLower(string(y))
+	return strings.EqualFold(string(x), string(y))
 }
 
 // If the Equal method defined on a type is not suitable, the type can be
