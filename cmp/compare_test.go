@@ -1317,6 +1317,26 @@ using the AllowUnexported option.`, "\n"),
 		x:      "d5c14bdf6bac81c27afc5429500ed750\n25483503b557c606dad4f144d27ae10b\n90bdbcdbb6ea7156068e3dcfb7459244\n978f480a6e3cced51e297fbff9a506b7\n",
 		y:      "Xd5c14bdf6bac81c27afc5429500ed750\nX25483503b557c606dad4f144d27ae10b\nX90bdbcdbb6ea7156068e3dcfb7459244\nX978f480a6e3cced51e297fbff9a506b7\n",
 		reason: "all lines are different, so diffing based on lines is pointless",
+	}, {
+		label:  label + "/StringifiedBytes",
+		x:      struct{ X []byte }{[]byte("hello, world!")},
+		y:      struct{ X []byte }{},
+		reason: "[]byte should be printed as text since it is printable text",
+	}, {
+		label:  label + "/NonStringifiedBytes",
+		x:      struct{ X []byte }{[]byte("\xde\xad\xbe\xef")},
+		y:      struct{ X []byte }{},
+		reason: "[]byte should not be printed as text since it is binary data",
+	}, {
+		label:  label + "/StringifiedNamedBytes",
+		x:      struct{ X MyBytes }{MyBytes("hello, world!")},
+		y:      struct{ X MyBytes }{},
+		reason: "MyBytes should be printed as text since it is printable text",
+	}, {
+		label:  label + "/NonStringifiedNamedBytes",
+		x:      struct{ X MyBytes }{MyBytes("\xde\xad\xbe\xef")},
+		y:      struct{ X MyBytes }{},
+		reason: "MyBytes should not be printed as text since it is binary data",
 	}}
 }
 

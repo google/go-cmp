@@ -1096,6 +1096,30 @@
   	"978f480a6e3cced51e297fbff9a506b7\n",
   }, "")
 >>> TestDiff/Reporter/AllLinesDiffer
+<<< TestDiff/Reporter/StringifiedBytes
+  struct{ X []uint8 }{
+- 	X: []uint8("hello, world!"),
++ 	X: nil,
+  }
+>>> TestDiff/Reporter/StringifiedBytes
+<<< TestDiff/Reporter/NonStringifiedBytes
+  struct{ X []uint8 }{
+- 	X: []uint8{0xde, 0xad, 0xbe, 0xef},
++ 	X: nil,
+  }
+>>> TestDiff/Reporter/NonStringifiedBytes
+<<< TestDiff/Reporter/StringifiedNamedBytes
+  struct{ X cmp_test.MyBytes }{
+- 	X: cmp_test.MyBytes("hello, world!"),
++ 	X: nil,
+  }
+>>> TestDiff/Reporter/StringifiedNamedBytes
+<<< TestDiff/Reporter/NonStringifiedNamedBytes
+  struct{ X cmp_test.MyBytes }{
+- 	X: cmp_test.MyBytes{0xde, 0xad, 0xbe, 0xef},
++ 	X: nil,
+  }
+>>> TestDiff/Reporter/NonStringifiedNamedBytes
 <<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{
