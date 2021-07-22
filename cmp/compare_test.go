@@ -6,7 +6,7 @@ package cmp_test
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -476,8 +476,8 @@ func comparerTests() []test {
 		reason:    "comparer for fmt.Stringer used to compare differing types with different strings",
 	}, {
 		label:     label + "/DifferingHash",
-		x:         md5.Sum([]byte{'a'}),
-		y:         md5.Sum([]byte{'b'}),
+		x:         sha256.Sum256([]byte{'a'}),
+		y:         sha256.Sum256([]byte{'b'}),
 		wantEqual: false,
 		reason:    "hash differs",
 	}, {
