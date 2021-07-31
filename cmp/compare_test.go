@@ -515,7 +515,7 @@ func comparerTests() []test {
 		wantPanic: "non-deterministic or non-symmetric function detected",
 		reason:    "non-deterministic filter",
 	}, {
-		label: label + "/AssymetricComparer",
+		label: label + "/AsymmetricComparer",
 		x:     []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 		y:     []int{10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
 		opts: []cmp.Option{
@@ -1288,8 +1288,9 @@ using the AllowUnexported option.`, "\n"),
 		}(): 0},
 		reason: "printing map keys should have some verbosity limit imposed",
 	}, {
-		label:  label + "/LargeStringInInterface",
-		x:      struct{ X interface{} }{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis."},
+		label: label + "/LargeStringInInterface",
+		x:     struct{ X interface{} }{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis."},
+
 		y:      struct{ X interface{} }{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis,"},
 		reason: "strings within an interface should benefit from specialized diffing",
 	}, {
