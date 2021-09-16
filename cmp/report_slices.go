@@ -80,7 +80,7 @@ func (opts formatOptions) CanFormatDiffSlice(v *valueNode) bool {
 	}
 
 	// Use specialized string diffing for longer slices or strings.
-	const minLength = 64
+	const minLength = 32
 	return vx.Len() >= minLength && vy.Len() >= minLength
 }
 
