@@ -111,7 +111,7 @@ func TestTypeString(t *testing.T) {
 		want: "*$PackagePath.Named",
 	}, {
 		in:   (*interface{})(nil),
-		want: "*interface{}",
+		want: "*any",
 	}, {
 		in:   (*interface{ Read([]byte) (int, error) })(nil),
 		want: "*interface{ Read([]uint8) (int, error) }",
