@@ -46,7 +46,7 @@
   }
 >>> TestDiff/Comparer/DifferingHash
 <<< TestDiff/Comparer/NilStringer
-  interface{}(
+  any(
 - 	&fmt.Stringer(nil),
   )
 >>> TestDiff/Comparer/NilStringer
@@ -135,19 +135,19 @@
   )
 >>> TestDiff/Comparer/StringerMapKey
 <<< TestDiff/Comparer/StringerBacktick
-  interface{}(
+  any(
 - 	[]*testprotos.Stringer{s`multi\nline\nline\nline`},
   )
 >>> TestDiff/Comparer/StringerBacktick
 <<< TestDiff/Comparer/DynamicMap
-  []interface{}{
-  	map[string]interface{}{
+  []any{
+  	map[string]any{
   		"avg":  float64(0.278),
 - 		"hr":   int(65),
 + 		"hr":   float64(65),
   		"name": string("Mark McGwire"),
   	},
-  	map[string]interface{}{
+  	map[string]any{
   		"avg":  float64(0.288),
 - 		"hr":   int(63),
 + 		"hr":   float64(63),
@@ -199,14 +199,14 @@
   }
 >>> TestDiff/Transformer/Filtered
 <<< TestDiff/Transformer/DisjointOutput
-  int(Inverse(λ, interface{}(
+  int(Inverse(λ, any(
 - 	string("zero"),
 + 	float64(1),
   )))
 >>> TestDiff/Transformer/DisjointOutput
 <<< TestDiff/Transformer/JSON
-  string(Inverse(ParseJSON, map[string]interface{}{
-  	"address": map[string]interface{}{
+  string(Inverse(ParseJSON, map[string]any{
+  	"address": map[string]any{
 - 		"city":          string("Los Angeles"),
 + 		"city":          string("New York"),
   		"postalCode":    string("10021-3100"),
@@ -215,18 +215,18 @@
   		"streetAddress": string("21 2nd Street"),
   	},
   	"age":       float64(25),
-  	"children":  []interface{}{},
+  	"children":  []any{},
   	"firstName": string("John"),
   	"isAlive":   bool(true),
   	"lastName":  string("Smith"),
-  	"phoneNumbers": []interface{}{
-  		map[string]interface{}{
+  	"phoneNumbers": []any{
+  		map[string]any{
 - 			"number": string("212 555-4321"),
 + 			"number": string("212 555-1234"),
   			"type":   string("home"),
   		},
-  		map[string]interface{}{"number": string("646 555-4567"), "type": string("office")},
-  		map[string]interface{}{"number": string("123 456-7890"), "type": string("mobile")},
+  		map[string]any{"number": string("646 555-4567"), "type": string("office")},
+  		map[string]any{"number": string("123 456-7890"), "type": string("mobile")},
   	},
 + 	"spouse": nil,
   }))
@@ -267,7 +267,7 @@
   }
 >>> TestDiff/Reporter/PanicError
 <<< TestDiff/Reporter/AmbiguousType
-  interface{}(
+  any(
 - 	"github.com/google/go-cmp/cmp/internal/teststructs/foo1".Bar{},
 + 	"github.com/google/go-cmp/cmp/internal/teststructs/foo2".Bar{},
   )
@@ -297,7 +297,7 @@
   }
 >>> TestDiff/Reporter/AmbiguousPointerMap
 <<< TestDiff/Reporter/AmbiguousStringer
-  interface{}(
+  any(
 - 	cmp_test.Stringer("hello"),
 + 	&cmp_test.Stringer("hello"),
   )
@@ -327,7 +327,7 @@
   )
 >>> TestDiff/Reporter/AmbiguousSliceHeader
 <<< TestDiff/Reporter/AmbiguousStringerMapKey
-  map[interface{}]string{
+  map[any]string{
 - 	nil:                                                                     "nil",
 + 	&⟪0xdeadf00f⟫"github.com/google/go-cmp/cmp_test".Stringer("hello"):      "goodbye",
 - 	"github.com/google/go-cmp/cmp_test".Stringer("hello"):                   "goodbye",
@@ -336,13 +336,13 @@
   }
 >>> TestDiff/Reporter/AmbiguousStringerMapKey
 <<< TestDiff/Reporter/NonAmbiguousStringerMapKey
-  map[interface{}]string{
+  map[any]string{
 + 	s"fizz":  "buzz",
 - 	s"hello": "goodbye",
   }
 >>> TestDiff/Reporter/NonAmbiguousStringerMapKey
 <<< TestDiff/Reporter/InvalidUTF8
-  interface{}(
+  any(
 - 	cmp_test.MyString("\xed\xa0\x80"),
   )
 >>> TestDiff/Reporter/InvalidUTF8
@@ -399,7 +399,7 @@
   }
 >>> TestDiff/Reporter/BatchedWithComparer
 <<< TestDiff/Reporter/BatchedLong
-  interface{}(
+  any(
 - 	cmp_test.MyComposite{IntsA: []int8{0, 1, 2, 3, 4, 5, 6, 7, ...}},
   )
 >>> TestDiff/Reporter/BatchedLong
@@ -1017,7 +1017,7 @@
   }
 >>> TestDiff/Reporter/LargeMapKey
 <<< TestDiff/Reporter/LargeStringInInterface
-  struct{ X interface{} }{
+  struct{ X any }{
   	X: strings.Join({
   		... // 485 identical bytes
   		"s mus. Pellentesque mi lorem, consectetur id porttitor id, solli",
@@ -1028,7 +1028,7 @@
   }
 >>> TestDiff/Reporter/LargeStringInInterface
 <<< TestDiff/Reporter/LargeBytesInInterface
-  struct{ X interface{} }{
+  struct{ X any }{
   	X: bytes.Join({
   		... // 485 identical bytes
   		"s mus. Pellentesque mi lorem, consectetur id porttitor id, solli",
@@ -1039,7 +1039,7 @@
   }
 >>> TestDiff/Reporter/LargeBytesInInterface
 <<< TestDiff/Reporter/LargeStandaloneString
-  struct{ X interface{} }{
+  struct{ X any }{
 - 	X: [1]string{
 - 		"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis.",
 - 	},
@@ -1626,7 +1626,7 @@
   			... // 4 identical fields
   			ContSlaps:         nil,
   			ContSlapsInterval: 0,
-  			Animal: []interface{}{
+  			Animal: []any{
   				teststructs.Goat{
   					Target:     "corporation",
   					Slaps:      nil,
