@@ -1338,6 +1338,19 @@ using the AllowUnexported option.`, "\n"),
 		x:      struct{ X MyBytes }{MyBytes("\xde\xad\xbe\xef")},
 		y:      struct{ X MyBytes }{},
 		reason: "MyBytes should not be printed as text since it is binary data",
+	}, {
+		label: label + "/ShortJSON",
+		x: `{
+	"id": 1,
+	"foo": true,
+	"bar": true,
+}`,
+		y: `{
+	"id": 1434180,
+	"foo": true,
+	"bar": true,
+}`,
+		reason: "short multiline JSON should prefer triple-quoted string diff as it is more readable",
 	}}
 }
 

@@ -1122,6 +1122,18 @@
 + 	X: nil,
   }
 >>> TestDiff/Reporter/NonStringifiedNamedBytes
+<<< TestDiff/Reporter/ShortJSON
+  (
+  	"""
+  	{
+- 		"id": 1,
++ 		"id": 1434180,
+  		"foo": true,
+  		"bar": true,
+  	}
+  	"""
+  )
+>>> TestDiff/Reporter/ShortJSON
 <<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{
