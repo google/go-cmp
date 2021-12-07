@@ -1447,14 +1447,6 @@ func embeddedTests() []test {
 		return s
 	}
 
-	// TODO(≥go1.10): Workaround for reflect bug (https://golang.org/issue/21122).
-	wantPanicNotGo110 := func(s string) string {
-		if !flags.AtLeastGo110 {
-			return ""
-		}
-		return s
-	}
-
 	return []test{{
 		label:     label + "/ParentStructA/PanicUnexported1",
 		x:         ts.ParentStructA{},
@@ -1745,8 +1737,7 @@ func embeddedTests() []test {
 		label:     label + "/ParentStructG/PanicUnexported1",
 		x:         ts.ParentStructG{},
 		y:         ts.ParentStructG{},
-		wantPanic: wantPanicNotGo110("cannot handle unexported field"),
-		wantEqual: !flags.AtLeastGo110,
+		wantPanic: "cannot handle unexported field",
 		reason:    "ParentStructG has unexported fields",
 	}, {
 		label: label + "/ParentStructG/Ignored",
@@ -1836,8 +1827,7 @@ func embeddedTests() []test {
 		label:     label + "/ParentStructI/PanicUnexported1",
 		x:         ts.ParentStructI{},
 		y:         ts.ParentStructI{},
-		wantPanic: wantPanicNotGo110("cannot handle unexported field"),
-		wantEqual: !flags.AtLeastGo110,
+		wantPanic: "cannot handle unexported field",
 		reason:    "ParentStructI has unexported fields",
 	}, {
 		label: label + "/ParentStructI/Ignored1",
