@@ -19,10 +19,6 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v2
-      with:
-        path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
-    - name: Checkout dependencies
-      run: go get golang.org/x/xerrors
     - name: Test
       run: go test -v -race ./...
     - name: Format
