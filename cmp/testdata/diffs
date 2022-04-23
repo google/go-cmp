@@ -1134,6 +1134,30 @@
   	"""
   )
 >>> TestDiff/Reporter/ShortJSON
+<<< TestDiff/Reporter/PointerToStringOrAny
+  any(
+- 	&string("hello"),
++ 	&any(string("hello")),
+  )
+>>> TestDiff/Reporter/PointerToStringOrAny
+<<< TestDiff/Reporter/NamedPointer
+  any(
+- 	&string("hello"),
++ 	cmp_test.PointerString(&string("hello")),
+  )
+>>> TestDiff/Reporter/NamedPointer
+<<< TestDiff/Reporter/MapStringAny
+  map[string]any{
+- 	"key": int(0),
++ 	"key": uint(0),
+  }
+>>> TestDiff/Reporter/MapStringAny
+<<< TestDiff/Reporter/StructFieldAny
+  struct{ X any }{
+- 	X: int(0),
++ 	X: uint(0),
+  }
+>>> TestDiff/Reporter/StructFieldAny
 <<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{

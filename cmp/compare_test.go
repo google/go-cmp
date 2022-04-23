@@ -104,6 +104,7 @@ func mustFormatGolden(path string, in []struct{ Name, Data string }) {
 
 var now = time.Date(2009, time.November, 10, 23, 00, 00, 00, time.UTC)
 
+// TODO(≥go1.18): Define a generic function that boxes a value on the heap.
 func newInt(n int) *int { return &n }
 
 type Stringer string
@@ -885,6 +886,7 @@ func reporterTests() []test {
 			FloatsB []MyFloat
 			FloatsC MyFloats
 		}
+		PointerString *string
 	)
 
 	return []test{{
@@ -1351,6 +1353,38 @@ using the AllowUnexported option.`, "\n"),
 	"bar": true,
 }`,
 		reason: "short multiline JSON should prefer triple-quoted string diff as it is more readable",
+	}, {
+		label: label + "/PointerToStringOrAny",
+		x: func() *string {
+			var v string = "hello"
+			return &v
+		}(),
+		y: func() *interface{} {
+			var v interface{} = "hello"
+			return &v
+		}(),
+		reason: "mismatched types between any and *any should print differently",
+	}, {
+		label: label + "/NamedPointer",
+		x: func() *string {
+			v := "hello"
+			return &v
+		}(),
+		y: func() PointerString {
+			v := "hello"
+			return &v
+		}(),
+		reason: "mismatched pointer types should print differently",
+	}, {
+		label:  label + "/MapStringAny",
+		x:      map[string]interface{}{"key": int(0)},
+		y:      map[string]interface{}{"key": uint(0)},
+		reason: "mismatched underlying value within interface",
+	}, {
+		label:  label + "/StructFieldAny",
+		x:      struct{ X interface{} }{int(0)},
+		y:      struct{ X interface{} }{uint(0)},
+		reason: "mismatched underlying value within interface",
 	}}
 }
 
