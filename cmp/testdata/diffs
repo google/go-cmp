@@ -241,9 +241,9 @@
   		"string",
   	}),
   	Bytes: []uint8(Inverse(SplitBytes, [][]uint8{
-  		{0x73, 0x6f, 0x6d, 0x65},
-  		{0x6d, 0x75, 0x6c, 0x74, ...},
-  		{0x6c, 0x69, 0x6e, 0x65},
+  		"some",
+  		"multi",
+  		"line",
   		{
 - 			0x62,
 + 			0x42,
@@ -1158,6 +1158,30 @@
 + 	X: uint(0),
   }
 >>> TestDiff/Reporter/StructFieldAny
+<<< TestDiff/Reporter/SliceOfBytesText
+  [][]uint8{
+- 	"hello",
+  	"foo",
++ 	"foo",
+  	"barbaz",
++ 	"added",
++ 	"here",
+- 	"blahdieblah",
++ 	"hrmph",
+  }
+>>> TestDiff/Reporter/SliceOfBytesText
+<<< TestDiff/Reporter/SliceOfBytesBinary
+  [][]uint8{
+- 	{0xde, 0xad, 0xbe, 0xef},
+  	{0xff, 0x6f, 0x6f},
++ 	"foo",
+  	"barbaz",
++ 	"added",
++ 	"here",
+- 	"blahdieblah",
++ 	{0x68, 0x72, 0x6d, 0x70, 0x68, 0xff},
+  }
+>>> TestDiff/Reporter/SliceOfBytesBinary
 <<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{

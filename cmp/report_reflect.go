@@ -211,7 +211,7 @@ func (opts formatOptions) FormatValue(v reflect.Value, parentKind reflect.Kind, 
 			if len(b) > 0 && utf8.Valid(b) && len(bytes.TrimFunc(b, isPrintSpace)) == 0 {
 				out = opts.formatString("", string(b))
 				skipType = true
-				return opts.WithTypeMode(emitType).FormatType(t, out)
+				return opts.FormatType(t, out)
 			}
 		}
 

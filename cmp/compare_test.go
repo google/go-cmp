@@ -1385,6 +1385,24 @@ using the AllowUnexported option.`, "\n"),
 		x:      struct{ X interface{} }{int(0)},
 		y:      struct{ X interface{} }{uint(0)},
 		reason: "mismatched underlying value within interface",
+	}, {
+		label: label + "/SliceOfBytesText",
+		x: [][]byte{
+			[]byte("hello"), []byte("foo"), []byte("barbaz"), []byte("blahdieblah"),
+		},
+		y: [][]byte{
+			[]byte("foo"), []byte("foo"), []byte("barbaz"), []byte("added"), []byte("here"), []byte("hrmph"),
+		},
+		reason: "should print text byte slices as strings",
+	}, {
+		label: label + "/SliceOfBytesBinary",
+		x: [][]byte{
+			[]byte("\xde\xad\xbe\xef"), []byte("\xffoo"), []byte("barbaz"), []byte("blahdieblah"),
+		},
+		y: [][]byte{
+			[]byte("\xffoo"), []byte("foo"), []byte("barbaz"), []byte("added"), []byte("here"), []byte("hrmph\xff"),
+		},
+		reason: "should print text byte slices as strings except those with binary",
 	}}
 }
 
