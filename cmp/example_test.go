@@ -37,7 +37,7 @@ func ExampleDiff_testing() {
 	//   	SSID:      "CoffeeShopWiFi",
 	// - 	IPAddress: s"192.168.0.2",
 	// + 	IPAddress: s"192.168.0.1",
-	//   	NetMask:   {0xff, 0xff, 0x00, 0x00},
+	//   	NetMask:   s"ffff0000",
 	//   	Clients: []cmp_test.Client{
 	//   		... // 2 identical elements
 	//   		{Hostname: "macchiato", IPAddress: s"192.168.0.153", LastSeen: s"2009-11-10 23:39:43 +0000 UTC"},

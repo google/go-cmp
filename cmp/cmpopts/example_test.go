@@ -39,7 +39,7 @@ func ExampleIgnoreFields_testing() {
 	//   	SSID:      "CoffeeShopWiFi",
 	// - 	IPAddress: s"192.168.0.2",
 	// + 	IPAddress: s"192.168.0.1",
-	//   	NetMask:   {0xff, 0xff, 0x00, 0x00},
+	//   	NetMask:   s"ffff0000",
 	//   	Clients: []cmpopts_test.Client{
 	//   		... // 3 identical elements
 	//   		{Hostname: "espresso", ...},
