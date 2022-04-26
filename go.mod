@@ -1,3 +1,3 @@
 module github.com/google/go-cmp
 
-go 1.11
+go 1.13
