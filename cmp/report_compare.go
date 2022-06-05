@@ -7,8 +7,6 @@ package cmp
 import (
 	"fmt"
 	"reflect"
-
-	"github.com/google/go-cmp/cmp/internal/value"
 )
 
 // numContextRecords is the number of surrounding equal records to print.
@@ -248,11 +246,11 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind, pt
 				var isZero bool
 				switch opts.DiffMode {
 				case diffIdentical:
-					isZero = value.IsZero(r.Value.ValueX) || value.IsZero(r.Value.ValueY)
+					isZero = r.Value.ValueX.IsZero() || r.Value.ValueY.IsZero()
 				case diffRemoved:
-					isZero = value.IsZero(r.Value.ValueX)
+					isZero = r.Value.ValueX.IsZero()
 				case diffInserted:
-					isZero = value.IsZero(r.Value.ValueY)
+					isZero = r.Value.ValueY.IsZero()
 				}
 				if isZero {
 					continue
