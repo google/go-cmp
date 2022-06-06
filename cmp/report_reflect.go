@@ -184,7 +184,7 @@ func (opts formatOptions) FormatValue(v reflect.Value, parentKind reflect.Kind, 
 		}
 		for i := 0; i < v.NumField(); i++ {
 			vv := v.Field(i)
-			if value.IsZero(vv) {
+			if vv.IsZero() {
 				continue // Elide fields with zero values
 			}
 			if len(list) == maxLen {
