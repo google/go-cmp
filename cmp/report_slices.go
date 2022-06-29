@@ -147,7 +147,10 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 			})
 			efficiencyLines := float64(esLines.Dist()) / float64(len(esLines))
 			efficiencyBytes := float64(esBytes.Dist()) / float64(len(esBytes))
-			isPureLinedText = efficiencyLines < 4*efficiencyBytes
+			quotedLength := len(strconv.Quote(sx + sy))
+			unquotedLength := len(sx) + len(sy)
+			escapeExpansionRatio := float64(quotedLength) / float64(unquotedLength)
+			isPureLinedText = efficiencyLines < 4*efficiencyBytes || escapeExpansionRatio > 1.1
 		}
 	}
 
