@@ -432,7 +432,7 @@ func AllowUnexported(types ...interface{}) Option {
 }
 
 // Result represents the comparison result for a single node and
-// is provided by cmp when calling Result (see Reporter).
+// is provided by cmp when calling Report (see Reporter).
 type Result struct {
 	_     [0]func() // Make Result incomparable
 	flags resultFlags
