@@ -4,6 +4,11 @@
 
 package cmp
 
+import (
+	"bytes"
+	"reflect"
+)
+
 // defaultReporter implements the reporter interface.
 //
 // As Equal serially calls the PushStep, Report, and PopStep methods, the
@@ -44,6 +49,21 @@ func (r *defaultReporter) String() string {
 	ptrs := new(pointerReferences)
 	text := formatOptions{}.FormatDiff(r.root, ptrs)
 	resolveReferences(text)
+
+	// As a special-case if the top-level diff is a triple-quoted string,
+	// elide the outer "(" and ")" and extra level of indentation.
+	if wrap, ok := text.(*textWrap); ok && wrap.Prefix == "(" && wrap.Suffix == ")" {
+		isTripleQuote := func(rec textRecord) bool {
+			return reflect.DeepEqual(rec, textRecord{Value: textLine(`"""`), ElideComma: true})
+		}
+		if list, ok := wrap.Value.(textList); ok && len(list) >= 2 && isTripleQuote(list[0]) && isTripleQuote(list[len(list)-1]) {
+			b := list.formatExpandedTo(nil, 0, -1)
+			b = bytes.TrimLeft(b, "\n")
+			b = bytes.TrimRight(b, "  ")
+			return string(b)
+		}
+	}
+
 	return text.String()
 }
 

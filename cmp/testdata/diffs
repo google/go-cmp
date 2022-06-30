@@ -626,7 +626,28 @@
   }
 >>> TestDiff/Reporter/TripleQuoteSliceNamedTypes
 <<< TestDiff/Reporter/TripleQuoteEndlines
-  (
+  """
+  aaa
+  bbb
+- ccc
++ CCC
+  ddd
+  eee
+  ... // 10 identical lines
+  ppp
+  qqq
+- RRR
++ rrr
+  sss
+  ttt
+  ... // 4 identical lines
+  yyy
+  zzz
+- 
+  """
+>>> TestDiff/Reporter/TripleQuoteEndlines
+<<< TestDiff/Reporter/TripleQuoteEndlines/MyString
+  cmp_test.MyString(
   	"""
   	aaa
   	bbb
@@ -647,7 +668,30 @@
 - 	
   	"""
   )
->>> TestDiff/Reporter/TripleQuoteEndlines
+>>> TestDiff/Reporter/TripleQuoteEndlines/MyString
+<<< TestDiff/Reporter/TripleQuoteEndlines/Bytes
+  []uint8(
+  	"""
+  	aaa
+  	bbb
+- 	ccc
++ 	CCC
+  	ddd
+  	eee
+  	... // 10 identical lines
+  	ppp
+  	qqq
+- 	RRR
++ 	rrr
+  	sss
+  	ttt
+  	... // 4 identical lines
+  	yyy
+  	zzz
+- 	
+  	"""
+  )
+>>> TestDiff/Reporter/TripleQuoteEndlines/Bytes
 <<< TestDiff/Reporter/AvoidTripleQuoteAmbiguousQuotes
   strings.Join({
   	"aaa",
@@ -817,58 +861,56 @@
   }
 >>> TestDiff/Reporter/LimitMaximumBytesDiffs
 <<< TestDiff/Reporter/LimitMaximumStringDiffs
-  (
-  	"""
-- 	a
-+ 	aa
-  	b
-- 	c
-+ 	cc
-  	d
-- 	e
-+ 	ee
-  	f
-- 	g
-+ 	gg
-  	h
-- 	i
-+ 	ii
-  	j
-- 	k
-+ 	kk
-  	l
-- 	m
-+ 	mm
-  	n
-- 	o
-+ 	oo
-  	p
-- 	q
-+ 	qq
-  	r
-- 	s
-+ 	ss
-  	t
-- 	u
-+ 	uu
-  	v
-- 	w
-+ 	ww
-  	x
-- 	y
-+ 	yy
-  	z
-- 	A
-+ 	AA
-  	B
-- 	C
-+ 	CC
-  	D
-- 	E
-+ 	EE
-  	... // 12 identical, 10 removed, and 10 inserted lines
-  	"""
-  )
+  """
+- a
++ aa
+  b
+- c
++ cc
+  d
+- e
++ ee
+  f
+- g
++ gg
+  h
+- i
++ ii
+  j
+- k
++ kk
+  l
+- m
++ mm
+  n
+- o
++ oo
+  p
+- q
++ qq
+  r
+- s
++ ss
+  t
+- u
++ uu
+  v
+- w
++ ww
+  x
+- y
++ yy
+  z
+- A
++ AA
+  B
+- C
++ CC
+  D
+- E
++ EE
+  ... // 12 identical, 10 removed, and 10 inserted lines
+  """
 >>> TestDiff/Reporter/LimitMaximumStringDiffs
 <<< TestDiff/Reporter/LimitMaximumSliceDiffs
   []struct{ S string }{
@@ -1123,16 +1165,14 @@
   }
 >>> TestDiff/Reporter/NonStringifiedNamedBytes
 <<< TestDiff/Reporter/ShortJSON
-  (
-  	"""
-  	{
-- 		"id": 1,
-+ 		"id": 1434180,
-  		"foo": true,
-  		"bar": true,
-  	}
-  	"""
-  )
+  """
+  {
+- 	"id": 1,
++ 	"id": 1434180,
+  	"foo": true,
+  	"bar": true,
+  }
+  """
 >>> TestDiff/Reporter/ShortJSON
 <<< TestDiff/Reporter/PointerToStringOrAny
   any(

@@ -1125,6 +1125,18 @@ func reporterTests() []test {
 		wantEqual: false,
 		reason:    "use triple-quote syntax",
 	}, {
+		label:     label + "/TripleQuoteEndlines/MyString",
+		x:         MyString("aaa\nbbb\nccc\nddd\neee\nfff\nggg\r\nhhh\n\riii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n\r"),
+		y:         MyString("aaa\nbbb\nCCC\nddd\neee\nfff\nggg\r\nhhh\n\riii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nrrr\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz"),
+		wantEqual: false,
+		reason:    "use triple-quote syntax",
+	}, {
+		label:     label + "/TripleQuoteEndlines/Bytes",
+		x:         []byte("aaa\nbbb\nccc\nddd\neee\nfff\nggg\r\nhhh\n\riii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n\r"),
+		y:         []byte("aaa\nbbb\nCCC\nddd\neee\nfff\nggg\r\nhhh\n\riii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nrrr\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz"),
+		wantEqual: false,
+		reason:    "use triple-quote syntax",
+	}, {
 		label:     label + "/AvoidTripleQuoteAmbiguousQuotes",
 		x:         "aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nRRR\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
 		y:         "aaa\nbbb\nCCC\nddd\neee\n\"\"\"\nggg\nhhh\niii\njjj\nkkk\nlll\nmmm\nnnn\nooo\nppp\nqqq\nrrr\nsss\nttt\nuuu\nvvv\nwww\nxxx\nyyy\nzzz\n",
