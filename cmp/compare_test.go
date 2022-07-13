@@ -43,7 +43,7 @@ var update = flag.Bool("update", false, "update golden test files")
 const goldenHeaderPrefix = "<<< "
 const goldenFooterPrefix = ">>> "
 
-/// mustParseGolden parses a file as a set of key-value pairs.
+// mustParseGolden parses a file as a set of key-value pairs.
 //
 // The syntax is simple and looks something like:
 //

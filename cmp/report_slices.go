@@ -171,12 +171,13 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 		// differences in a string literal. This format is more readable,
 		// but has edge-cases where differences are visually indistinguishable.
 		// This format is avoided under the following conditions:
-		//	• A line starts with `"""`
-		//	• A line starts with "..."
-		//	• A line contains non-printable characters
-		//	• Adjacent different lines differ only by whitespace
+		//   - A line starts with `"""`
+		//   - A line starts with "..."
+		//   - A line contains non-printable characters
+		//   - Adjacent different lines differ only by whitespace
 		//
 		// For example:
+		//
 		//		"""
 		//		... // 3 identical lines
 		//		foo
@@ -446,7 +447,6 @@ func (opts formatOptions) formatDiffSlice(
 //		{NumIdentical: 3},
 //		{NumInserted: 1},
 //	]
-//
 func coalesceAdjacentEdits(name string, es diff.EditScript) (groups []diffStats) {
 	var prevMode byte
 	lastStats := func(mode byte) *diffStats {
@@ -503,7 +503,6 @@ func coalesceAdjacentEdits(name string, es diff.EditScript) (groups []diffStats)
 //		{NumIdentical: 8, NumRemoved: 12, NumInserted: 3},
 //		{NumIdentical: 63},
 //	]
-//
 func coalesceInterveningIdentical(groups []diffStats, windowSize int) []diffStats {
 	groups, groupsOrig := groups[:0], groups
 	for i, ds := range groupsOrig {
@@ -548,7 +547,6 @@ func coalesceInterveningIdentical(groups []diffStats, windowSize int) []diffStat
 //		{NumRemoved: 9},
 //		{NumIdentical: 64}, // incremented by 10
 //	]
-//
 func cleanupSurroundingIdentical(groups []diffStats, eq func(i, j int) bool) []diffStats {
 	var ix, iy int // indexes into sequence x and y
 	for i, ds := range groups {
