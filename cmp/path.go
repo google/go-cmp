@@ -161,7 +161,7 @@ func (ps pathStep) String() string {
 	if ps.typ == nil {
 		return "<nil>"
 	}
-	s := ps.typ.String()
+	s := value.TypeString(ps.typ, false)
 	if s == "" || strings.ContainsAny(s, "{}\n") {
 		return "root" // Type too simple or complex to print
 	}
@@ -284,7 +284,7 @@ type typeAssertion struct {
 
 func (ta TypeAssertion) Type() reflect.Type             { return ta.typ }
 func (ta TypeAssertion) Values() (vx, vy reflect.Value) { return ta.vx, ta.vy }
-func (ta TypeAssertion) String() string                 { return fmt.Sprintf(".(%v)", ta.typ) }
+func (ta TypeAssertion) String() string                 { return fmt.Sprintf(".(%v)", value.TypeString(ta.typ, false)) }
 
 // Transform is a transformation from the parent type to the current type.
 type Transform struct{ *transform }
