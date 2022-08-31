@@ -1072,7 +1072,7 @@ func TestOptions(t *testing.T) {
 	}, {
 		label: "AcyclicTransformer",
 		x:     "this is a sentence",
-		y: "this   			is a 			sentence",
+		y:     "this   			is a 			sentence",
 		opts: []cmp.Option{
 			AcyclicTransformer("", strings.Fields),
 		},
