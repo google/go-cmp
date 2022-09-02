@@ -144,7 +144,7 @@ func rootStep(x, y interface{}) PathStep {
 	// so that they have the same parent type.
 	var t reflect.Type
 	if !vx.IsValid() || !vy.IsValid() || vx.Type() != vy.Type() {
-		t = reflect.TypeOf((*interface{})(nil)).Elem()
+		t = anyType
 		if vx.IsValid() {
 			vvx := reflect.New(t).Elem()
 			vvx.Set(vx)
