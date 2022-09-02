@@ -1182,6 +1182,18 @@
 + 	{0x68, 0x72, 0x6d, 0x70, 0x68, 0xff},
   }
 >>> TestDiff/Reporter/SliceOfBytesBinary
+<<< TestDiff/Reporter/ManyEscapeCharacters
+  (
+  	"""
+  	[
+- 		{"Base32": "NA======"},
++ 		{"Base32": "NB======"},
+  		{"Base32": "NBSQ===="},
+  		{"Base32": "NBSWY==="},
+  	... // 3 identical lines
+  	"""
+  )
+>>> TestDiff/Reporter/ManyEscapeCharacters
 <<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{

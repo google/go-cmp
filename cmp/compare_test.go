@@ -1403,6 +1403,23 @@ using the AllowUnexported option.`, "\n"),
 			[]byte("\xffoo"), []byte("foo"), []byte("barbaz"), []byte("added"), []byte("here"), []byte("hrmph\xff"),
 		},
 		reason: "should print text byte slices as strings except those with binary",
+	}, {
+		label: label + "/ManyEscapeCharacters",
+		x: `[
+	{"Base32": "NA======"},
+	{"Base32": "NBSQ===="},
+	{"Base32": "NBSWY==="},
+	{"Base32": "NBSWY3A="},
+	{"Base32": "NBSWY3DP"}
+]`,
+		y: `[
+	{"Base32": "NB======"},
+	{"Base32": "NBSQ===="},
+	{"Base32": "NBSWY==="},
+	{"Base32": "NBSWY3A="},
+	{"Base32": "NBSWY3DP"}
+]`,
+		reason: "should use line-based diffing since byte-based diffing is unreadable due to heavy amounts of escaping",
 	}}
 }
 
