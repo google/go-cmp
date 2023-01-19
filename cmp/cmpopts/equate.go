@@ -132,7 +132,7 @@ func (anyError) Error() string     { return "any error" }
 func (anyError) Is(err error) bool { return err != nil }
 
 // EquateErrors returns a Comparer option that determines errors to be equal
-// if errors.Is reports them to match. The AnyError error can be used to
+// if errors is reports them to match. The AnyError error can be used to
 // match any non-nil error.
 func EquateErrors() cmp.Option {
 	return cmp.FilterValues(areConcreteErrors, cmp.Comparer(compareErrors))
