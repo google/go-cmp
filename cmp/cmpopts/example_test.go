@@ -32,25 +32,6 @@ func ExampleIgnoreFields_testing() {
 	if diff := cmp.Diff(want, got, cmpopts.IgnoreFields(Client{}, "IPAddress")); diff != "" {
 		t.Errorf("MakeGatewayInfo() mismatch (-want +got):\n%s", diff)
 	}
-
-	// Output:
-	// MakeGatewayInfo() mismatch (-want +got):
-	//   cmpopts_test.Gateway{
-	//   	SSID:      "CoffeeShopWiFi",
-	// - 	IPAddress: s"192.168.0.2",
-	// + 	IPAddress: s"192.168.0.1",
-	//   	NetMask:   s"ffff0000",
-	//   	Clients: []cmpopts_test.Client{
-	//   		... // 3 identical elements
-	//   		{Hostname: "espresso", ...},
-	//   		{Hostname: "latte", LastSeen: s"2009-11-10 23:00:23 +0000 UTC", ...},
-	// + 		{
-	// + 			Hostname:  "americano",
-	// + 			IPAddress: s"192.168.0.188",
-	// + 			LastSeen:  s"2009-11-10 23:03:05 +0000 UTC",
-	// + 		},
-	//   	},
-	//   }
 }
 
 type (
