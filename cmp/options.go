@@ -403,9 +403,6 @@ func (cm comparer) String() string {
 // In other cases, the cmpopts.IgnoreUnexported option can be used to ignore
 // all unexported fields on specified struct types.
 func Exporter(f func(reflect.Type) bool) Option {
-	if !supportExporters {
-		panic("Exporter is not supported on purego builds")
-	}
 	return exporter(f)
 }
 
