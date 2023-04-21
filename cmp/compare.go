@@ -41,8 +41,6 @@ import (
 	"github.com/google/go-cmp/cmp/internal/value"
 )
 
-// TODO(≥go1.18): Use any instead of interface{}.
-
 // Equal reports whether x and y are equal by recursively applying the
 // following rules in the given order to x and y and all of their sub-values:
 //
@@ -92,7 +90,7 @@ import (
 // is checked to detect whether the address has already been visited.
 // If there is a cycle, then the pointed at values are considered equal
 // only if both addresses were previously visited in the same path step.
-func Equal(x, y interface{}, opts ...Option) bool {
+func Equal(x, y any, opts ...Option) bool {
 	s := newState(opts)
 	s.compareAny(rootStep(x, y))
 	return s.result.Equal()
@@ -112,7 +110,7 @@ func Equal(x, y interface{}, opts ...Option) bool {
 //
 // Do not depend on this output being stable. If you need the ability to
 // programmatically interpret the difference, consider using a custom Reporter.
-func Diff(x, y interface{}, opts ...Option) string {
+func Diff(x, y any, opts ...Option) string {
 	s := newState(opts)
 
 	// Optimization: If there are no other reporters, we can optimize for the
@@ -138,7 +136,7 @@ func Diff(x, y interface{}, opts ...Option) string {
 
 // rootStep constructs the first path step. If x and y have differing types,
 // then they are stored within an empty interface type.
-func rootStep(x, y interface{}) PathStep {
+func rootStep(x, y any) PathStep {
 	vx := reflect.ValueOf(x)
 	vy := reflect.ValueOf(y)
 

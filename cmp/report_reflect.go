@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	anyType    = reflect.TypeOf((*interface{})(nil)).Elem()
+	anyType    = reflect.TypeOf((*any)(nil)).Elem()
 	stringType = reflect.TypeOf((*string)(nil)).Elem()
 	bytesType  = reflect.TypeOf((*[]byte)(nil)).Elem()
 	byteType   = reflect.TypeOf((*byte)(nil)).Elem()

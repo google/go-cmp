@@ -114,7 +114,7 @@ func (s Stringer) String() string       { return string(s) }
 
 type test struct {
 	label     string       // Test name
-	x, y      interface{}  // Input values to compare
+	x, y      any          // Input values to compare
 	opts      []cmp.Option // Input options
 	wantEqual bool         // Whether any difference is expected
 	wantPanic string       // Sub-string of an expected panic message
@@ -261,14 +261,14 @@ func comparerTests() []test {
 		label:     label + "/UnfilteredCompare",
 		x:         1,
 		y:         1,
-		opts:      []cmp.Option{cmp.Comparer(func(_, _ interface{}) bool { return true })},
+		opts:      []cmp.Option{cmp.Comparer(func(_, _ any) bool { return true })},
 		wantPanic: "cannot use an unfiltered option",
 		reason:    "unfiltered options are functionally useless",
 	}, {
 		label:     label + "/UnfilteredTransform",
 		x:         1,
 		y:         1,
-		opts:      []cmp.Option{cmp.Transformer("λ", func(x interface{}) interface{} { return x })},
+		opts:      []cmp.Option{cmp.Transformer("λ", func(x any) any { return x })},
 		wantPanic: "cannot use an unfiltered option",
 		reason:    "unfiltered options are functionally useless",
 	}, {
@@ -594,8 +594,8 @@ func comparerTests() []test {
 		reason:    "function call using Go reflection should automatically convert assignable interfaces; see https://golang.org/issues/22143",
 	}, {
 		label:     label + "/DynamicMap",
-		x:         []interface{}{map[string]interface{}{"avg": 0.278, "hr": 65, "name": "Mark McGwire"}, map[string]interface{}{"avg": 0.288, "hr": 63, "name": "Sammy Sosa"}},
-		y:         []interface{}{map[string]interface{}{"avg": 0.278, "hr": 65.0, "name": "Mark McGwire"}, map[string]interface{}{"avg": 0.288, "hr": 63.0, "name": "Sammy Sosa"}},
+		x:         []any{map[string]any{"avg": 0.278, "hr": 65, "name": "Mark McGwire"}, map[string]any{"avg": 0.288, "hr": 63, "name": "Sammy Sosa"}},
+		y:         []any{map[string]any{"avg": 0.278, "hr": 65.0, "name": "Mark McGwire"}, map[string]any{"avg": 0.288, "hr": 63.0, "name": "Sammy Sosa"}},
 		wantEqual: false,
 		reason:    "dynamic map with differing types (but semantically equivalent values) should be inequal",
 	}, {
@@ -721,7 +721,7 @@ func transformerTests() []test {
 
 	const label = "Transformer"
 
-	transformOnce := func(name string, f interface{}) cmp.Option {
+	transformOnce := func(name string, f any) cmp.Option {
 		xform := cmp.Transformer(name, f)
 		return cmp.FilterPath(func(p cmp.Path) bool {
 			for _, ps := range p {
@@ -775,7 +775,7 @@ func transformerTests() []test {
 		x:     0,
 		y:     1,
 		opts: []cmp.Option{
-			cmp.Transformer("λ", func(in int) interface{} {
+			cmp.Transformer("λ", func(in int) any {
 				if in == 0 {
 					return "zero"
 				}
@@ -815,7 +815,7 @@ func transformerTests() []test {
 			"number":"212 555-1234"},{"type":"office","number":"646 555-4567"},{
 			"type":"mobile","number":"123 456-7890"}],"children":[],"spouse":null}`,
 		opts: []cmp.Option{
-			transformOnce("ParseJSON", func(s string) (m map[string]interface{}) {
+			transformOnce("ParseJSON", func(s string) (m map[string]any) {
 				if err := json.Unmarshal([]byte(s), &m); err != nil {
 					panic(err)
 				}
@@ -978,12 +978,12 @@ func reporterTests() []test {
 		reason:    "reporter should display the slice header to disambiguate between the two slice values",
 	}, {
 		label: label + "/AmbiguousStringerMapKey",
-		x: map[interface{}]string{
+		x: map[any]string{
 			nil:               "nil",
 			Stringer("hello"): "goodbye",
 			foo1.Bar{"fizz"}:  "buzz",
 		},
-		y: map[interface{}]string{
+		y: map[any]string{
 			newStringer("hello"): "goodbye",
 			foo2.Bar{"fizz"}:     "buzz",
 		},
@@ -991,8 +991,8 @@ func reporterTests() []test {
 		reason:    "reporter should avoid calling String to disambiguate between the two map keys",
 	}, {
 		label:     label + "/NonAmbiguousStringerMapKey",
-		x:         map[interface{}]string{Stringer("hello"): "goodbye"},
-		y:         map[interface{}]string{newStringer("fizz"): "buzz"},
+		x:         map[any]string{Stringer("hello"): "goodbye"},
+		y:         map[any]string{newStringer("fizz"): "buzz"},
 		wantEqual: false,
 		reason:    "reporter should call String as there is no ambiguity between the two map keys",
 	}, {
@@ -1291,19 +1291,19 @@ using the AllowUnexported option.`, "\n"),
 		reason: "printing map keys should have some verbosity limit imposed",
 	}, {
 		label: label + "/LargeStringInInterface",
-		x:     struct{ X interface{} }{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis."},
+		x:     struct{ X any }{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis."},
 
-		y:      struct{ X interface{} }{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis,"},
+		y:      struct{ X any }{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis,"},
 		reason: "strings within an interface should benefit from specialized diffing",
 	}, {
 		label:  label + "/LargeBytesInInterface",
-		x:      struct{ X interface{} }{[]byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis.")},
-		y:      struct{ X interface{} }{[]byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis,")},
+		x:      struct{ X any }{[]byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis.")},
+		y:      struct{ X any }{[]byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis,")},
 		reason: "bytes slice within an interface should benefit from specialized diffing",
 	}, {
 		label:  label + "/LargeStandaloneString",
-		x:      struct{ X interface{} }{[1]string{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis."}},
-		y:      struct{ X interface{} }{[1]string{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis,"}},
+		x:      struct{ X any }{[1]string{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis."}},
+		y:      struct{ X any }{[1]string{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis,"}},
 		reason: "printing a large standalone string that is different should print enough context to see the difference",
 	}, {
 		label:  label + "/SurroundingEqualElements",
@@ -1359,8 +1359,8 @@ using the AllowUnexported option.`, "\n"),
 			var v string = "hello"
 			return &v
 		}(),
-		y: func() *interface{} {
-			var v interface{} = "hello"
+		y: func() *any {
+			var v any = "hello"
 			return &v
 		}(),
 		reason: "mismatched types between any and *any should print differently",
@@ -1377,13 +1377,13 @@ using the AllowUnexported option.`, "\n"),
 		reason: "mismatched pointer types should print differently",
 	}, {
 		label:  label + "/MapStringAny",
-		x:      map[string]interface{}{"key": int(0)},
-		y:      map[string]interface{}{"key": uint(0)},
+		x:      map[string]any{"key": int(0)},
+		y:      map[string]any{"key": uint(0)},
 		reason: "mismatched underlying value within interface",
 	}, {
 		label:  label + "/StructFieldAny",
-		x:      struct{ X interface{} }{int(0)},
-		y:      struct{ X interface{} }{uint(0)},
+		x:      struct{ X any }{int(0)},
+		y:      struct{ X any }{uint(0)},
 		reason: "mismatched underlying value within interface",
 	}, {
 		label: label + "/SliceOfBytesText",
@@ -2026,7 +2026,7 @@ func methodTests() []test {
 				tf.In(0).AssignableTo(tf.In(1)) && tf.Out(0) == reflect.TypeOf(true)
 		}
 		return false
-	}, cmp.Transformer("Addr", func(x interface{}) interface{} {
+	}, cmp.Transformer("Addr", func(x any) any {
 		v := reflect.ValueOf(x)
 		vp := reflect.New(v.Type())
 		vp.Elem().Set(v)
@@ -2451,7 +2451,7 @@ func cycleTests() []test {
 	}
 
 	var tests []test
-	type XY struct{ x, y interface{} }
+	type XY struct{ x, y any }
 	for _, tt := range []struct {
 		label     string
 		in        XY
@@ -2589,7 +2589,7 @@ func project1Tests() []test {
 			Desc:   "some description",
 			Dreamers: []ts.Dreamer{{}, {
 				Name: "dreamer2",
-				Animal: []interface{}{
+				Animal: []any{
 					ts.Goat{
 						Target: "corporation",
 						Immutable: &ts.GoatImmutable{

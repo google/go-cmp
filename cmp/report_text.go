@@ -94,10 +94,10 @@ type textNode interface {
 // textWrap is a wrapper that concatenates a prefix and/or a suffix
 // to the underlying node.
 type textWrap struct {
-	Prefix   string      // e.g., "bytes.Buffer{"
-	Value    textNode    // textWrap | textList | textLine
-	Suffix   string      // e.g., "}"
-	Metadata interface{} // arbitrary metadata; has no effect on formatting
+	Prefix   string   // e.g., "bytes.Buffer{"
+	Value    textNode // textWrap | textList | textLine
+	Suffix   string   // e.g., "}"
+	Metadata any      // arbitrary metadata; has no effect on formatting
 }
 
 func (s *textWrap) Len() int {

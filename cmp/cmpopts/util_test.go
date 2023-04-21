@@ -66,7 +66,7 @@ type (
 		ParentStruct
 	}
 
-	EmptyInterface interface{}
+	EmptyInterface any
 )
 
 func TestOptions(t *testing.T) {
@@ -99,7 +99,7 @@ func TestOptions(t *testing.T) {
 
 	tests := []struct {
 		label     string       // Test name
-		x, y      interface{}  // Input values to compare
+		x, y      any          // Input values to compare
 		opts      []cmp.Option // Input options
 		wantEqual bool         // Whether the inputs are equal
 		wantPanic bool         // Whether Equal should panic
@@ -836,28 +836,28 @@ func TestOptions(t *testing.T) {
 		reason:    "equal because mismatching unexported fields are ignored",
 	}, {
 		label:     "IgnoreTypes",
-		x:         []interface{}{5, "same"},
-		y:         []interface{}{6, "same"},
+		x:         []any{5, "same"},
+		y:         []any{6, "same"},
 		wantEqual: false,
 		reason:    "not equal because 5 != 6",
 	}, {
 		label:     "IgnoreTypes",
-		x:         []interface{}{5, "same"},
-		y:         []interface{}{6, "same"},
+		x:         []any{5, "same"},
+		y:         []any{6, "same"},
 		opts:      []cmp.Option{IgnoreTypes(0)},
 		wantEqual: true,
 		reason:    "equal because ints are ignored",
 	}, {
 		label:     "IgnoreTypes+IgnoreInterfaces",
-		x:         []interface{}{5, "same", new(bytes.Buffer)},
-		y:         []interface{}{6, "same", new(bytes.Buffer)},
+		x:         []any{5, "same", new(bytes.Buffer)},
+		y:         []any{6, "same", new(bytes.Buffer)},
 		opts:      []cmp.Option{IgnoreTypes(0)},
 		wantPanic: true,
 		reason:    "panics because bytes.Buffer has unexported fields",
 	}, {
 		label: "IgnoreTypes+IgnoreInterfaces",
-		x:     []interface{}{5, "same", new(bytes.Buffer)},
-		y:     []interface{}{6, "diff", new(bytes.Buffer)},
+		x:     []any{5, "same", new(bytes.Buffer)},
+		y:     []any{6, "diff", new(bytes.Buffer)},
 		opts: []cmp.Option{
 			IgnoreTypes(0, ""),
 			IgnoreInterfaces(struct{ io.Reader }{}),
@@ -866,8 +866,8 @@ func TestOptions(t *testing.T) {
 		reason:    "equal because bytes.Buffer is ignored by match on interface type",
 	}, {
 		label: "IgnoreTypes+IgnoreInterfaces",
-		x:     []interface{}{5, "same", new(bytes.Buffer)},
-		y:     []interface{}{6, "same", new(bytes.Buffer)},
+		x:     []any{5, "same", new(bytes.Buffer)},
+		y:     []any{6, "same", new(bytes.Buffer)},
 		opts: []cmp.Option{
 			IgnoreTypes(0, ""),
 			IgnoreInterfaces(struct {
@@ -1138,13 +1138,13 @@ func TestOptions(t *testing.T) {
 }
 
 func TestPanic(t *testing.T) {
-	args := func(x ...interface{}) []interface{} { return x }
+	args := func(x ...any) []any { return x }
 	tests := []struct {
-		label     string        // Test name
-		fnc       interface{}   // Option function to call
-		args      []interface{} // Arguments to pass in
-		wantPanic string        // Expected panic message
-		reason    string        // The reason for the expected outcome
+		label     string // Test name
+		fnc       any    // Option function to call
+		args      []any  // Arguments to pass in
+		wantPanic string // Expected panic message
+		reason    string // The reason for the expected outcome
 	}{{
 		label:  "EquateApprox",
 		fnc:    EquateApprox,

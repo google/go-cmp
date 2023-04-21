@@ -167,7 +167,7 @@ type Dreamer struct {
 	PreSlaps          []Slap
 	ContSlaps         []Slap
 	ContSlapsInterval int32
-	Animal            []interface{} // Could be either Goat or Donkey
+	Animal            []any // Could be either Goat or Donkey
 	Ornamental        bool
 	Amoeba            int64
 	Heroes            int32

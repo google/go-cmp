@@ -16,7 +16,7 @@ var pkgPath = reflect.TypeOf(Named{}).PkgPath()
 
 func TestTypeString(t *testing.T) {
 	tests := []struct {
-		in   interface{}
+		in   any
 		want string
 	}{{
 		in:   bool(false),
@@ -109,6 +109,9 @@ func TestTypeString(t *testing.T) {
 	}, {
 		in:   (*Named)(nil),
 		want: "*$PackagePath.Named",
+	}, {
+		in:   (*any)(nil),
+		want: "*any",
 	}, {
 		in:   (*interface{})(nil),
 		want: "*any",

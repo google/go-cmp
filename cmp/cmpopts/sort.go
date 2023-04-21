@@ -26,7 +26,7 @@ import (
 // !less(y, x) for two elements x and y, their relative order is maintained.
 //
 // SortSlices can be used in conjunction with [EquateEmpty].
-func SortSlices(lessFunc interface{}) cmp.Option {
+func SortSlices(lessFunc any) cmp.Option {
 	vf := reflect.ValueOf(lessFunc)
 	if !function.IsType(vf.Type(), function.Less) || vf.IsNil() {
 		panic(fmt.Sprintf("invalid less function: %T", lessFunc))
@@ -40,7 +40,7 @@ type sliceSorter struct {
 	fnc reflect.Value // func(T, T) bool
 }
 
-func (ss sliceSorter) filter(x, y interface{}) bool {
+func (ss sliceSorter) filter(x, y any) bool {
 	vx, vy := reflect.ValueOf(x), reflect.ValueOf(y)
 	if !(x != nil && y != nil && vx.Type() == vy.Type()) ||
 		!(vx.Kind() == reflect.Slice && vx.Type().Elem().AssignableTo(ss.in)) ||
@@ -53,7 +53,7 @@ func (ss sliceSorter) filter(x, y interface{}) bool {
 	ok2 := sort.SliceIsSorted(y, func(i, j int) bool { return ss.less(vy, i, j) })
 	return !ok1 || !ok2
 }
-func (ss sliceSorter) sort(x interface{}) interface{} {
+func (ss sliceSorter) sort(x any) any {
 	src := reflect.ValueOf(x)
 	dst := reflect.MakeSlice(src.Type(), src.Len(), src.Len())
 	for i := 0; i < src.Len(); i++ {
@@ -97,7 +97,7 @@ func (ss sliceSorter) less(v reflect.Value, i, j int) bool {
 //   - Total: if x != y, then either less(x, y) or less(y, x)
 //
 // SortMaps can be used in conjunction with [EquateEmpty].
-func SortMaps(lessFunc interface{}) cmp.Option {
+func SortMaps(lessFunc any) cmp.Option {
 	vf := reflect.ValueOf(lessFunc)
 	if !function.IsType(vf.Type(), function.Less) || vf.IsNil() {
 		panic(fmt.Sprintf("invalid less function: %T", lessFunc))
@@ -111,13 +111,13 @@ type mapSorter struct {
 	fnc reflect.Value // func(T, T) bool
 }
 
-func (ms mapSorter) filter(x, y interface{}) bool {
+func (ms mapSorter) filter(x, y any) bool {
 	vx, vy := reflect.ValueOf(x), reflect.ValueOf(y)
 	return (x != nil && y != nil && vx.Type() == vy.Type()) &&
 		(vx.Kind() == reflect.Map && vx.Type().Key().AssignableTo(ms.in)) &&
 		(vx.Len() != 0 || vy.Len() != 0)
 }
-func (ms mapSorter) sort(x interface{}) interface{} {
+func (ms mapSorter) sort(x any) any {
 	src := reflect.ValueOf(x)
 	outType := reflect.StructOf([]reflect.StructField{
 		{Name: "K", Type: src.Type().Key()},
