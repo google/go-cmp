@@ -234,6 +234,8 @@ func (validator) apply(s *state, vx, vy reflect.Value) {
 			name = fmt.Sprintf("%q.%v", t.PkgPath(), t.Name()) // e.g., "path/to/package".MyType
 			if _, ok := reflect.New(t).Interface().(error); ok {
 				help = "consider using cmpopts.EquateErrors to compare error values"
+			} else if t.Comparable() {
+				help = "consider using cmpopts.EquateComparable to compare comparable Go types"
 			}
 		} else {
 			// Unnamed type with unexported fields. Derive PkgPath from field.

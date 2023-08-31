@@ -7,6 +7,7 @@ package cmpopts
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"reflect"
 	"time"
@@ -154,3 +155,31 @@ func compareErrors(x, y interface{}) bool {
 	ye := y.(error)
 	return errors.Is(xe, ye) || errors.Is(ye, xe)
 }
+
+// EquateComparable returns a [cmp.Option] that determines equality
+// of comparable types by directly comparing them using the == operator in Go.
+// The types to compare are specified by passing a value of that type.
+// This option should only be used on types that are documented as being
+// safe for direct == comparison. For example, [net/netip.Addr] is documented
+// as being semantically safe to use with ==, while [time.Time] is documented
+// to discourage the use of == on time values.
+func EquateComparable(typs ...interface{}) cmp.Option {
+	types := make(typesFilter)
+	for _, typ := range typs {
+		switch t := reflect.TypeOf(typ); {
+		case !t.Comparable():
+			panic(fmt.Sprintf("%T is not a comparable Go type", typ))
+		case types[t]:
+			panic(fmt.Sprintf("%T is already specified", typ))
+		default:
+			types[t] = true
+		}
+	}
+	return cmp.FilterPath(types.filter, cmp.Comparer(equateAny))
+}
+
+type typesFilter map[reflect.Type]bool
+
+func (tf typesFilter) filter(p cmp.Path) bool { return tf[p.Last().Type()] }
+
+func equateAny(x, y interface{}) bool { return x == y }

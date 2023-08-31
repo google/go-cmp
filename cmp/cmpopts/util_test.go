@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/netip"
 	"reflect"
 	"strings"
 	"sync"
@@ -676,6 +677,36 @@ func TestOptions(t *testing.T) {
 		opts:      []cmp.Option{EquateErrors()},
 		wantEqual: false,
 		reason:    "AnyError is not equal to nil value",
+	}, {
+		label: "EquateComparable",
+		x: []struct{ P netip.Addr }{
+			{netip.AddrFrom4([4]byte{1, 2, 3, 4})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 5})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 6})},
+		},
+		y: []struct{ P netip.Addr }{
+			{netip.AddrFrom4([4]byte{1, 2, 3, 4})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 5})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 6})},
+		},
+		opts:      []cmp.Option{EquateComparable(netip.Addr{})},
+		wantEqual: true,
+		reason:    "equal because all IP addresses are the same",
+	}, {
+		label: "EquateComparable",
+		x: []struct{ P netip.Addr }{
+			{netip.AddrFrom4([4]byte{1, 2, 3, 4})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 5})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 6})},
+		},
+		y: []struct{ P netip.Addr }{
+			{netip.AddrFrom4([4]byte{1, 2, 3, 4})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 7})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 6})},
+		},
+		opts:      []cmp.Option{EquateComparable(netip.Addr{})},
+		wantEqual: false,
+		reason:    "not equal because second IP address is different",
 	}, {
 		label:     "IgnoreFields",
 		x:         Bar1{Foo3{&Foo2{&Foo1{Alpha: 5}}}},
