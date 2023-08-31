@@ -61,7 +61,8 @@ func ExampleDiff_testing() {
 // comparer on floats that determines two values to be equal if they are within
 // some range of each other.
 //
-// This example is for demonstrative purposes; use cmpopts.EquateApprox instead.
+// This example is for demonstrative purposes;
+// use [github.com/google/go-cmp/cmp/cmpopts.EquateApprox] instead.
 func ExampleOption_approximateFloats() {
 	// This Comparer only operates on float64.
 	// To handle float32s, either define a similar function for that type
@@ -89,7 +90,8 @@ func ExampleOption_approximateFloats() {
 // Normal floating-point arithmetic defines == to be false when comparing
 // NaN with itself. In certain cases, this is not the desired property.
 //
-// This example is for demonstrative purposes; use cmpopts.EquateNaNs instead.
+// This example is for demonstrative purposes;
+// use [github.com/google/go-cmp/cmp/cmpopts.EquateNaNs] instead.
 func ExampleOption_equalNaNs() {
 	// This Comparer only operates on float64.
 	// To handle float32s, either define a similar function for that type
@@ -117,7 +119,7 @@ func ExampleOption_equalNaNs() {
 // to restrict the scope of the comparison so that they are composable.
 //
 // This example is for demonstrative purposes;
-// use cmpopts.EquateNaNs and cmpopts.EquateApprox instead.
+// use [github.com/google/go-cmp/cmp/cmpopts.EquateApprox] instead.
 func ExampleOption_equalNaNsAndApproximateFloats() {
 	alwaysEqual := cmp.Comparer(func(_, _ interface{}) bool { return true })
 
@@ -156,7 +158,8 @@ func ExampleOption_equalNaNsAndApproximateFloats() {
 // Sometimes, an empty map or slice is considered equal to an allocated one
 // of zero length.
 //
-// This example is for demonstrative purposes; use cmpopts.EquateEmpty instead.
+// This example is for demonstrative purposes;
+// use [github.com/google/go-cmp/cmp/cmpopts.EquateEmpty] instead.
 func ExampleOption_equalEmpty() {
 	alwaysEqual := cmp.Comparer(func(_, _ interface{}) bool { return true })
 
@@ -190,7 +193,8 @@ func ExampleOption_equalEmpty() {
 // regardless of the order that they appear in. Transformations can be used
 // to sort the slice.
 //
-// This example is for demonstrative purposes; use cmpopts.SortSlices instead.
+// This example is for demonstrative purposes;
+// use [github.com/google/go-cmp/cmp/cmpopts.SortSlices] instead.
 func ExampleOption_sortedSlice() {
 	// This Transformer sorts a []int.
 	trans := cmp.Transformer("Sort", func(in []int) []int {
