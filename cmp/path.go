@@ -168,7 +168,9 @@ func (ps pathStep) String() string {
 	if ps.typ == nil {
 		return "<nil>"
 	}
-	s := value.TypeString(ps.typ, false)
+	// NOTE: do not use value.TypeString(qualified = false) to avoid
+	// calls to reflect.Type.Method() which disables the DCE.
+	s := ps.typ.String()
 	if s == "" || strings.ContainsAny(s, "{}\n") {
 		return "root" // Type too simple or complex to print
 	}
@@ -293,7 +295,11 @@ type typeAssertion struct {
 
 func (ta TypeAssertion) Type() reflect.Type             { return ta.typ }
 func (ta TypeAssertion) Values() (vx, vy reflect.Value) { return ta.vx, ta.vy }
-func (ta TypeAssertion) String() string                 { return fmt.Sprintf(".(%v)", value.TypeString(ta.typ, false)) }
+func (ta TypeAssertion) String() string {
+	// NOTE: do not use value.TypeString(qualified = false) to avoid
+	// calls to reflect.Type.Method() which disables the DCE.
+	return fmt.Sprintf(".(%v)", ta.typ.String())
+}
 
 // Transform is a [PathStep] that represents a transformation
 // from the parent type to the current type.
