@@ -15,7 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func equateAlways(_, _ interface{}) bool { return true }
+func equateAlways(_, _ any) bool { return true }
 
 // EquateEmpty returns a [cmp.Comparer] option that determines all maps and slices
 // with a length of zero to be equal, regardless of whether they are nil.
@@ -25,7 +25,7 @@ func EquateEmpty() cmp.Option {
 	return cmp.FilterValues(isEmpty, cmp.Comparer(equateAlways))
 }
 
-func isEmpty(x, y interface{}) bool {
+func isEmpty(x, y any) bool {
 	vx, vy := reflect.ValueOf(x), reflect.ValueOf(y)
 	return (x != nil && y != nil && vx.Type() == vy.Type()) &&
 		(vx.Kind() == reflect.Slice || vx.Kind() == reflect.Map) &&
@@ -140,17 +140,17 @@ func EquateErrors() cmp.Option {
 }
 
 // areConcreteErrors reports whether x and y are types that implement error.
-// The input types are deliberately of the interface{} type rather than the
+// The input types are deliberately of the any type rather than the
 // error type so that we can handle situations where the current type is an
-// interface{}, but the underlying concrete types both happen to implement
+// any, but the underlying concrete types both happen to implement
 // the error interface.
-func areConcreteErrors(x, y interface{}) bool {
+func areConcreteErrors(x, y any) bool {
 	_, ok1 := x.(error)
 	_, ok2 := y.(error)
 	return ok1 && ok2
 }
 
-func compareErrors(x, y interface{}) bool {
+func compareErrors(x, y any) bool {
 	xe := x.(error)
 	ye := y.(error)
 	return errors.Is(xe, ye) || errors.Is(ye, xe)
@@ -163,7 +163,7 @@ func compareErrors(x, y interface{}) bool {
 // safe for direct == comparison. For example, [net/netip.Addr] is documented
 // as being semantically safe to use with ==, while [time.Time] is documented
 // to discourage the use of == on time values.
-func EquateComparable(typs ...interface{}) cmp.Option {
+func EquateComparable(typs ...any) cmp.Option {
 	types := make(typesFilter)
 	for _, typ := range typs {
 		switch t := reflect.TypeOf(typ); {
@@ -182,4 +182,4 @@ type typesFilter map[reflect.Type]bool
 
 func (tf typesFilter) filter(p cmp.Path) bool { return tf[p.Last().Type()] }
 
-func equateAny(x, y interface{}) bool { return x == y }
+func equateAny(x, y any) bool { return x == y }

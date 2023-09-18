@@ -156,7 +156,7 @@ func (f pathFilter) String() string {
 //
 // The option passed in may be an [Ignore], [Transformer], [Comparer], [Options], or
 // a previously filtered [Option].
-func FilterValues(f interface{}, opt Option) Option {
+func FilterValues(f any, opt Option) Option {
 	v := reflect.ValueOf(f)
 	if !function.IsType(v.Type(), function.ValueFilter) || v.IsNil() {
 		panic(fmt.Sprintf("invalid values filter function: %T", f))
@@ -277,7 +277,7 @@ var identsRx = regexp.MustCompile(`^` + identRx + `(\.` + identRx + `)*$`)
 // transformation [PathStep] (and eventually shown in the [Diff] output).
 // The name must be a valid identifier or qualified identifier in Go syntax.
 // If empty, an arbitrary name is used.
-func Transformer(name string, f interface{}) Option {
+func Transformer(name string, f any) Option {
 	v := reflect.ValueOf(f)
 	if !function.IsType(v.Type(), function.Transformer) || v.IsNil() {
 		panic(fmt.Sprintf("invalid transformer function: %T", f))
@@ -344,7 +344,7 @@ func (tr transformer) String() string {
 //   - Symmetric: equal(x, y) == equal(y, x)
 //   - Deterministic: equal(x, y) == equal(x, y)
 //   - Pure: equal(x, y) does not modify x or y
-func Comparer(f interface{}) Option {
+func Comparer(f any) Option {
 	v := reflect.ValueOf(f)
 	if !function.IsType(v.Type(), function.Equal) || v.IsNil() {
 		panic(fmt.Sprintf("invalid comparer function: %T", f))
@@ -419,7 +419,7 @@ func (exporter) filter(_ *state, _ reflect.Type, _, _ reflect.Value) applicableO
 // unexported fields of the specified struct types.
 //
 // See [Exporter] for the proper use of this option.
-func AllowUnexported(types ...interface{}) Option {
+func AllowUnexported(types ...any) Option {
 	m := make(map[reflect.Type]bool)
 	for _, typ := range types {
 		t := reflect.TypeOf(typ)
