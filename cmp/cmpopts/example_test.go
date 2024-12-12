@@ -76,7 +76,7 @@ func MakeGatewayInfo() (x, y Gateway) {
 			Hostname:  "ristretto",
 			IPAddress: net.IPv4(192, 168, 0, 116),
 		}, {
-			Hostname:  "aribica",
+			Hostname:  "arabica",
 			IPAddress: net.IPv4(192, 168, 0, 104),
 			LastSeen:  time.Date(2009, time.November, 10, 23, 6, 32, 0, time.UTC),
 		}, {
@@ -104,7 +104,7 @@ func MakeGatewayInfo() (x, y Gateway) {
 			Hostname:  "ristretto",
 			IPAddress: net.IPv4(192, 168, 0, 116),
 		}, {
-			Hostname:  "aribica",
+			Hostname:  "arabica",
 			IPAddress: net.IPv4(192, 168, 0, 104),
 			LastSeen:  time.Date(2009, time.November, 10, 23, 6, 32, 0, time.UTC),
 		}, {
