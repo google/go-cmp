@@ -14,10 +14,19 @@ var anyType = reflect.TypeOf((*interface{})(nil)).Elem()
 // TypeString is nearly identical to reflect.Type.String,
 // but has an additional option to specify that full type names be used.
 func TypeString(t reflect.Type, qualified bool) string {
-	return string(appendTypeName(nil, t, qualified, false))
+	interfaceName := interfaceNameNotQualified
+	if qualified {
+		interfaceName = interfaceNameQualified
+	}
+
+	return string(appendTypeName(nil, t, interfaceName, qualified, false))
 }
 
-func appendTypeName(b []byte, t reflect.Type, qualified, elideFunc bool) []byte {
+func TypeStringNotQualified(t reflect.Type) string {
+	return string(appendTypeName(nil, t, interfaceNameNotQualified, false, false))
+}
+
+func appendTypeName(b []byte, t reflect.Type, interfaceName interfaceNamer, qualified, elideFunc bool) []byte {
 	// BUG: Go reflection provides no way to disambiguate two named types
 	// of the same name and within the same package,
 	// but declared within the namespace of different functions.
@@ -57,7 +66,7 @@ func appendTypeName(b []byte, t reflect.Type, qualified, elideFunc bool) []byte 
 			b = append(b, "<-"...)
 		}
 		b = append(b, ' ')
-		b = appendTypeName(b, t.Elem(), qualified, false)
+		b = appendTypeName(b, t.Elem(), interfaceName, qualified, false)
 	case reflect.Func:
 		if !elideFunc {
 			b = append(b, "func"...)
@@ -69,9 +78,9 @@ func appendTypeName(b []byte, t reflect.Type, qualified, elideFunc bool) []byte 
 			}
 			if i == t.NumIn()-1 && t.IsVariadic() {
 				b = append(b, "..."...)
-				b = appendTypeName(b, t.In(i).Elem(), qualified, false)
+				b = appendTypeName(b, t.In(i).Elem(), interfaceName, qualified, false)
 			} else {
-				b = appendTypeName(b, t.In(i), qualified, false)
+				b = appendTypeName(b, t.In(i), interfaceName, qualified, false)
 			}
 		}
 		b = append(b, ')')
@@ -80,14 +89,14 @@ func appendTypeName(b []byte, t reflect.Type, qualified, elideFunc bool) []byte 
 			// Do nothing
 		case 1:
 			b = append(b, ' ')
-			b = appendTypeName(b, t.Out(0), qualified, false)
+			b = appendTypeName(b, t.Out(0), interfaceName, qualified, false)
 		default:
 			b = append(b, " ("...)
 			for i := 0; i < t.NumOut(); i++ {
 				if i > 0 {
 					b = append(b, ", "...)
 				}
-				b = appendTypeName(b, t.Out(i), qualified, false)
+				b = appendTypeName(b, t.Out(i), interfaceName, qualified, false)
 			}
 			b = append(b, ')')
 		}
@@ -108,7 +117,7 @@ func appendTypeName(b []byte, t reflect.Type, qualified, elideFunc bool) []byte 
 				b = append(b, sf.Name...)
 				b = append(b, ' ')
 			}
-			b = appendTypeName(b, sf.Type, qualified, false)
+			b = appendTypeName(b, sf.Type, interfaceName, qualified, false)
 			if sf.Tag != "" {
 				b = append(b, ' ')
 				b = strconv.AppendQuote(b, string(sf.Tag))
@@ -126,39 +135,50 @@ func appendTypeName(b []byte, t reflect.Type, qualified, elideFunc bool) []byte 
 			b = strconv.AppendUint(b, uint64(t.Len()), 10)
 		}
 		b = append(b, ']')
-		b = appendTypeName(b, t.Elem(), qualified, false)
+		b = appendTypeName(b, t.Elem(), interfaceName, qualified, false)
 	case reflect.Map:
 		b = append(b, "map["...)
-		b = appendTypeName(b, t.Key(), qualified, false)
+		b = appendTypeName(b, t.Key(), interfaceName, qualified, false)
 		b = append(b, ']')
-		b = appendTypeName(b, t.Elem(), qualified, false)
+		b = appendTypeName(b, t.Elem(), interfaceName, qualified, false)
 	case reflect.Ptr:
 		b = append(b, '*')
-		b = appendTypeName(b, t.Elem(), qualified, false)
+		b = appendTypeName(b, t.Elem(), interfaceName, qualified, false)
 	case reflect.Interface:
-		b = append(b, "interface{ "...)
-		for i := 0; i < t.NumMethod(); i++ {
-			if i > 0 {
-				b = append(b, "; "...)
-			}
-			m := t.Method(i)
-			if qualified && m.PkgPath != "" {
-				b = append(b, '"')
-				b = append(b, m.PkgPath...)
-				b = append(b, '"')
-				b = append(b, '.')
-			}
-			b = append(b, m.Name...)
-			b = appendTypeName(b, m.Type, qualified, true)
-		}
-		if b[len(b)-1] == ' ' {
-			b = b[:len(b)-1]
-		} else {
-			b = append(b, ' ')
-		}
-		b = append(b, '}')
+		b = interfaceName(b, t)
 	default:
 		panic("invalid kind: " + k.String())
 	}
 	return b
+}
+
+type interfaceNamer func([]byte, reflect.Type) []byte
+
+func interfaceNameQualified(b []byte, t reflect.Type) []byte {
+	b = append(b, "interface{ "...)
+	for i := 0; i < t.NumMethod(); i++ {
+		if i > 0 {
+			b = append(b, "; "...)
+		}
+		m := t.Method(i)
+		if m.PkgPath != "" {
+			b = append(b, '"')
+			b = append(b, m.PkgPath...)
+			b = append(b, '"')
+			b = append(b, '.')
+		}
+		b = append(b, m.Name...)
+		b = appendTypeName(b, m.Type, interfaceNameQualified, true, true)
+	}
+	if b[len(b)-1] == ' ' {
+		b = b[:len(b)-1]
+	} else {
+		b = append(b, ' ')
+	}
+	b = append(b, '}')
+	return b
+}
+
+func interfaceNameNotQualified(b []byte, t reflect.Type) []byte {
+	return append(b, t.String()...)
 }
