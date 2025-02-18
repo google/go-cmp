@@ -155,7 +155,7 @@ func appendTypeName(b []byte, t reflect.Type, interfaceName interfaceNamer, qual
 type interfaceNamer func([]byte, reflect.Type) []byte
 
 func interfaceNameQualified(b []byte, t reflect.Type) []byte {
-	b = append(b, "interface{ "...)
+	b = append(b, "interface { "...)
 	for i := 0; i < t.NumMethod(); i++ {
 		if i > 0 {
 			b = append(b, "; "...)
