@@ -62,7 +62,8 @@ func mustParseGolden(path string) map[string]string {
 	if err != nil {
 		panic(err)
 	}
-	s := string(b)
+	// Normalize CRLF to LF to support Windows.
+	s := strings.ReplaceAll(string(b), "\r\n", "\n")
 
 	out := map[string]string{}
 	for len(s) > 0 {
