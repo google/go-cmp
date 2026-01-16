@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/netip"
 	"reflect"
 	"strings"
 	"sync"
@@ -130,6 +131,23 @@ func TestOptions(t *testing.T) {
 		wantEqual: true,
 		reason:    "equal because SortSlices sorts the slices",
 	}, {
+		label: "SortSlices",
+		x:     []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		y:     []int{1, 0, 5, 2, 8, 9, 4, 3, 6, 7},
+		opts: []cmp.Option{SortSlices(func(x, y int) int {
+			// TODO(Go1.22): Use cmp.Compare.
+			switch {
+			case x < y:
+				return -1
+			case y > x:
+				return +1
+			default:
+				return 0
+			}
+		})},
+		wantEqual: true,
+		reason:    "equal because SortSlices sorts the slices",
+	}, {
 		label:     "SortSlices",
 		x:         []MyInt{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 		y:         []MyInt{1, 0, 5, 2, 8, 9, 4, 3, 6, 7},
@@ -198,6 +216,21 @@ func TestOptions(t *testing.T) {
 			time.Date(2011, time.November, 10, 23, 0, 0, 0, time.UTC).In(time.Local): "2nd birthday",
 		},
 		opts:      []cmp.Option{SortMaps(func(x, y time.Time) bool { return x.Before(y) })},
+		wantEqual: true,
+		reason:    "equal because SortMaps flattens to a slice where Time.Equal can be used",
+	}, {
+		label: "SortMaps",
+		x: map[time.Time]string{
+			time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC): "0th birthday",
+			time.Date(2010, time.November, 10, 23, 0, 0, 0, time.UTC): "1st birthday",
+			time.Date(2011, time.November, 10, 23, 0, 0, 0, time.UTC): "2nd birthday",
+		},
+		y: map[time.Time]string{
+			time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).In(time.Local): "0th birthday",
+			time.Date(2010, time.November, 10, 23, 0, 0, 0, time.UTC).In(time.Local): "1st birthday",
+			time.Date(2011, time.November, 10, 23, 0, 0, 0, time.UTC).In(time.Local): "2nd birthday",
+		},
+		opts:      []cmp.Option{SortMaps(func(x, y time.Time) int { return time.Time.Compare(x, y) })},
 		wantEqual: true,
 		reason:    "equal because SortMaps flattens to a slice where Time.Equal can be used",
 	}, {
@@ -676,6 +709,36 @@ func TestOptions(t *testing.T) {
 		opts:      []cmp.Option{EquateErrors()},
 		wantEqual: false,
 		reason:    "AnyError is not equal to nil value",
+	}, {
+		label: "EquateComparable",
+		x: []struct{ P netip.Addr }{
+			{netip.AddrFrom4([4]byte{1, 2, 3, 4})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 5})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 6})},
+		},
+		y: []struct{ P netip.Addr }{
+			{netip.AddrFrom4([4]byte{1, 2, 3, 4})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 5})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 6})},
+		},
+		opts:      []cmp.Option{EquateComparable(netip.Addr{})},
+		wantEqual: true,
+		reason:    "equal because all IP addresses are the same",
+	}, {
+		label: "EquateComparable",
+		x: []struct{ P netip.Addr }{
+			{netip.AddrFrom4([4]byte{1, 2, 3, 4})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 5})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 6})},
+		},
+		y: []struct{ P netip.Addr }{
+			{netip.AddrFrom4([4]byte{1, 2, 3, 4})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 7})},
+			{netip.AddrFrom4([4]byte{1, 2, 3, 6})},
+		},
+		opts:      []cmp.Option{EquateComparable(netip.Addr{})},
+		wantEqual: false,
+		reason:    "not equal because second IP address is different",
 	}, {
 		label:     "IgnoreFields",
 		x:         Bar1{Foo3{&Foo2{&Foo1{Alpha: 5}}}},
@@ -1156,26 +1219,14 @@ func TestPanic(t *testing.T) {
 	}, {
 		label:     "SortSlices",
 		fnc:       SortSlices,
-		args:      args(strings.Compare),
-		wantPanic: "invalid less function",
-		reason:    "func(x, y string) int is wrong signature for less",
-	}, {
-		label:     "SortSlices",
-		fnc:       SortSlices,
 		args:      args((func(_, _ int) bool)(nil)),
-		wantPanic: "invalid less function",
+		wantPanic: "invalid less or compare function",
 		reason:    "nil value is not valid",
 	}, {
 		label:     "SortMaps",
 		fnc:       SortMaps,
-		args:      args(strings.Compare),
-		wantPanic: "invalid less function",
-		reason:    "func(x, y string) int is wrong signature for less",
-	}, {
-		label:     "SortMaps",
-		fnc:       SortMaps,
 		args:      args((func(_, _ int) bool)(nil)),
-		wantPanic: "invalid less function",
+		wantPanic: "invalid less or compare function",
 		reason:    "nil value is not valid",
 	}, {
 		label:     "IgnoreFields",
