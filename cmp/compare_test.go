@@ -1321,6 +1321,11 @@ using the AllowUnexported option.`, "\n"),
 		y:      "Xd5c14bdf6bac81c27afc5429500ed750\nX25483503b557c606dad4f144d27ae10b\nX90bdbcdbb6ea7156068e3dcfb7459244\nX978f480a6e3cced51e297fbff9a506b7\n",
 		reason: "all lines are different, so diffing based on lines is pointless",
 	}, {
+		label:  label + "/JapaneseUTF8",
+		x:      "プライベート ブランド ジャケット",
+		y:      "プライベート ブランド シャツ",
+		reason: "multi-byte UTF-8 characters should be readable in diff output (issue #314)",
+	}, {
 		label:  label + "/StringifiedBytes",
 		x:      struct{ X []byte }{[]byte("hello, world!")},
 		y:      struct{ X []byte }{},
