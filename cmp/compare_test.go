@@ -12,9 +12,9 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"math/rand"
+	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -58,7 +58,7 @@ const goldenFooterPrefix = ">>> "
 // It is the user's responsibility to choose a sufficiently unique key name
 // such that it never appears in the body of the value itself.
 func mustParseGolden(path string) map[string]string {
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
@@ -97,7 +97,7 @@ func mustFormatGolden(path string, in []struct{ Name, Data string }) {
 		b = append(b, v.Data...)
 		b = append(b, goldenFooterPrefix+v.Name+"\n"...)
 	}
-	if err := ioutil.WriteFile(path, b, 0664); err != nil {
+	if err := os.WriteFile(path, b, 0664); err != nil {
 		panic(err)
 	}
 }
@@ -2020,7 +2020,7 @@ func methodTests() []test {
 		if _, ok := t.MethodByName("Equal"); ok || t.Kind() == reflect.Ptr {
 			return false
 		}
-		if m, ok := reflect.PtrTo(t).MethodByName("Equal"); ok {
+		if m, ok := reflect.PointerTo(t).MethodByName("Equal"); ok {
 			tf := m.Func.Type()
 			return !tf.IsVariadic() && tf.NumIn() == 2 && tf.NumOut() == 1 &&
 				tf.In(0).AssignableTo(tf.In(1)) && tf.Out(0) == reflect.TypeOf(true)
