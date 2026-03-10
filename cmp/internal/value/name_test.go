@@ -114,7 +114,7 @@ func TestTypeString(t *testing.T) {
 		want: "*any",
 	}, {
 		in:   (*interface{ Read([]byte) (int, error) })(nil),
-		want: "*interface{ Read([]uint8) (int, error) }",
+		want: "*interface { Read([]uint8) (int, error) }",
 	}, {
 		in: (*interface {
 			F1()
@@ -123,7 +123,7 @@ func TestTypeString(t *testing.T) {
 			F4(int, Named) (int, error)
 			F5(...Named)
 		})(nil),
-		want: "*interface{ F1(); F2($PackagePath.Named); F3() $PackagePath.Named; F4(int, $PackagePath.Named) (int, error); F5(...$PackagePath.Named) }",
+		want: "*interface { F1(); F2($PackagePath.Named); F3() $PackagePath.Named; F4(int, $PackagePath.Named) (int, error); F5(...$PackagePath.Named) }",
 	}}
 
 	for _, tt := range tests {
