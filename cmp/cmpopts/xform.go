@@ -30,7 +30,7 @@ func (xf xformFilter) filter(p cmp.Path) bool {
 //
 // Had this been an unfiltered [cmp.Transformer] instead, this would result in an
 // infinite cycle converting a string to []string to [][]string and so on.
-func AcyclicTransformer(name string, xformFunc interface{}) cmp.Option {
+func AcyclicTransformer(name string, xformFunc any) cmp.Option {
 	xf := xformFilter{cmp.Transformer(name, xformFunc)}
 	return cmp.FilterPath(xf.filter, xf.xform)
 }

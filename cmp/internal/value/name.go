@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-var anyType = reflect.TypeOf((*interface{})(nil)).Elem()
+var anyType = reflect.TypeOf((*any)(nil)).Elem()
 
 // TypeString is nearly identical to reflect.Type.String,
 // but has an additional option to specify that full type names be used.
@@ -21,8 +21,6 @@ func appendTypeName(b []byte, t reflect.Type, qualified, elideFunc bool) []byte 
 	// BUG: Go reflection provides no way to disambiguate two named types
 	// of the same name and within the same package,
 	// but declared within the namespace of different functions.
-
-	// Use the "any" alias instead of "interface{}" for better readability.
 	if t == anyType {
 		return append(b, "any"...)
 	}

@@ -18,7 +18,7 @@ import (
 //
 // The name may be a dot-delimited string (e.g., "Foo.Bar") to select a
 // specific sub-field that is embedded or nested within the parent struct.
-func filterField(typ interface{}, name string, opt cmp.Option) cmp.Option {
+func filterField(typ any, name string, opt cmp.Option) cmp.Option {
 	// TODO: This is currently unexported over concerns of how helper filters
 	// can be composed together easily.
 	// TODO: Add tests for FilterField.
@@ -32,7 +32,7 @@ type structFilter struct {
 	ft fieldTree    // Tree of fields to match on
 }
 
-func newStructFilter(typ interface{}, names ...string) structFilter {
+func newStructFilter(typ any, names ...string) structFilter {
 	// TODO: Perhaps allow * as a special identifier to allow ignoring any
 	// number of path steps until the next field match?
 	// This could be useful when a concrete struct gets transformed into

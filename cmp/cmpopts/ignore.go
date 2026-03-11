@@ -21,21 +21,21 @@ import (
 //
 // The name may be a dot-delimited string (e.g., "Foo.Bar") to ignore a
 // specific sub-field that is embedded or nested within the parent struct.
-func IgnoreFields(typ interface{}, names ...string) cmp.Option {
+func IgnoreFields(typ any, names ...string) cmp.Option {
 	sf := newStructFilter(typ, names...)
 	return cmp.FilterPath(sf.filter, cmp.Ignore())
 }
 
 // IgnoreTypes returns an [cmp.Option] that ignores all values assignable to
 // certain types, which are specified by passing in a value of each type.
-func IgnoreTypes(typs ...interface{}) cmp.Option {
+func IgnoreTypes(typs ...any) cmp.Option {
 	tf := newTypeFilter(typs...)
 	return cmp.FilterPath(tf.filter, cmp.Ignore())
 }
 
 type typeFilter []reflect.Type
 
-func newTypeFilter(typs ...interface{}) (tf typeFilter) {
+func newTypeFilter(typs ...any) (tf typeFilter) {
 	for _, typ := range typs {
 		t := reflect.TypeOf(typ)
 		if t == nil {
@@ -63,14 +63,14 @@ func (tf typeFilter) filter(p cmp.Path) bool {
 // values assignable to certain interface types. These interfaces are specified
 // by passing in an anonymous struct with the interface types embedded in it.
 // For example, to ignore [sync.Locker], pass in struct{sync.Locker}{}.
-func IgnoreInterfaces(ifaces interface{}) cmp.Option {
+func IgnoreInterfaces(ifaces any) cmp.Option {
 	tf := newIfaceFilter(ifaces)
 	return cmp.FilterPath(tf.filter, cmp.Ignore())
 }
 
 type ifaceFilter []reflect.Type
 
-func newIfaceFilter(ifaces interface{}) (tf ifaceFilter) {
+func newIfaceFilter(ifaces any) (tf ifaceFilter) {
 	t := reflect.TypeOf(ifaces)
 	if ifaces == nil || t.Name() != "" || t.Kind() != reflect.Struct {
 		panic("input must be an anonymous struct")
@@ -116,14 +116,14 @@ func (tf ifaceFilter) filter(p cmp.Path) bool {
 // Avoid ignoring unexported fields of a type which you do not control (i.e. a
 // type from another repository), as changes to the implementation of such types
 // may change how the comparison behaves. Prefer a custom [cmp.Comparer] instead.
-func IgnoreUnexported(typs ...interface{}) cmp.Option {
+func IgnoreUnexported(typs ...any) cmp.Option {
 	ux := newUnexportedFilter(typs...)
 	return cmp.FilterPath(ux.filter, cmp.Ignore())
 }
 
 type unexportedFilter struct{ m map[reflect.Type]bool }
 
-func newUnexportedFilter(typs ...interface{}) unexportedFilter {
+func newUnexportedFilter(typs ...any) unexportedFilter {
 	ux := unexportedFilter{m: make(map[reflect.Type]bool)}
 	for _, typ := range typs {
 		t := reflect.TypeOf(typ)
@@ -152,7 +152,7 @@ func isExported(id string) bool {
 // The discard function must be of the form "func(T) bool" which is used to
 // ignore slice elements of type V, where V is assignable to T.
 // Elements are ignored if the function reports true.
-func IgnoreSliceElements(discardFunc interface{}) cmp.Option {
+func IgnoreSliceElements(discardFunc any) cmp.Option {
 	vf := reflect.ValueOf(discardFunc)
 	if !function.IsType(vf.Type(), function.ValuePredicate) || vf.IsNil() {
 		panic(fmt.Sprintf("invalid discard function: %T", discardFunc))
@@ -180,7 +180,7 @@ func IgnoreSliceElements(discardFunc interface{}) cmp.Option {
 // The discard function must be of the form "func(T, R) bool" which is used to
 // ignore map entries of type K and V, where K and V are assignable to T and R.
 // Entries are ignored if the function reports true.
-func IgnoreMapEntries(discardFunc interface{}) cmp.Option {
+func IgnoreMapEntries(discardFunc any) cmp.Option {
 	vf := reflect.ValueOf(discardFunc)
 	if !function.IsType(vf.Type(), function.KeyValuePredicate) || vf.IsNil() {
 		panic(fmt.Sprintf("invalid discard function: %T", discardFunc))
