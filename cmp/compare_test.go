@@ -104,6 +104,7 @@ func mustFormatGolden(path string, in []struct{ Name, Data string }) {
 
 var now = time.Date(2009, time.November, 10, 23, 00, 00, 00, time.UTC)
 
+// TODO(≥go1.27): Use new(V) to allocate a value.
 func ptr[T any](t T) *T { return &t }
 
 type Stringer string
