@@ -140,9 +140,9 @@ func EquateErrors() cmp.Option {
 }
 
 // areConcreteErrors reports whether x and y are types that implement error.
-// The input types are deliberately of the interface{} type rather than the
+// The input types are deliberately of the [any] type rather than the
 // error type so that we can handle situations where the current type is an
-// interface{}, but the underlying concrete types both happen to implement
+// [any], but the underlying concrete types both happen to implement
 // the error interface.
 func areConcreteErrors(x, y any) bool {
 	_, ok1 := x.(error)
