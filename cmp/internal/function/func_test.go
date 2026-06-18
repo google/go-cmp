@@ -20,7 +20,7 @@ func (*myType) PointerMethod() {}
 
 func TestNameOf(t *testing.T) {
 	tests := []struct {
-		fnc  interface{}
+		fnc  any
 		want string
 	}{
 		{TestNameOf, "function.TestNameOf"},

@@ -18,168 +18,168 @@ import (
 func TestOptionPanic(t *testing.T) {
 	type myBool bool
 	tests := []struct {
-		label     string        // Test description
-		fnc       interface{}   // Option function to call
-		args      []interface{} // Arguments to pass in
-		wantPanic string        // Expected panic message
+		label     string // Test description
+		fnc       any    // Option function to call
+		args      []any  // Arguments to pass in
+		wantPanic string // Expected panic message
 	}{{
 		label: "AllowUnexported",
 		fnc:   AllowUnexported,
-		args:  []interface{}{},
+		args:  []any{},
 	}, {
 		label:     "AllowUnexported",
 		fnc:       AllowUnexported,
-		args:      []interface{}{1},
+		args:      []any{1},
 		wantPanic: "invalid struct type",
 	}, {
 		label: "AllowUnexported",
 		fnc:   AllowUnexported,
-		args:  []interface{}{ts.StructA{}},
+		args:  []any{ts.StructA{}},
 	}, {
 		label: "AllowUnexported",
 		fnc:   AllowUnexported,
-		args:  []interface{}{ts.StructA{}, ts.StructB{}, ts.StructA{}},
+		args:  []any{ts.StructA{}, ts.StructB{}, ts.StructA{}},
 	}, {
 		label:     "AllowUnexported",
 		fnc:       AllowUnexported,
-		args:      []interface{}{ts.StructA{}, &ts.StructB{}, ts.StructA{}},
+		args:      []any{ts.StructA{}, &ts.StructB{}, ts.StructA{}},
 		wantPanic: "invalid struct type",
 	}, {
 		label:     "Comparer",
 		fnc:       Comparer,
-		args:      []interface{}{5},
+		args:      []any{5},
 		wantPanic: "invalid comparer function",
 	}, {
 		label: "Comparer",
 		fnc:   Comparer,
-		args:  []interface{}{func(x, y interface{}) bool { return true }},
+		args:  []any{func(x, y any) bool { return true }},
 	}, {
 		label: "Comparer",
 		fnc:   Comparer,
-		args:  []interface{}{func(x, y io.Reader) bool { return true }},
+		args:  []any{func(x, y io.Reader) bool { return true }},
 	}, {
 		label:     "Comparer",
 		fnc:       Comparer,
-		args:      []interface{}{func(x, y io.Reader) myBool { return true }},
+		args:      []any{func(x, y io.Reader) myBool { return true }},
 		wantPanic: "invalid comparer function",
 	}, {
 		label:     "Comparer",
 		fnc:       Comparer,
-		args:      []interface{}{func(x string, y interface{}) bool { return true }},
+		args:      []any{func(x string, y any) bool { return true }},
 		wantPanic: "invalid comparer function",
 	}, {
 		label:     "Comparer",
 		fnc:       Comparer,
-		args:      []interface{}{(func(int, int) bool)(nil)},
+		args:      []any{(func(int, int) bool)(nil)},
 		wantPanic: "invalid comparer function",
 	}, {
 		label:     "Transformer",
 		fnc:       Transformer,
-		args:      []interface{}{"", 0},
+		args:      []any{"", 0},
 		wantPanic: "invalid transformer function",
 	}, {
 		label: "Transformer",
 		fnc:   Transformer,
-		args:  []interface{}{"", func(int) int { return 0 }},
+		args:  []any{"", func(int) int { return 0 }},
 	}, {
 		label: "Transformer",
 		fnc:   Transformer,
-		args:  []interface{}{"", func(bool) bool { return true }},
+		args:  []any{"", func(bool) bool { return true }},
 	}, {
 		label: "Transformer",
 		fnc:   Transformer,
-		args:  []interface{}{"", func(int) bool { return true }},
+		args:  []any{"", func(int) bool { return true }},
 	}, {
 		label:     "Transformer",
 		fnc:       Transformer,
-		args:      []interface{}{"", func(int, int) bool { return true }},
+		args:      []any{"", func(int, int) bool { return true }},
 		wantPanic: "invalid transformer function",
 	}, {
 		label:     "Transformer",
 		fnc:       Transformer,
-		args:      []interface{}{"", (func(int) uint)(nil)},
+		args:      []any{"", (func(int) uint)(nil)},
 		wantPanic: "invalid transformer function",
 	}, {
 		label: "Transformer",
 		fnc:   Transformer,
-		args:  []interface{}{"Func", func(Path) Path { return nil }},
+		args:  []any{"Func", func(Path) Path { return nil }},
 	}, {
 		label: "Transformer",
 		fnc:   Transformer,
-		args:  []interface{}{"世界", func(int) bool { return true }},
+		args:  []any{"世界", func(int) bool { return true }},
 	}, {
 		label:     "Transformer",
 		fnc:       Transformer,
-		args:      []interface{}{"/*", func(int) bool { return true }},
+		args:      []any{"/*", func(int) bool { return true }},
 		wantPanic: "invalid name",
 	}, {
 		label: "Transformer",
 		fnc:   Transformer,
-		args:  []interface{}{"_", func(int) bool { return true }},
+		args:  []any{"_", func(int) bool { return true }},
 	}, {
 		label:     "FilterPath",
 		fnc:       FilterPath,
-		args:      []interface{}{(func(Path) bool)(nil), Ignore()},
+		args:      []any{(func(Path) bool)(nil), Ignore()},
 		wantPanic: "invalid path filter function",
 	}, {
 		label: "FilterPath",
 		fnc:   FilterPath,
-		args:  []interface{}{func(Path) bool { return true }, Ignore()},
+		args:  []any{func(Path) bool { return true }, Ignore()},
 	}, {
 		label:     "FilterPath",
 		fnc:       FilterPath,
-		args:      []interface{}{func(Path) bool { return true }, Reporter(&defaultReporter{})},
+		args:      []any{func(Path) bool { return true }, Reporter(&defaultReporter{})},
 		wantPanic: "invalid option type",
 	}, {
 		label: "FilterPath",
 		fnc:   FilterPath,
-		args:  []interface{}{func(Path) bool { return true }, Options{Ignore(), Ignore()}},
+		args:  []any{func(Path) bool { return true }, Options{Ignore(), Ignore()}},
 	}, {
 		label:     "FilterPath",
 		fnc:       FilterPath,
-		args:      []interface{}{func(Path) bool { return true }, Options{Ignore(), Reporter(&defaultReporter{})}},
+		args:      []any{func(Path) bool { return true }, Options{Ignore(), Reporter(&defaultReporter{})}},
 		wantPanic: "invalid option type",
 	}, {
 		label:     "FilterValues",
 		fnc:       FilterValues,
-		args:      []interface{}{0, Ignore()},
+		args:      []any{0, Ignore()},
 		wantPanic: "invalid values filter function",
 	}, {
 		label: "FilterValues",
 		fnc:   FilterValues,
-		args:  []interface{}{func(x, y int) bool { return true }, Ignore()},
+		args:  []any{func(x, y int) bool { return true }, Ignore()},
 	}, {
 		label: "FilterValues",
 		fnc:   FilterValues,
-		args:  []interface{}{func(x, y interface{}) bool { return true }, Ignore()},
+		args:  []any{func(x, y any) bool { return true }, Ignore()},
 	}, {
 		label:     "FilterValues",
 		fnc:       FilterValues,
-		args:      []interface{}{func(x, y interface{}) myBool { return true }, Ignore()},
+		args:      []any{func(x, y any) myBool { return true }, Ignore()},
 		wantPanic: "invalid values filter function",
 	}, {
 		label:     "FilterValues",
 		fnc:       FilterValues,
-		args:      []interface{}{func(x io.Reader, y interface{}) bool { return true }, Ignore()},
+		args:      []any{func(x io.Reader, y any) bool { return true }, Ignore()},
 		wantPanic: "invalid values filter function",
 	}, {
 		label:     "FilterValues",
 		fnc:       FilterValues,
-		args:      []interface{}{(func(int, int) bool)(nil), Ignore()},
+		args:      []any{(func(int, int) bool)(nil), Ignore()},
 		wantPanic: "invalid values filter function",
 	}, {
 		label:     "FilterValues",
 		fnc:       FilterValues,
-		args:      []interface{}{func(int, int) bool { return true }, Reporter(&defaultReporter{})},
+		args:      []any{func(int, int) bool { return true }, Reporter(&defaultReporter{})},
 		wantPanic: "invalid option type",
 	}, {
 		label: "FilterValues",
 		fnc:   FilterValues,
-		args:  []interface{}{func(int, int) bool { return true }, Options{Ignore(), Ignore()}},
+		args:  []any{func(int, int) bool { return true }, Options{Ignore(), Ignore()}},
 	}, {
 		label:     "FilterValues",
 		fnc:       FilterValues,
-		args:      []interface{}{func(int, int) bool { return true }, Options{Ignore(), Reporter(&defaultReporter{})}},
+		args:      []any{func(int, int) bool { return true }, Options{Ignore(), Reporter(&defaultReporter{})}},
 		wantPanic: "invalid option type",
 	}}
 
