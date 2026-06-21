@@ -21,8 +21,6 @@ func appendTypeName(b []byte, t reflect.Type, qualified, elideFunc bool) []byte 
 	// BUG: Go reflection provides no way to disambiguate two named types
 	// of the same name and within the same package,
 	// but declared within the namespace of different functions.
-
-	// Use the "any" alias instead of "interface{}" for better readability.
 	if t == anyType {
 		return append(b, "any"...)
 	}
