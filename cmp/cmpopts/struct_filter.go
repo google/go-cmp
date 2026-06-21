@@ -165,7 +165,7 @@ func canonicalName(t reflect.Type, sel string) ([]string, error) {
 	sf, _ := t.FieldByName(name)
 	if !isExported(name) {
 		// Avoid using reflect.Type.FieldByName for unexported fields due to
-		// buggy behavior with regard to embeddeding and unexported fields.
+		// buggy behavior with regard to embedding and unexported fields.
 		// See https://golang.org/issue/4876 for details.
 		sf = reflect.StructField{}
 		for i := 0; i < t.NumField() && sf.Name == ""; i++ {
