@@ -121,7 +121,7 @@ func ExampleOption_equalNaNs() {
 // This example is for demonstrative purposes;
 // use [github.com/google/go-cmp/cmp/cmpopts.EquateApprox] instead.
 func ExampleOption_equalNaNsAndApproximateFloats() {
-	alwaysEqual := cmp.Comparer(func(_, _ interface{}) bool { return true })
+	alwaysEqual := cmp.Comparer(func(_, _ any) bool { return true })
 
 	opts := cmp.Options{
 		// This option declares that a float64 comparison is equal only if
@@ -161,10 +161,10 @@ func ExampleOption_equalNaNsAndApproximateFloats() {
 // This example is for demonstrative purposes;
 // use [github.com/google/go-cmp/cmp/cmpopts.EquateEmpty] instead.
 func ExampleOption_equalEmpty() {
-	alwaysEqual := cmp.Comparer(func(_, _ interface{}) bool { return true })
+	alwaysEqual := cmp.Comparer(func(_, _ any) bool { return true })
 
 	// This option handles slices and maps of any type.
-	opt := cmp.FilterValues(func(x, y interface{}) bool {
+	opt := cmp.FilterValues(func(x, y any) bool {
 		vx, vy := reflect.ValueOf(x), reflect.ValueOf(y)
 		return (vx.IsValid() && vy.IsValid() && vx.Type() == vy.Type()) &&
 			(vx.Kind() == reflect.Slice || vx.Kind() == reflect.Map) &&
@@ -283,13 +283,13 @@ func ExampleOption_transformComplex() {
 		}),
 	}
 
-	x := []interface{}{
+	x := []any{
 		complex128(3.0), complex64(5.1 + 2.9i), float32(-1.2), float64(12.3),
 	}
-	y := []interface{}{
+	y := []any{
 		complex128(3.1), complex64(4.9 + 3.1i), float32(-1.3), float64(11.7),
 	}
-	z := []interface{}{
+	z := []any{
 		complex128(3.8), complex64(4.9 + 3.1i), float32(-1.3), float64(11.7),
 	}
 
@@ -377,4 +377,4 @@ var t fakeT
 
 type fakeT struct{}
 
-func (t fakeT) Errorf(format string, args ...interface{}) { fmt.Printf(format+"\n", args...) }
+func (t fakeT) Errorf(format string, args ...any) { fmt.Printf(format+"\n", args...) }

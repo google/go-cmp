@@ -127,4 +127,4 @@ var t fakeT
 
 type fakeT struct{}
 
-func (t fakeT) Errorf(format string, args ...interface{}) { fmt.Printf(format+"\n", args...) }
+func (t fakeT) Errorf(format string, args ...any) { fmt.Printf(format+"\n", args...) }
