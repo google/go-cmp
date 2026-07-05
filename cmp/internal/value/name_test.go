@@ -129,14 +129,14 @@ func TestTypeString(t *testing.T) {
 	for _, tt := range tests {
 		typ := reflect.TypeOf(tt.in)
 		wantShort := tt.want
-		wantShort = strings.Replace(wantShort, "$PackagePath", "value", -1)
-		wantShort = strings.Replace(wantShort, "$FieldPrefix.", "", -1)
+		wantShort = strings.ReplaceAll(wantShort, "$PackagePath", "value")
+		wantShort = strings.ReplaceAll(wantShort, "$FieldPrefix.", "")
 		if gotShort := TypeString(typ, false); gotShort != wantShort {
 			t.Errorf("TypeString(%v, false) mismatch:\ngot:  %v\nwant: %v", typ, gotShort, wantShort)
 		}
 		wantQualified := tt.want
-		wantQualified = strings.Replace(wantQualified, "$PackagePath", `"`+pkgPath+`"`, -1)
-		wantQualified = strings.Replace(wantQualified, "$FieldPrefix", `"`+pkgPath+`"`, -1)
+		wantQualified = strings.ReplaceAll(wantQualified, "$PackagePath", `"`+pkgPath+`"`)
+		wantQualified = strings.ReplaceAll(wantQualified, "$FieldPrefix", `"`+pkgPath+`"`)
 		if gotQualified := TypeString(typ, true); gotQualified != wantQualified {
 			t.Errorf("TypeString(%v, true) mismatch:\ngot:  %v\nwant: %v", typ, gotQualified, wantQualified)
 		}

@@ -243,8 +243,8 @@ func TestDifference(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			x := strings.Replace(tt.x, " ", "", -1)
-			y := strings.Replace(tt.y, " ", "", -1)
+			x := strings.ReplaceAll(tt.x, " ", "")
+			y := strings.ReplaceAll(tt.y, " ", "")
 			es := testStrings(t, x, y)
 			var want string
 			got := es.String()
