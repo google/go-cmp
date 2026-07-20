@@ -124,6 +124,30 @@ func (a timeApproximator) compare(x, y time.Time) bool {
 	return !x.Add(a.margin).Before(y)
 }
 
+// EquateApproxDuration returns a [cmp.Comparer] option that determines two
+// [time.Duration] values to be equal if they are within some margin of one
+// another. The margin must be non-negative.
+func EquateApproxDuration(margin time.Duration) cmp.Option {
+	if margin < 0 {
+		panic("margin must be a non-negative number")
+	}
+	a := durationApproximator{margin}
+	return cmp.Comparer(a.compare)
+}
+
+type durationApproximator struct {
+	margin time.Duration
+}
+
+func (a durationApproximator) compare(x, y time.Duration) bool {
+	if x > y {
+		x, y = y, x
+	}
+	// Avoid subtracting durations to prevent overflow when the
+	// difference is larger than the largest representable duration.
+	return !(x+a.margin < y)
+}
+
 // AnyError is an error that matches any non-nil error.
 var AnyError anyError
 
