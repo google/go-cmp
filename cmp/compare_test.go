@@ -3006,3 +3006,58 @@ func BenchmarkBytes(b *testing.B) {
 		})
 	}
 }
+
+// nilEqualValue has an Equal method declared on the value type.
+type nilEqualValue struct{ N int }
+
+func (x nilEqualValue) Equal(y nilEqualValue) bool { return true }
+
+// nilEqualPointer has an Equal method declared on the pointer type.
+type nilEqualPointer struct{ N int }
+
+func (x *nilEqualPointer) Equal(y *nilEqualPointer) bool { return true }
+
+// TestEqualMethodNilPointer documents which nil pointers reach a user-defined
+// Equal method. A pointer is dereferenced before the method is considered, so
+// an Equal method declared on the value type is never called for a nil
+// pointer, while one declared on the pointer type is.
+func TestEqualMethodNilPointer(t *testing.T) {
+	tests := []struct {
+		label string
+		x, y  interface{}
+		want  bool
+	}{{
+		label: "ValueReceiver/BothNil",
+		x:     struct{ V *nilEqualValue }{nil},
+		y:     struct{ V *nilEqualValue }{nil},
+		want:  true,
+	}, {
+		label: "ValueReceiver/OneNil",
+		x:     struct{ V *nilEqualValue }{nil},
+		y:     struct{ V *nilEqualValue }{&nilEqualValue{N: 1}},
+		want:  false, // Equal is not called; nil and non-nil differ
+	}, {
+		label: "ValueReceiver/NeitherNil",
+		x:     struct{ V *nilEqualValue }{&nilEqualValue{N: 1}},
+		y:     struct{ V *nilEqualValue }{&nilEqualValue{N: 2}},
+		want:  true, // Equal is called and reports equal
+	}, {
+		label: "PointerReceiver/OneNil",
+		x:     struct{ V *nilEqualPointer }{nil},
+		y:     struct{ V *nilEqualPointer }{&nilEqualPointer{N: 1}},
+		want:  true, // Equal is called even though x is nil
+	}, {
+		label: "PointerReceiver/NeitherNil",
+		x:     struct{ V *nilEqualPointer }{&nilEqualPointer{N: 1}},
+		y:     struct{ V *nilEqualPointer }{&nilEqualPointer{N: 2}},
+		want:  true,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.label, func(t *testing.T) {
+			if got := cmp.Equal(tt.x, tt.y); got != tt.want {
+				t.Errorf("cmp.Equal(%#v, %#v) = %v, want %v", tt.x, tt.y, got, tt.want)
+			}
+		})
+	}
+}
