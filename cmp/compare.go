@@ -58,7 +58,8 @@ import (
 //
 //   - If the values have an Equal method of the form "(T) Equal(T) bool" or
 //     "(T) Equal(I) bool" where T is assignable to I, then use the result of
-//     x.Equal(y) even if x or y is nil. Otherwise, no such method exists and
+//     x.Equal(y). The method is called even if x or y are nil and Equal
+//     is declared on a pointer receiver. Otherwise, no such method exists and
 //     evaluation proceeds to the next rule.
 //
 //   - Lastly, try to compare x and y based on their basic kinds.
