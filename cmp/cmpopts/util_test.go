@@ -1368,6 +1368,18 @@ func TestPanic(t *testing.T) {
 		args:   args(Foo1{}, struct{ x, X int }{}),
 		reason: "input may be named or unnamed structs",
 	}, {
+		label:     "EquateComparable",
+		fnc:       EquateComparable,
+		args:      args(nil),
+		wantPanic: "is not a comparable Go type",
+		reason:    "nil value is not a comparable Go type",
+	}, {
+		label:     "EquateComparable",
+		fnc:       EquateComparable,
+		args:      args(func() {}),
+		wantPanic: "is not a comparable Go type",
+		reason:    "func is not a comparable Go type",
+	}, {
 		label:     "AcyclicTransformer",
 		fnc:       AcyclicTransformer,
 		args:      args("", "not a func"),
