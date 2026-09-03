@@ -431,7 +431,7 @@ func AllowUnexported(types ...any) Option {
 	m := make(map[reflect.Type]bool)
 	for _, typ := range types {
 		t := reflect.TypeOf(typ)
-		if t.Kind() != reflect.Struct {
+		if t == nil || t.Kind() != reflect.Struct {
 			panic(fmt.Sprintf("invalid struct type: %T", typ))
 		}
 		m[t] = true
