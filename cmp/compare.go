@@ -58,8 +58,10 @@ import (
 //
 //   - If the values have an Equal method of the form "(T) Equal(T) bool" or
 //     "(T) Equal(I) bool" where T is assignable to I, then use the result of
-//     x.Equal(y) even if x or y is nil. Otherwise, no such method exists and
-//     evaluation proceeds to the next rule.
+//     x.Equal(y) even if x or y is nil. If T is a pointer type and Equal has a
+//     value receiver, a nil pointer is not used as the receiver because that
+//     would panic; evaluation proceeds to the next rule. If no such method
+//     exists, evaluation proceeds to the next rule.
 //
 //   - Lastly, try to compare x and y based on their basic kinds.
 //     Simple kinds like booleans, integers, floats, complex numbers, strings,
@@ -316,9 +318,28 @@ func (s *state) tryMethod(t reflect.Type, vx, vy reflect.Value) bool {
 		return false
 	}
 
+	// Value-receiver Equal methods are part of the pointer type's method set.
+	// Calling them through a nil pointer panics, so fall through to comparing
+	// the pointers themselves instead.
+	if equalUsesValueReceiver(t) && (isNilPointer(vx) || isNilPointer(vy)) {
+		return false
+	}
+
 	eq := s.callTTBFunc(m.Func, vx, vy)
 	s.report(eq, reportByMethod)
 	return true
+}
+
+func equalUsesValueReceiver(t reflect.Type) bool {
+	if t.Kind() != reflect.Ptr {
+		return false
+	}
+	_, ok := t.Elem().MethodByName("Equal")
+	return ok
+}
+
+func isNilPointer(v reflect.Value) bool {
+	return v.IsValid() && v.Kind() == reflect.Ptr && v.IsNil()
 }
 
 func (s *state) callTRFunc(f, v reflect.Value, step Transform) reflect.Value {

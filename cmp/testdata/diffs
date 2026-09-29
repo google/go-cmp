@@ -1348,6 +1348,18 @@
 + 	X: "not_equal",
   }
 >>> TestDiff/EqualMethod/StructB/ValueInequal
+<<< TestDiff/EqualMethod/StructC/NilPointerInequal
+  (*teststructs.StructC)(
+- 	nil,
++ 	&{X: "NotEqual"},
+  )
+>>> TestDiff/EqualMethod/StructC/NilPointerInequal
+<<< TestDiff/EqualMethod/StructC1/NilPointerInequal
+  (*teststructs.StructC1)(
+- 	nil,
++ 	&{StructC: teststructs.StructC{X: "NotEqual"}, X: "NotEqual"},
+  )
+>>> TestDiff/EqualMethod/StructC1/NilPointerInequal
 <<< TestDiff/EqualMethod/StructD/ValueInequal
   teststructs.StructD{
 - 	X: "NotEqual",

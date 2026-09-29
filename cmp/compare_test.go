@@ -2080,6 +2080,30 @@ func methodTests() []test {
 		wantEqual: true,
 		reason:    "Equal method on StructC pointer called",
 	}, {
+		label:     label + "/StructC/NilPointerInequal",
+		x:         (*ts.StructC)(nil),
+		y:         &ts.StructC{X: "NotEqual"},
+		wantEqual: false,
+		reason:    "value-receiver Equal is not called on a nil pointer (issue 324)",
+	}, {
+		label:     label + "/StructC/BothNilPointersEqual",
+		x:         (*ts.StructC)(nil),
+		y:         (*ts.StructC)(nil),
+		wantEqual: true,
+		reason:    "two nil pointers are equal without calling value-receiver Equal",
+	}, {
+		label:     label + "/StructC1/NilPointerInequal",
+		x:         (*ts.StructC1)(nil),
+		y:         &ts.StructC1{StructC: ts.StructC{X: "NotEqual"}, X: "NotEqual"},
+		wantEqual: false,
+		reason:    "promoted value-receiver Equal is not called on a nil pointer (issue 324)",
+	}, {
+		label:     label + "/StructB/NilPointerEqual",
+		x:         (*ts.StructB)(nil),
+		y:         &ts.StructB{X: "NotEqual"},
+		wantEqual: true,
+		reason:    "pointer-receiver Equal is called even if x or y is nil",
+	}, {
 		label:     label + "/StructD/ValueInequal",
 		x:         ts.StructD{X: "NotEqual"},
 		y:         ts.StructD{X: "not_equal"},
