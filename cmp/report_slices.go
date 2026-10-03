@@ -552,6 +552,13 @@ func coalesceInterveningIdentical(groups []diffStats, windowSize int) []diffStat
 //	]
 func cleanupSurroundingIdentical(groups []diffStats, eq func(i, j int) bool) []diffStats {
 	var ix, iy int // indexes into sequence x and y
+
+	// Identical spans detected on the first or last group have no adjacent
+	// group to be folded into, so a new group must be prepended or appended.
+	// That is done after the loop since mutating the slice mid-loop would
+	// invalidate the group indexes used by the remaining iterations.
+	var numPrepend, numAppend int
+
 	for i, ds := range groups {
 		// Handle equal group.
 		if ds.NumDiff() == 0 {
@@ -579,9 +586,7 @@ func cleanupSurroundingIdentical(groups []diffStats, eq func(i, j int) bool) []d
 				} else {
 					// No preceding group exists, so prepend a new group,
 					// but do so after we finish iterating over all groups.
-					defer func() {
-						groups = append([]diffStats{{Name: groups[0].Name, NumIdentical: numLeadingIdentical}}, groups...)
-					}()
+					numPrepend = numLeadingIdentical
 				}
 				// Increment indexes since the preceding group would have handled this.
 				ix += numLeadingIdentical
@@ -595,9 +600,7 @@ func cleanupSurroundingIdentical(groups []diffStats, eq func(i, j int) bool) []d
 				} else {
 					// No succeeding group exists, so append a new group,
 					// but do so after we finish iterating over all groups.
-					defer func() {
-						groups = append(groups, diffStats{Name: groups[len(groups)-1].Name, NumIdentical: numTrailingIdentical})
-					}()
+					numAppend = numTrailingIdentical
 				}
 				// Do not increment indexes since the succeeding group will handle this.
 			}
@@ -609,6 +612,12 @@ func cleanupSurroundingIdentical(groups []diffStats, eq func(i, j int) bool) []d
 		}
 		ix += nx
 		iy += ny
+	}
+	if numPrepend > 0 {
+		groups = append([]diffStats{{Name: groups[0].Name, NumIdentical: numPrepend}}, groups...)
+	}
+	if numAppend > 0 {
+		groups = append(groups, diffStats{Name: groups[len(groups)-1].Name, NumIdentical: numAppend})
 	}
 	return groups
 }
