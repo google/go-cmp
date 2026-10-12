@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/google/go-cmp/cmp/internal/function"
 )
@@ -262,7 +263,10 @@ func (validator) apply(s *state, vx, vy reflect.Value) {
 // identRx represents a valid identifier according to the Go specification.
 const identRx = `[_\p{L}][_\p{L}\p{N}]*`
 
-var identsRx = regexp.MustCompile(`^` + identRx + `(\.` + identRx + `)*$`)
+// identsRx is compiled lazily, as compiling it at init is relatively expensive.
+var identsRx = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^` + identRx + `(\.` + identRx + `)*$`)
+})
 
 // Transformer returns an [Option] that applies a transformation function that
 // converts values of a certain type into that of another.
@@ -292,10 +296,10 @@ func Transformer(name string, f any) Option {
 	}
 	if name == "" {
 		name = function.NameOf(v)
-		if !identsRx.MatchString(name) {
+		if !identsRx().MatchString(name) {
 			name = "λ" // Lambda-symbol as placeholder name
 		}
-	} else if !identsRx.MatchString(name) {
+	} else if !identsRx().MatchString(name) {
 		panic(fmt.Sprintf("invalid name: %q", name))
 	}
 	tr := &transformer{name: name, fnc: reflect.ValueOf(f)}
