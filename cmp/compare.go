@@ -459,7 +459,8 @@ func (s *state) compareSlice(t reflect.Type, vx, vy reflect.Value) {
 	// exponential time for deeply nested slices. Preserve alignment scoring
 	// when this comparison is itself part of an outer edit script.
 	if len(s.opts) == 1 && len(s.reporters) == 0 && !s.inStatelessCompare && vx.Len() == vy.Len() {
-		for i := 0; i < vx.Len(); i++ {
+		n := vx.Len()
+		for i := 0; i < n; i++ {
 			s.compareAny(withIndexes(i, i))
 		}
 		return

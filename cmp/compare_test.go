@@ -3008,13 +3008,14 @@ func BenchmarkBytes(b *testing.B) {
 	}
 }
 
-type nestedSliceCountedInt int
-
-var nestedSliceEqualCalls int64
+type nestedSliceCountedInt struct {
+	val   int
+	calls *int64
+}
 
 func (x nestedSliceCountedInt) Equal(y nestedSliceCountedInt) bool {
-	atomic.AddInt64(&nestedSliceEqualCalls, 1)
-	return x == y
+	atomic.AddInt64(x.calls, 1)
+	return x.val == y.val
 }
 
 func nestedSlice(value any, depth int) any {
@@ -3033,13 +3034,13 @@ func TestNestedSliceEquality(t *testing.T) {
 		{"Diff", func(x, y any) bool { return cmp.Diff(x, y) == "" }},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			x := nestedSlice(nestedSliceCountedInt(0), 12)
-			y := nestedSlice(nestedSliceCountedInt(0), 12)
-			atomic.StoreInt64(&nestedSliceEqualCalls, 0)
+			var calls int64
+			x := nestedSlice(nestedSliceCountedInt{0, &calls}, 12)
+			y := nestedSlice(nestedSliceCountedInt{0, &calls}, 12)
 			if !tt.equal(x, y) {
 				t.Fatal("identical nested values should compare equal")
 			}
-			if calls := atomic.LoadInt64(&nestedSliceEqualCalls); calls > 64 {
+			if calls := atomic.LoadInt64(&calls); calls > 64 {
 				t.Fatalf("nested slices repeatedly compared their leaf: %d calls", calls)
 			}
 		})
