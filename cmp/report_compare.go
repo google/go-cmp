@@ -118,12 +118,13 @@ func (opts formatOptions) FormatDiff(v *valueNode, ptrs *pointerReferences) (out
 	isBytes := v.Type.Kind() == reflect.Slice && v.Type.Elem() == byteType
 	isEqualBytes := isBytes && v.NumDiff+v.NumIgnored+v.NumTransformed == 0
 	if v.MaxDepth == 0 || isEqualBytes {
+		ptrsX, ptrsY := ptrs.Split()
 		switch opts.DiffMode {
 		case diffUnknown, diffIdentical:
 			// Format Equal.
 			if v.NumDiff == 0 {
-				outx := opts.FormatValue(v.ValueX, parentKind, ptrs)
-				outy := opts.FormatValue(v.ValueY, parentKind, ptrs)
+				outx := opts.FormatValue(v.ValueX, parentKind, &ptrsX)
+				outy := opts.FormatValue(v.ValueY, parentKind, &ptrsY)
 				if v.NumIgnored > 0 && v.NumSame == 0 {
 					return textEllipsis
 				} else if outx.Len() < outy.Len() {
@@ -136,12 +137,12 @@ func (opts formatOptions) FormatDiff(v *valueNode, ptrs *pointerReferences) (out
 			// Format unequal.
 			assert(opts.DiffMode == diffUnknown)
 			var list textList
-			outx := opts.WithTypeMode(elideType).FormatValue(v.ValueX, parentKind, ptrs)
-			outy := opts.WithTypeMode(elideType).FormatValue(v.ValueY, parentKind, ptrs)
+			outx := opts.WithTypeMode(elideType).FormatValue(v.ValueX, parentKind, &ptrsX)
+			outy := opts.WithTypeMode(elideType).FormatValue(v.ValueY, parentKind, &ptrsY)
 			for i := 0; i <= maxVerbosityPreset && outx != nil && outy != nil && outx.Equal(outy); i++ {
 				opts2 := verbosityPreset(opts, i).WithTypeMode(elideType)
-				outx = opts2.FormatValue(v.ValueX, parentKind, ptrs)
-				outy = opts2.FormatValue(v.ValueY, parentKind, ptrs)
+				outx = opts2.FormatValue(v.ValueX, parentKind, &ptrsX)
+				outy = opts2.FormatValue(v.ValueY, parentKind, &ptrsY)
 			}
 			if outx != nil {
 				list = append(list, textRecord{Diff: '-', Value: outx})
@@ -151,9 +152,9 @@ func (opts formatOptions) FormatDiff(v *valueNode, ptrs *pointerReferences) (out
 			}
 			return opts.WithTypeMode(emitType).FormatType(v.Type, list)
 		case diffRemoved:
-			return opts.FormatValue(v.ValueX, parentKind, ptrs)
+			return opts.FormatValue(v.ValueX, parentKind, &ptrsX)
 		case diffInserted:
-			return opts.FormatValue(v.ValueY, parentKind, ptrs)
+			return opts.FormatValue(v.ValueY, parentKind, &ptrsY)
 		default:
 			panic("invalid diff mode")
 		}

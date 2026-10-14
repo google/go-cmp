@@ -33,6 +33,19 @@ func formatPointer(p value.Pointer, withDelims bool) string {
 // pointerReferences is a stack of pointers visited so far.
 type pointerReferences [][2]value.Pointer
 
+// Split projects the paired ancestors onto each side of the comparison.
+// Formatting a single value must not stop at an ancestor that only occurs on
+// the other side; the same pointer can have a different cycle on each side.
+func (ps pointerReferences) Split() (px, py pointerReferences) {
+	px = make(pointerReferences, len(ps))
+	py = make(pointerReferences, len(ps))
+	for i, pp := range ps {
+		px[i] = [2]value.Pointer{pp[0], pp[0]}
+		py[i] = [2]value.Pointer{pp[1], pp[1]}
+	}
+	return px, py
+}
+
 func (ps *pointerReferences) PushPair(vx, vy reflect.Value, d diffMode, deref bool) (pp [2]value.Pointer) {
 	if deref && vx.IsValid() {
 		vx = vx.Addr()
