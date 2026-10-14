@@ -66,7 +66,7 @@ func (ps *pointerReferences) PushPair(vx, vy reflect.Value, d diffMode, deref bo
 func (ps *pointerReferences) Push(v reflect.Value) (p value.Pointer, seen bool) {
 	p = value.PointerOf(v)
 	for _, pp := range ps.stack {
-		if ps.side != diffInserted && p == pp[0] || ps.side != diffRemoved && p == pp[1] {
+		if (ps.side != diffInserted && p == pp[0]) || (ps.side != diffRemoved && p == pp[1]) {
 			return p, true
 		}
 	}
