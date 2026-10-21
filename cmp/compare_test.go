@@ -140,19 +140,23 @@ func TestDiff(t *testing.T) {
 			if !*update {
 				t.Parallel()
 			}
-			var gotDiff, gotPanic string
-			func() {
+			recoverString := func(f func()) (panicked string) {
 				defer func() {
 					if ex := recover(); ex != nil {
 						if s, ok := ex.(string); ok {
-							gotPanic = s
+							panicked = s
 						} else {
 							panic(ex)
 						}
 					}
 				}()
-				gotDiff = cmp.Diff(tt.x, tt.y, tt.opts...)
-			}()
+				f()
+				return ""
+			}
+			var gotEqual bool
+			var gotDiff string
+			gotEqualPanic := recoverString(func() { gotEqual = cmp.Equal(tt.x, tt.y, tt.opts...) })
+			gotPanic := recoverString(func() { gotDiff = cmp.Diff(tt.x, tt.y, tt.opts...) })
 
 			switch {
 			case strings.Contains(t.Name(), "#"):
@@ -162,6 +166,9 @@ func TestDiff(t *testing.T) {
 			case tt.wantPanic == "":
 				if gotPanic != "" {
 					t.Fatalf("unexpected panic message: %s\nreason: %v", gotPanic, tt.reason)
+				}
+				if gotEqualPanic != "" {
+					t.Fatalf("unexpected Equal panic message: %s\nreason: %v", gotEqualPanic, tt.reason)
 				}
 				if *update {
 					if gotDiff != "" {
@@ -173,13 +180,18 @@ func TestDiff(t *testing.T) {
 						t.Fatalf("Diff:\ngot:\n%s\nwant:\n%s\ndiff: (-want +got)\n%s\nreason: %v", gotDiff, wantDiff, diff, tt.reason)
 					}
 				}
-				gotEqual := gotDiff == ""
 				if gotEqual != tt.wantEqual {
 					t.Fatalf("Equal = %v, want %v\nreason: %v", gotEqual, tt.wantEqual, tt.reason)
+				}
+				if gotEqual := gotDiff == ""; gotEqual != tt.wantEqual {
+					t.Fatalf("Diff == \"\" is %v, want %v\nreason: %v", gotEqual, tt.wantEqual, tt.reason)
 				}
 			default:
 				if !strings.Contains(gotPanic, tt.wantPanic) {
 					t.Fatalf("panic message:\ngot:  %s\nwant: %s\nreason: %v", gotPanic, tt.wantPanic, tt.reason)
+				}
+				if !strings.Contains(gotEqualPanic, tt.wantPanic) {
+					t.Fatalf("Equal panic message:\ngot:  %s\nwant: %s\nreason: %v", gotEqualPanic, tt.wantPanic, tt.reason)
 				}
 			}
 		})
@@ -3001,5 +3013,134 @@ func BenchmarkBytes(b *testing.B) {
 				})
 			}
 		})
+	}
+}
+
+type nopReporter struct{}
+
+func (nopReporter) PushStep(cmp.PathStep) {}
+func (nopReporter) Report(cmp.Result)     {}
+func (nopReporter) PopStep()              {}
+
+type plainEqualer struct{ A int }
+
+func (x *plainEqualer) Equal(y *plainEqualer) bool { return true }
+
+type plainList struct {
+	V    int
+	Next *plainList
+}
+
+type plainBlank struct {
+	_ int
+	A string
+}
+
+// TestEqualPlain checks that Equal's fast path, only used without a Reporter,
+// matches its full path.
+func TestEqualPlain(t *testing.T) {
+	nan := math.NaN()
+	nanSlice := []float64{nan}
+	cycle1 := &plainList{V: 1}
+	cycle1.Next = cycle1
+	cycle2 := &plainList{V: 1}
+	cycle2.Next = &plainList{V: 1, Next: cycle2}
+	ch := make(chan int)
+	type namedBytes []byte
+	pairs := []struct{ x, y any }{
+		{nil, nil},
+		{1, 1},
+		{1, 2},
+		{1, int64(1)},
+		{"a", "a"},
+		{nan, nan},
+		{nanSlice, nanSlice},
+		{[1]float64{nan}, [1]float64{nan}},
+		{0.0, math.Copysign(0, -1)},
+		{[]int(nil), []int{}},
+		{[]int{}, []int{}},
+		{[]int{1, 2}, []int{1, 2}},
+		{[]int{1, 2}, []int{1, 2, 3}},
+		{[]int{1, 2}, []int{2, 1}},
+		{[]byte("abc"), []byte("abc")},
+		{[]byte("abc"), []byte("abd")},
+		{[]byte(nil), []byte{}},
+		{namedBytes("abc"), namedBytes("abc")},
+		{[3]byte{1, 2, 3}, [3]byte{1, 2, 3}},
+		{[3]byte{1, 2, 3}, [3]byte{1, 2, 4}},
+		{map[string]int(nil), map[string]int{}},
+		{map[string]int{"a": 1}, map[string]int{"a": 1}},
+		{map[string]int{"a": 1}, map[string]int{"b": 1}},
+		{map[string]int{"a": 1}, map[string]int{"a": 1, "b": 2}},
+		{map[float64]int{nan: 1}, map[float64]int{nan: 1}},
+		{map[[1]float64]int{{1}: 1}, map[[1]float64]int{{1}: 1}},
+		{map[time.Time]int{now: 1}, map[time.Time]int{now: 1}},
+		{map[time.Time]int{now: 1}, map[time.Time]int{now.In(time.FixedZone("x", 3600)): 1}},
+		{map[struct{ a int }]int{{1}: 1}, map[struct{ a int }]int{{1}: 1}},
+		{map[struct{ a int }]int{{1}: 1}, map[struct{ a int }]int{{2}: 1}},
+		{map[*plainList]int{cycle1: 1}, map[*plainList]int{cycle1: 1}},
+		{map[*plainList]int{cycle1: 1}, map[*plainList]int{cycle2: 1}},
+		{map[any]int{1: 1}, map[any]int{1: 1}},
+		{[]*int{newInt(1)}, []*int{newInt(1)}},
+		{[]*int{newInt(1)}, []*int{newInt(2)}},
+		{[]*int{nil}, []*int{newInt(2)}},
+		{ch, ch},
+		{ch, make(chan int)},
+		{(func())(nil), (func())(nil)},
+		{func() {}, func() {}},
+		{now, now.In(time.FixedZone("x", 3600))},
+		{[]time.Time{now}, []time.Time{now.Add(1)}},
+		{&plainEqualer{1}, &plainEqualer{2}},
+		{[]plainEqualer{{1}}, []plainEqualer{{2}}},
+		{plainBlank{A: "a"}, plainBlank{A: "a"}},
+		{plainBlank{A: "a"}, plainBlank{A: "b"}},
+		{struct{ a int }{1}, struct{ a int }{1}},
+		{struct{ A []struct{ b int } }{}, struct{ A []struct{ b int } }{}},
+		{struct{ A []struct{ b int } }{[]struct{ b int }{{}}}, struct{ A []struct{ b int } }{[]struct{ b int }{{}}}},
+		{&plainList{V: 1, Next: &plainList{V: 2}}, &plainList{V: 1, Next: &plainList{V: 2}}},
+		{&plainList{V: 1, Next: &plainList{V: 2}}, &plainList{V: 1, Next: &plainList{V: 3}}},
+		{cycle1, cycle1},
+		{cycle1, cycle2},
+		{[]any{1, "a", []int{1}, nil}, []any{1, "a", []int{1}, nil}},
+		{[]any{1, "a", []int{1}}, []any{1, "a", []int{2}}},
+		{[]any{1}, []any{int64(1)}},
+		{map[string]any{"a": []float64{nan}}, map[string]any{"a": []float64{nan}}},
+		{[]error{io.EOF}, []error{io.EOF}},
+	}
+	equal := func(x, y any, opts ...cmp.Option) (eq bool, panicked string) {
+		defer func() {
+			if ex := recover(); ex != nil {
+				panicked = fmt.Sprint(ex)
+			}
+		}()
+		return cmp.Equal(x, y, opts...), ""
+	}
+	for i, p := range pairs {
+		gotEq, gotPanic := equal(p.x, p.y)
+		wantEq, wantPanic := equal(p.x, p.y, cmp.Reporter(nopReporter{}))
+		if gotEq != wantEq || (gotPanic == "") != (wantPanic == "") {
+			t.Errorf("pair %d: Equal(%#v, %#v) = %v, %q; want %v, %q", i, p.x, p.y, gotEq, gotPanic, wantEq, wantPanic)
+		}
+	}
+}
+
+// TestEqualPlainAllocs checks that Equal and Diff do not allocate when
+// comparing equal values of plain types without options.
+func TestEqualPlainAllocs(t *testing.T) {
+	type small struct{ A, B, C int }
+	pairs := []struct{ x, y any }{
+		{1, 1},
+		{"a", "a"},
+		{make([]small, 1000), make([]small, 1000)},
+		{make([]byte, 4096), make([]byte, 4096)},
+		{[]*int{newInt(1)}, []*int{newInt(1)}},
+	}
+	for i, p := range pairs {
+		if n := testing.AllocsPerRun(10, func() { cmp.Equal(p.x, p.y) }); n > 0 {
+			t.Errorf("pair %d: Equal allocates %v times, want 0", i, n)
+		}
+		if n := testing.AllocsPerRun(10, func() { cmp.Diff(p.x, p.y) }); n > 0 {
+			t.Errorf("pair %d: Diff allocates %v times, want 0", i, n)
+		}
 	}
 }

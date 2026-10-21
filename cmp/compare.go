@@ -93,6 +93,9 @@ import (
 // If there is a cycle, then the pointed at values are considered equal
 // only if both addresses were previously visited in the same path step.
 func Equal(x, y any, opts ...Option) bool {
+	if eq, ok := plainRootEqual(x, y, opts); ok {
+		return eq
+	}
 	s := newState(opts)
 	s.compareAny(rootStep(x, y))
 	return s.result.Equal()
@@ -113,12 +116,17 @@ func Equal(x, y any, opts ...Option) bool {
 // Do not depend on this output being stable. If you need the ability to
 // programmatically interpret the difference, consider using a custom Reporter.
 func Diff(x, y any, opts ...Option) string {
+	eq, plain := plainRootEqual(x, y, opts)
+	if plain && eq {
+		return ""
+	}
 	s := newState(opts)
 
 	// Optimization: If there are no other reporters, we can optimize for the
 	// common case where the result is equal (and thus no reported difference).
 	// This avoids the expensive construction of a difference tree.
-	if len(s.reporters) == 0 {
+	// [plainRootEqual] already found plain values to differ.
+	if !plain && len(s.reporters) == 0 {
 		s.compareAny(rootStep(x, y))
 		if s.result.Equal() {
 			return ""
@@ -126,6 +134,7 @@ func Diff(x, y any, opts ...Option) string {
 		s.result = diff.Result{} // Reset results
 	}
 
+	s.plainOK = false // the report needs a result for every leaf
 	r := new(defaultReporter)
 	s.reporters = append(s.reporters, reporter{r})
 	s.compareAny(rootStep(x, y))
@@ -183,6 +192,11 @@ type state struct {
 	// These fields, once set by processOption, will not change.
 	exporters []exporter // List of exporters for structs with unexported fields
 	opts      Options    // List of all fundamental and filter options
+
+	// plainOK reports whether [state.compareAny] may use [plainEqual],
+	// which needs no options and no report, as a report needs per-leaf results.
+	// It is not derived from reporters, which [state.statelessCompare] clears.
+	plainOK bool
 }
 
 func newState(opts []Option) *state {
@@ -190,6 +204,7 @@ func newState(opts []Option) *state {
 	s := &state{opts: Options{validator{}}}
 	s.curPtrs.Init()
 	s.processOption(Options(opts))
+	s.plainOK = len(s.opts) == 1 && len(s.exporters) == 0 && len(s.reporters) == 0
 	return s
 }
 
@@ -236,6 +251,13 @@ func (s *state) statelessCompare(step PathStep) diff.Result {
 }
 
 func (s *state) compareAny(step PathStep) {
+	t := step.Type()
+	vx, vy := step.Values()
+	if s.plainOK && vx.IsValid() && vy.IsValid() && vx.CanInterface() && vy.CanInterface() && isPlainType(t) {
+		s.report(plainEqual(vx, vy), 0)
+		return
+	}
+
 	// Update the path stack.
 	s.curPath.push(step)
 	defer s.curPath.pop()
@@ -246,8 +268,6 @@ func (s *state) compareAny(step PathStep) {
 	s.recChecker.Check(s.curPath)
 
 	// Cycle-detection for slice elements (see NOTE in compareSlice).
-	t := step.Type()
-	vx, vy := step.Values()
 	if si, ok := step.(SliceIndex); ok && si.isSlice && vx.IsValid() && vy.IsValid() {
 		px, py := vx.Addr(), vy.Addr()
 		if eq, visited := s.curPtrs.Push(px, py); visited {
@@ -269,22 +289,11 @@ func (s *state) compareAny(step PathStep) {
 
 	// Rule 3: Compare based on the underlying kind.
 	switch t.Kind() {
-	case reflect.Bool:
-		s.report(vx.Bool() == vy.Bool(), 0)
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		s.report(vx.Int() == vy.Int(), 0)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		s.report(vx.Uint() == vy.Uint(), 0)
-	case reflect.Float32, reflect.Float64:
-		s.report(vx.Float() == vy.Float(), 0)
-	case reflect.Complex64, reflect.Complex128:
-		s.report(vx.Complex() == vy.Complex(), 0)
-	case reflect.String:
-		s.report(vx.String() == vy.String(), 0)
-	case reflect.Chan, reflect.UnsafePointer:
-		s.report(vx.Pointer() == vy.Pointer(), 0)
-	case reflect.Func:
-		s.report(vx.IsNil() && vy.IsNil(), 0)
+	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
+		reflect.String, reflect.Chan, reflect.UnsafePointer, reflect.Func:
+		s.report(plainEqual(vx, vy), 0)
 	case reflect.Struct:
 		s.compareStruct(t, vx, vy)
 	case reflect.Slice, reflect.Array:
@@ -310,15 +319,20 @@ func (s *state) tryOptions(t reflect.Type, vx, vy reflect.Value) bool {
 }
 
 func (s *state) tryMethod(t reflect.Type, vx, vy reflect.Value) bool {
-	// Check if this type even has an Equal method.
-	m, ok := t.MethodByName("Equal")
-	if !ok || !function.IsType(m.Type, function.EqualAssignable) {
+	m, ok := equalMethod(t)
+	if !ok {
 		return false
 	}
 
 	eq := s.callTTBFunc(m.Func, vx, vy)
 	s.report(eq, reportByMethod)
 	return true
+}
+
+// equalMethod returns t's Equal method, if [state.compareAny] would call it.
+func equalMethod(t reflect.Type) (reflect.Method, bool) {
+	m, ok := t.MethodByName("Equal")
+	return m, ok && function.IsType(m.Type, function.EqualAssignable)
 }
 
 func (s *state) callTRFunc(f, v reflect.Value, step Transform) reflect.Value {
