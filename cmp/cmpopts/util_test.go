@@ -867,6 +867,20 @@ func TestOptions(t *testing.T) {
 		wantEqual: true,
 		reason:    "equal because mismatching unexported fields are ignored",
 	}, {
+		label:     "IgnoreFieldsExcept",
+		x:         Bar1{Foo3{&Foo2{&Foo1{Alpha: 5, Bravo: 10}}}},
+		y:         Bar1{Foo3{&Foo2{&Foo1{Alpha: 5, Bravo: 20}}}},
+		opts:      []cmp.Option{IgnoreFieldsExcept(Foo1{}, "Alpha")},
+		wantEqual: true,
+		reason:    "equal because IgnoreFieldsExcept ignores all fields except Alpha on Foo1",
+	}, {
+		label:     "IgnoreFieldsExcept",
+		x:         Bar1{Foo3{&Foo2{&Foo1{Alpha: 5, Bravo: 10}}}},
+		y:         Bar1{Foo3{&Foo2{&Foo1{Alpha: 6, Bravo: 10}}}},
+		opts:      []cmp.Option{IgnoreFieldsExcept(&Foo1{}, "Alpha")},
+		wantEqual: false,
+		reason:    "not equal because excepted field Alpha differs",
+	}, {
 		label:     "IgnoreTypes",
 		x:         []any{5, "same"},
 		y:         []any{6, "same"},
@@ -1291,6 +1305,23 @@ func TestPanic(t *testing.T) {
 		args:      args(struct{ privateStruct }{}, "private"),
 		wantPanic: "does not exist",
 		reason:    "private field not permitted since it is a forwarded field that is unexported",
+	}, {
+		label:     "IgnoreFieldsExcept",
+		fnc:       IgnoreFieldsExcept,
+		args:      args(123, "Alpha"),
+		wantPanic: "must be a struct or pointer to struct",
+		reason:    "int is not a struct",
+	}, {
+		label:     "IgnoreFieldsExcept",
+		fnc:       IgnoreFieldsExcept,
+		args:      args(Foo1{}, "NonExistent"),
+		wantPanic: "does not exist",
+		reason:    "non-existent field is invalid",
+	}, {
+		label:  "IgnoreFieldsExcept",
+		fnc:    IgnoreFieldsExcept,
+		args:   args(&Foo1{}, "Alpha"),
+		reason: "pointer to struct is valid",
 	}, {
 		label:  "IgnoreTypes",
 		fnc:    IgnoreTypes,
