@@ -104,9 +104,6 @@ func mustFormatGolden(path string, in []struct{ Name, Data string }) {
 
 var now = time.Date(2009, time.November, 10, 23, 00, 00, 00, time.UTC)
 
-// TODO(≥go1.18): Define a generic function that boxes a value on the heap.
-func newInt(n int) *int { return &n }
-
 type Stringer string
 
 func newStringer(s string) fmt.Stringer { return (*Stringer)(&s) }
@@ -319,20 +316,20 @@ func comparerTests() []test {
 		reason:    "unexported fields result in a panic by default",
 	}, {
 		label:     label + "/PointerStructEqual",
-		x:         &struct{ A *int }{newInt(4)},
-		y:         &struct{ A *int }{newInt(4)},
+		x:         &struct{ A *int }{new(4)},
+		y:         &struct{ A *int }{new(4)},
 		wantEqual: true,
 		reason:    "comparison of pointer to struct with equal A field",
 	}, {
 		label:     label + "/PointerStructInequal",
-		x:         &struct{ A *int }{newInt(4)},
-		y:         &struct{ A *int }{newInt(5)},
+		x:         &struct{ A *int }{new(4)},
+		y:         &struct{ A *int }{new(5)},
 		wantEqual: false,
 		reason:    "comparison of pointer to struct with inequal A field",
 	}, {
 		label: label + "/PointerStructTrueComparer",
-		x:     &struct{ A *int }{newInt(4)},
-		y:     &struct{ A *int }{newInt(5)},
+		x:     &struct{ A *int }{new(4)},
+		y:     &struct{ A *int }{new(5)},
 		opts: []cmp.Option{
 			cmp.Comparer(func(x, y int) bool { return true }),
 		},
@@ -340,8 +337,8 @@ func comparerTests() []test {
 		reason:    "comparison of pointer to struct with inequal A field, but treated as equal with always equal comparer",
 	}, {
 		label: label + "/PointerStructNonNilComparer",
-		x:     &struct{ A *int }{newInt(4)},
-		y:     &struct{ A *int }{newInt(5)},
+		x:     &struct{ A *int }{new(4)},
+		y:     &struct{ A *int }{new(5)},
 		opts: []cmp.Option{
 			cmp.Comparer(func(x, y *int) bool { return x != nil && y != nil }),
 		},
@@ -909,8 +906,8 @@ func reporterTests() []test {
 		reason:    "reporter should display the qualified type name to disambiguate between the two values",
 	}, {
 		label: label + "/AmbiguousPointer",
-		x:     newInt(0),
-		y:     newInt(0),
+		x:     new(0),
+		y:     new(0),
 		opts: []cmp.Option{
 			cmp.Comparer(func(x, y *int) bool { return x == y }),
 		},
@@ -918,8 +915,8 @@ func reporterTests() []test {
 		reason:    "reporter should display the address to disambiguate between the two values",
 	}, {
 		label: label + "/AmbiguousPointerStruct",
-		x:     struct{ I *int }{newInt(0)},
-		y:     struct{ I *int }{newInt(0)},
+		x:     struct{ I *int }{new(0)},
+		y:     struct{ I *int }{new(0)},
 		opts: []cmp.Option{
 			cmp.Comparer(func(x, y *int) bool { return x == y }),
 		},
@@ -927,8 +924,8 @@ func reporterTests() []test {
 		reason:    "reporter should display the address to disambiguate between the two struct fields",
 	}, {
 		label: label + "/AmbiguousPointerSlice",
-		x:     []*int{newInt(0)},
-		y:     []*int{newInt(0)},
+		x:     []*int{new(0)},
+		y:     []*int{new(0)},
 		opts: []cmp.Option{
 			cmp.Comparer(func(x, y *int) bool { return x == y }),
 		},
@@ -936,8 +933,8 @@ func reporterTests() []test {
 		reason:    "reporter should display the address to disambiguate between the two slice elements",
 	}, {
 		label: label + "/AmbiguousPointerMap",
-		x:     map[string]*int{"zero": newInt(0)},
-		y:     map[string]*int{"zero": newInt(0)},
+		x:     map[string]*int{"zero": new(0)},
+		y:     map[string]*int{"zero": new(0)},
 		opts: []cmp.Option{
 			cmp.Comparer(func(x, y *int) bool { return x == y }),
 		},
@@ -2594,7 +2591,7 @@ func project1Tests() []test {
 						Target: "corporation",
 						Immutable: &ts.GoatImmutable{
 							ID:      "southbay",
-							State:   (*pb.Goat_States)(newInt(5)),
+							State:   (*pb.Goat_States)(new(5)),
 							Started: now,
 						},
 					},
@@ -2622,7 +2619,7 @@ func project1Tests() []test {
 			Immutable: &ts.EagleImmutable{
 				ID:          "eagleID",
 				Birthday:    now,
-				MissingCall: (*pb.Eagle_MissingCalls)(newInt(55)),
+				MissingCall: (*pb.Eagle_MissingCalls)(new(55)),
 			},
 		}
 	}
@@ -2671,7 +2668,7 @@ func project1Tests() []test {
 		x: func() ts.Eagle {
 			eg := createEagle()
 			eg.Dreamers[1].Animal[0].(ts.Goat).Immutable.ID = "southbay2"
-			eg.Dreamers[1].Animal[0].(ts.Goat).Immutable.State = (*pb.Goat_States)(newInt(6))
+			eg.Dreamers[1].Animal[0].(ts.Goat).Immutable.State = (*pb.Goat_States)(new(6))
 			eg.Slaps[0].Immutable.MildSlap = false
 			return eg
 		}(),
