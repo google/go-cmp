@@ -171,6 +171,8 @@ type state struct {
 	curPath   Path        // The current path in the value tree
 	curPtrs   pointerPath // The current set of visited pointers
 	reporters []reporter  // Optional reporters
+	// Stateless comparisons also provide edit-distance scores, not just equality.
+	inStatelessCompare bool
 
 	// recChecker checks for infinite cycles applying the same set of
 	// transformers upon the output of itself.
@@ -226,12 +228,13 @@ func (s *state) statelessCompare(step PathStep) diff.Result {
 	// It is an implementation bug if the contents of the paths differ from
 	// when calling this function to when returning from it.
 
-	oldResult, oldReporters := s.result, s.reporters
+	oldResult, oldReporters, oldStateless := s.result, s.reporters, s.inStatelessCompare
 	s.result = diff.Result{} // Reset result
 	s.reporters = nil        // Remove reporters to avoid spurious printouts
+	s.inStatelessCompare = true
 	s.compareAny(step)
 	res := s.result
-	s.result, s.reporters = oldResult, oldReporters
+	s.result, s.reporters, s.inStatelessCompare = oldResult, oldReporters, oldStateless
 	return res
 }
 
@@ -449,6 +452,18 @@ func (s *state) compareSlice(t reflect.Type, vx, vy reflect.Value) {
 			step.vy, step.ykey = reflect.Value{}, -1
 		}
 		return step
+	}
+
+	// Without comparison options or reports, equal-length slices only need
+	// positional equality. Repeated edit-script comparisons can otherwise take
+	// exponential time for deeply nested slices. Preserve alignment scoring
+	// when this comparison is itself part of an outer edit script.
+	if len(s.opts) == 1 && len(s.reporters) == 0 && !s.inStatelessCompare && vx.Len() == vy.Len() {
+		n := vx.Len()
+		for i := 0; i < n; i++ {
+			s.compareAny(withIndexes(i, i))
+		}
+		return
 	}
 
 	// Ignore options are able to ignore missing elements in a slice.
