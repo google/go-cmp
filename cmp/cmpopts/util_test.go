@@ -548,6 +548,172 @@ func TestOptions(t *testing.T) {
 		wantEqual: false,
 		reason:    "time difference overflows time.Duration",
 	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(0),
+		y:         time.Duration(0),
+		opts:      []cmp.Option{EquateApproxDuration(0)},
+		wantEqual: true,
+		reason:    "equal because durations are identical",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         3 * time.Second,
+		y:         3 * time.Second,
+		opts:      []cmp.Option{EquateApproxDuration(0)},
+		wantEqual: true,
+		reason:    "equal because positive durations are identical",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         -3 * time.Second,
+		y:         -3 * time.Second,
+		opts:      []cmp.Option{EquateApproxDuration(0)},
+		wantEqual: true,
+		reason:    "equal because negative durations are identical",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(0),
+		y:         3 * time.Second,
+		opts:      []cmp.Option{EquateApproxDuration(3 * time.Second)},
+		wantEqual: true,
+		reason:    "equal because duration is exactly at the allowed margin",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         3 * time.Second,
+		y:         time.Duration(0),
+		opts:      []cmp.Option{EquateApproxDuration(3 * time.Second)},
+		wantEqual: true,
+		reason:    "equal because duration is exactly at the allowed margin (negative)",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         3 * time.Second,
+		y:         time.Duration(0),
+		opts:      []cmp.Option{EquateApproxDuration(3*time.Second - 1)},
+		wantEqual: false,
+		reason:    "not equal because duration is outside allowed margin",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(0),
+		y:         3 * time.Second,
+		opts:      []cmp.Option{EquateApproxDuration(3*time.Second - 1)},
+		wantEqual: false,
+		reason:    "not equal because duration is outside allowed margin (negative)",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         -3 * time.Second,
+		y:         3 * time.Second,
+		opts:      []cmp.Option{EquateApproxDuration(6 * time.Second)},
+		wantEqual: true,
+		reason:    "equal because negative and positive durations are within margin",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         -3 * time.Second,
+		y:         3 * time.Second,
+		opts:      []cmp.Option{EquateApproxDuration(6*time.Second - 1)},
+		wantEqual: false,
+		reason:    "not equal because difference between negative and positive durations exceeds margin",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(math.MinInt64),
+		y:         time.Duration(math.MaxInt64),
+		opts:      []cmp.Option{EquateApproxDuration(time.Second)},
+		wantEqual: false,
+		reason:    "not equal because difference between boundary durations exceeds margin without overflow error",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(math.MinInt64),
+		y:         time.Duration(math.MinInt64) + time.Second,
+		opts:      []cmp.Option{EquateApproxDuration(time.Second)},
+		wantEqual: true,
+		reason:    "equal because difference near MinInt64 is within margin",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(math.MaxInt64) - time.Second,
+		y:         time.Duration(math.MaxInt64),
+		opts:      []cmp.Option{EquateApproxDuration(time.Second)},
+		wantEqual: true,
+		reason:    "equal because difference near MaxInt64 is within margin",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         3 * time.Second,
+		y:         3*time.Second + 1,
+		opts:      []cmp.Option{EquateApproxDuration(0)},
+		wantEqual: false,
+		reason:    "not equal because zero margin requires identical durations",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(0),
+		y:         3*time.Second - 1,
+		opts:      []cmp.Option{EquateApproxDuration(3 * time.Second)},
+		wantEqual: true,
+		reason:    "equal because duration difference is strictly within the margin",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(math.MinInt64),
+		y:         time.Duration(math.MinInt64),
+		opts:      []cmp.Option{EquateApproxDuration(0)},
+		wantEqual: true,
+		reason:    "equal because MinInt64 duration is equal to itself",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(math.MaxInt64),
+		y:         time.Duration(math.MaxInt64),
+		opts:      []cmp.Option{EquateApproxDuration(0)},
+		wantEqual: true,
+		reason:    "equal because MaxInt64 duration is equal to itself",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(math.MinInt64),
+		y:         time.Duration(math.MinInt64) + time.Second + 1,
+		opts:      []cmp.Option{EquateApproxDuration(time.Second)},
+		wantEqual: false,
+		reason:    "not equal because difference near MinInt64 exceeds margin",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(math.MaxInt64) - time.Second - 1,
+		y:         time.Duration(math.MaxInt64),
+		opts:      []cmp.Option{EquateApproxDuration(time.Second)},
+		wantEqual: false,
+		reason:    "not equal because difference near MaxInt64 exceeds margin",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(math.MinInt64),
+		y:         time.Duration(0),
+		opts:      []cmp.Option{EquateApproxDuration(time.Second)},
+		wantEqual: false,
+		reason:    "not equal because difference between MinInt64 and zero exceeds margin without overflow error",
+	}, {
+		label:     "EquateApproxDuration",
+		x:         time.Duration(0),
+		y:         time.Duration(math.MaxInt64),
+		opts:      []cmp.Option{EquateApproxDuration(time.Second)},
+		wantEqual: false,
+		reason:    "not equal because difference between zero and MaxInt64 exceeds margin without overflow error",
+	}, {
+		label: "EquateApproxDuration",
+		x: struct {
+			Name    string
+			Elapsed time.Duration
+		}{"task-a", 100 * time.Millisecond},
+		y: struct {
+			Name    string
+			Elapsed time.Duration
+		}{"task-a", 105 * time.Millisecond},
+		opts:      []cmp.Option{EquateApproxDuration(10 * time.Millisecond)},
+		wantEqual: true,
+		reason:    "equal because duration field is within margin",
+	}, {
+		label: "EquateApproxDuration",
+		x: struct {
+			Name    string
+			Elapsed time.Duration
+		}{"task-a", 100 * time.Millisecond},
+		y: struct {
+			Name    string
+			Elapsed time.Duration
+		}{"task-a", 120 * time.Millisecond},
+		opts:      []cmp.Option{EquateApproxDuration(10 * time.Millisecond)},
+		wantEqual: false,
+		reason:    "not equal because duration field exceeds margin",
+	}, {
 		label:     "EquateErrors",
 		x:         nil,
 		y:         nil,
@@ -1213,6 +1379,12 @@ func TestPanic(t *testing.T) {
 	}, {
 		label:     "EquateApproxTime",
 		fnc:       EquateApproxTime,
+		args:      args(time.Duration(-1)),
+		wantPanic: "margin must be a non-negative number",
+		reason:    "negative duration is invalid",
+	}, {
+		label:     "EquateApproxDuration",
+		fnc:       EquateApproxDuration,
 		args:      args(time.Duration(-1)),
 		wantPanic: "margin must be a non-negative number",
 		reason:    "negative duration is invalid",
