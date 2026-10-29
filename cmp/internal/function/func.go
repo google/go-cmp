@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 type funcType int
@@ -72,7 +73,10 @@ func IsType(t reflect.Type, ft funcType) bool {
 	return false
 }
 
-var lastIdentRx = regexp.MustCompile(`[_\p{L}][_\p{L}\p{N}]*$`)
+// lastIdentRx is compiled lazily, as compiling it at init is relatively expensive.
+var lastIdentRx = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`[_\p{L}][_\p{L}\p{N}]*$`)
+})
 
 // NameOf returns the name of the function value.
 func NameOf(v reflect.Value) string {
@@ -90,7 +94,7 @@ func NameOf(v reflect.Value) string {
 		inParen := strings.HasSuffix(fullName, ")")
 		fullName = strings.TrimSuffix(fullName, ")")
 
-		s := lastIdentRx.FindString(fullName)
+		s := lastIdentRx().FindString(fullName)
 		if s == "" {
 			break
 		}
