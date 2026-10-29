@@ -167,7 +167,7 @@ func EquateComparable(typs ...any) cmp.Option {
 	types := make(typesFilter)
 	for _, typ := range typs {
 		switch t := reflect.TypeOf(typ); {
-		case !t.Comparable():
+		case t == nil || !t.Comparable():
 			panic(fmt.Sprintf("%T is not a comparable Go type", typ))
 		case types[t]:
 			panic(fmt.Sprintf("%T is already specified", typ))
