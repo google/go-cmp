@@ -1281,6 +1281,33 @@ func TestOptions(t *testing.T) {
 		wantEqual: false,
 		reason:    "not equal because ignored entries does not imply empty map",
 	}, {
+		label: "IgnoreMapKeys",
+		x:     map[string]int{"a": 1, "b": 2, "c": 3},
+		y:     map[string]int{"a": 1, "b": 3, "c": 5},
+		opts: []cmp.Option{
+			IgnoreMapKeys[string, int]("b", "c"),
+		},
+		wantEqual: true,
+		reason:    "equal because differing keys are ignored",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]int{1: 10, 2: 20, 3: 30},
+		y:     map[int]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[int, int](2, 3),
+		},
+		wantEqual: true,
+		reason:    "equal because differing keys are ignored",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[string]int{"a": 1, "b": 2, "c": 3},
+		y:     map[string]int{"a": 2, "b": 3, "c": 5},
+		opts: []cmp.Option{
+			IgnoreMapKeys[string, int]("b", "c"),
+		},
+		wantEqual: false,
+		reason:    "not equal because key a is not ignored and differs",
+	}, {
 		label: "AcyclicTransformer",
 		x:     "a\nb\nc\nd",
 		y:     "a\nb\nd\nd",
