@@ -205,9 +205,9 @@ func IgnoreMapEntries(discardFunc any) cmp.Option {
 	}, cmp.Ignore())
 }
 
-// IgnoreMapKeys returns an [cmp.Option] that ignores keys of map[K]any.
-func IgnoreMapKeys[K comparable](keys ...K) cmp.Option {
-	return IgnoreMapEntries(func(key K, value any) bool {
+// IgnoreMapKeys returns an [cmp.Option] that ignores keys of map[K]V.
+func IgnoreMapKeys[K comparable, V any](keys ...K) cmp.Option {
+	return IgnoreMapEntries(func(key K, value V) bool {
 		for _, k := range keys {
 			if key == k {
 				return true

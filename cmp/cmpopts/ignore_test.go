@@ -23,7 +23,7 @@ func TestIgnoreMapEntries_stringKeys(t *testing.T) {
 		"c": 5,
 	}
 
-	if diff := cmp.Diff(first, second, cmpopts.IgnoreMapKeys("b", "c")); diff != "" {
+	if diff := cmp.Diff(first, second, cmpopts.IgnoreMapKeys[string, int]("b", "c")); diff != "" {
 		t.Errorf("Unexpected difference:\n%s", diff)
 	}
 }
@@ -40,7 +40,7 @@ func TestIgnoreMapEntries_intKeys(t *testing.T) {
 		3: 50,
 	}
 
-	if diff := cmp.Diff(first, second, cmpopts.IgnoreMapKeys(2, 3)); diff != "" {
+	if diff := cmp.Diff(first, second, cmpopts.IgnoreMapKeys[int, int](2, 3)); diff != "" {
 		t.Errorf("Unexpected difference:\n%s", diff)
 	}
 }
