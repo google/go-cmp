@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"unicode"
+	"slices"
 	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
@@ -205,14 +206,11 @@ func IgnoreMapEntries(discardFunc any) cmp.Option {
 	}, cmp.Ignore())
 }
 
-// IgnoreMapKeys returns an [cmp.Option] that ignores keys of map[K]V.
+// IgnoreMapKeys returns an [cmp.Option] that ignores map entries of map[KA]VA,
+// where KA and VA are assignable to K and V, and the map key matches one of the
+// specified keys.
 func IgnoreMapKeys[K comparable, V any](keys ...K) cmp.Option {
-	return IgnoreMapEntries(func(key K, value V) bool {
-		for _, k := range keys {
-			if key == k {
-				return true
-			}
-		}
-		return false
+	return IgnoreMapEntries(func(key K, _ V) bool {
+		return slices.Contains(keys, key)
 	})
 }
