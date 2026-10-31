@@ -109,6 +109,12 @@ type Stringer string
 func newStringer(s string) fmt.Stringer { return (*Stringer)(&s) }
 func (s Stringer) String() string       { return string(s) }
 
+type stringerSlice []any
+
+func (ss stringerSlice) String() string {
+	return fmt.Sprintf("<slice, %d elements>", len(ss))
+}
+
 type test struct {
 	label     string       // Test name
 	x, y      any          // Input values to compare
@@ -964,6 +970,12 @@ func reporterTests() []test {
 		y:         map[string]fmt.Stringer{"zero": newStringer("hello")},
 		wantEqual: false,
 		reason:    "reporter should avoid calling String to disambiguate between the two map values",
+	}, {
+		label:     label + "/AmbiguousStringerAdjacentDiff",
+		x:         stringerSlice{0, stringerSlice{float64(1), float64(2), float64(3)}},
+		y:         stringerSlice{0, stringerSlice{1, 2, 3}},
+		wantEqual: false,
+		reason:    "reporter should avoid calling String to disambiguate between adjacent differing elements",
 	}, {
 		label: label + "/AmbiguousSliceHeader",
 		x:     make([]int, 0, 5),
