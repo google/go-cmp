@@ -7,8 +7,8 @@ package cmpopts
 import (
 	"fmt"
 	"reflect"
-	"unicode"
 	"slices"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
