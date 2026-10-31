@@ -475,7 +475,21 @@ func (s *state) compareSlice(t reflect.Type, vx, vy reflect.Value) {
 
 	// Compute an edit-script for slices vx and vy (excluding ignored elements).
 	edits := diff.Difference(len(indexesX), len(indexesY), func(ix, iy int) diff.Result {
-		return s.statelessCompare(withIndexes(indexesX[ix], indexesY[iy]))
+		res := s.statelessCompare(withIndexes(indexesX[ix], indexesY[iy]))
+		if !res.Equal() && !res.Similar() {
+			ex := vx.Index(indexesX[ix])
+			ey := vy.Index(indexesY[iy])
+			if ex.Kind() == reflect.Interface && !ex.IsNil() {
+				ex = ex.Elem()
+			}
+			if ey.Kind() == reflect.Interface && !ey.IsNil() {
+				ey = ey.Elem()
+			}
+			if ex.IsValid() && ey.IsValid() && ex.Kind() == reflect.Map && ey.Kind() == reflect.Map && ex.Type() == ey.Type() {
+				res = diff.Result{NumSame: res.NumSame, NumDiff: res.NumSame + 1}
+			}
+		}
+		return res
 	})
 
 	// Replay the ignore-scripts and the edit-script.
