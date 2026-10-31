@@ -31,7 +31,18 @@ func formatPointer(p value.Pointer, withDelims bool) string {
 }
 
 // pointerReferences is a stack of pointers visited so far.
-type pointerReferences [][2]value.Pointer
+type pointerReferences struct {
+	stack [][2]value.Pointer
+	side  diffMode
+}
+
+// Split projects the paired ancestors onto each side of the comparison.
+// Formatting a single value must not stop at an ancestor that only occurs on
+// the other side; the same pointer can have a different cycle on each side.
+func (ps pointerReferences) Split() (px, py pointerReferences) {
+	return pointerReferences{stack: ps.stack, side: diffRemoved},
+		pointerReferences{stack: ps.stack, side: diffInserted}
+}
 
 func (ps *pointerReferences) PushPair(vx, vy reflect.Value, d diffMode, deref bool) (pp [2]value.Pointer) {
 	if deref && vx.IsValid() {
@@ -48,23 +59,23 @@ func (ps *pointerReferences) PushPair(vx, vy reflect.Value, d diffMode, deref bo
 	case diffInserted:
 		pp = [2]value.Pointer{value.Pointer{}, value.PointerOf(vy)}
 	}
-	*ps = append(*ps, pp)
+	ps.stack = append(ps.stack, pp)
 	return pp
 }
 
 func (ps *pointerReferences) Push(v reflect.Value) (p value.Pointer, seen bool) {
 	p = value.PointerOf(v)
-	for _, pp := range *ps {
-		if p == pp[0] || p == pp[1] {
+	for _, pp := range ps.stack {
+		if (ps.side != diffInserted && p == pp[0]) || (ps.side != diffRemoved && p == pp[1]) {
 			return p, true
 		}
 	}
-	*ps = append(*ps, [2]value.Pointer{p, p})
+	ps.stack = append(ps.stack, [2]value.Pointer{p, p})
 	return p, false
 }
 
 func (ps *pointerReferences) Pop() {
-	*ps = (*ps)[:len(*ps)-1]
+	ps.stack = ps.stack[:len(ps.stack)-1]
 }
 
 // trunkReferences is metadata for a textNode indicating that the sub-tree
