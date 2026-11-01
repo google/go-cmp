@@ -515,7 +515,7 @@
 + 		"21 2nd Street",
   		`","city":"New York","state":"NY","postalCode":"10021-3100"},"pho`,
   		`neNumbers":[{"type":"home","number":"212 555-1234"},{"type":"off`,
-  		... // 101 identical bytes
+  		... // 101 identical runes
   	}, ""),
   	BytesB: nil,
   	BytesC: nil,
@@ -1019,7 +1019,7 @@
 <<< TestDiff/Reporter/LargeStringInInterface
   struct{ X any }{
   	X: strings.Join({
-  		... // 485 identical bytes
+  		... // 485 identical runes
   		"s mus. Pellentesque mi lorem, consectetur id porttitor id, solli",
   		"citudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis",
 - 		".",
@@ -1030,7 +1030,7 @@
 <<< TestDiff/Reporter/LargeBytesInInterface
   struct{ X any }{
   	X: bytes.Join({
-  		... // 485 identical bytes
+  		... // 485 identical runes
   		"s mus. Pellentesque mi lorem, consectetur id porttitor id, solli",
   		"citudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis",
 - 		".",
@@ -1098,6 +1098,13 @@
   	"978f480a6e3cced51e297fbff9a506b7\n",
   }, "")
 >>> TestDiff/Reporter/AllLinesDiffer
+<<< TestDiff/Reporter/JapaneseUTF8
+  strings.Join({
+  	"プライベート ブランド ",
+- 	"ジャケット",
++ 	"シャツ",
+  }, "")
+>>> TestDiff/Reporter/JapaneseUTF8
 <<< TestDiff/Reporter/StringifiedBytes
   struct{ X []uint8 }{
 - 	X: []uint8("hello, world!"),
