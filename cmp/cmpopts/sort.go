@@ -80,7 +80,7 @@ func (ss sliceSorter) checkSort(v reflect.Value) {
 			}
 			start = -1
 		} else if start == -1 {
-			start = i
+			start = i - 1
 		}
 	}
 }

@@ -169,6 +169,13 @@ func TestOptions(t *testing.T) {
 		wantPanic: true,
 		reason:    "panics because SortSlices used with non-transitive less function",
 	}, {
+		label:     "SortSlices",
+		x:         []float64{0, math.NaN(), 1, 2},
+		y:         []float64{1, 0, math.NaN(), 2},
+		opts:      []cmp.Option{SortSlices(func(x, y float64) bool { return x < y })},
+		wantPanic: true,
+		reason:    "panics because SortSlices used with non-transitive less function, where the incomparable element is the first of a run of equal elements",
+	}, {
 		label: "SortSlices",
 		x:     []float64{0, 1, 1, 2, 2, 2, math.NaN(), 3, 3, 3, 3, 4, 4, 4, 4},
 		y:     []float64{2, 0, 4, 4, 3, math.NaN(), 4, 1, 3, 2, 3, 3, 4, 1, 2},
