@@ -56,8 +56,11 @@ import (
 //
 //   - If the values have an Equal method of the form "(T) Equal(T) bool" or
 //     "(T) Equal(I) bool" where T is assignable to I, then use the result of
-//     x.Equal(y) even if x or y is nil. Otherwise, no such method exists and
-//     evaluation proceeds to the next rule.
+//     x.Equal(y) even if x or y is nil. As an exception, if T is a pointer
+//     type whose element type also has an Equal method, and either value is
+//     nil, compare the pointers without calling the method, since calling it
+//     on a nil receiver would require dereferencing nil.
+//     If no such method exists, evaluation proceeds to the next rule.
 //
 //   - Lastly, try to compare x and y based on their basic kinds.
 //     Simple kinds like booleans, integers, floats, complex numbers, strings,
@@ -312,6 +315,15 @@ func (s *state) tryMethod(t reflect.Type, vx, vy reflect.Value) bool {
 	m, ok := t.MethodByName("Equal")
 	if !ok || !function.IsType(m.Type, function.EqualAssignable) {
 		return false
+	}
+	if t.Kind() == reflect.Ptr && (vx.IsNil() || vy.IsNil()) {
+		// If the element type has the method too, calling it on a nil
+		// pointer necessarily dereferences nil. A declared pointer-receiver
+		// method shadows any promoted value method, so this does not skip
+		// pointer-receiver methods that can handle nil themselves.
+		if _, ok := t.Elem().MethodByName("Equal"); ok {
+			return false
+		}
 	}
 
 	eq := s.callTTBFunc(m.Func, vx, vy)
