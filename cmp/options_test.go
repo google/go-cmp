@@ -214,3 +214,19 @@ func TestOptionPanic(t *testing.T) {
 		})
 	}
 }
+
+// TestAllowUnexportedNilPanic asserts that AllowUnexported(nil) panics with
+// the same descriptive message as other invalid inputs rather than crashing
+// with a nil pointer dereference. TestOptionPanic cannot cover this case
+// because it invokes the option functions through reflection, which cannot
+// represent a bare nil argument.
+func TestAllowUnexportedNilPanic(t *testing.T) {
+	var gotPanic any
+	func() {
+		defer func() { gotPanic = recover() }()
+		AllowUnexported(nil)
+	}()
+	if s, ok := gotPanic.(string); !ok || !strings.Contains(s, "invalid struct type") {
+		t.Fatalf("panic = %v (type %T), want string containing %q", gotPanic, gotPanic, "invalid struct type")
+	}
+}
