@@ -124,6 +124,28 @@ func (a timeApproximator) compare(x, y time.Time) bool {
 	return !x.Add(a.margin).Before(y)
 }
 
+// EquateApproxDuration returns a [cmp.Comparer] option that determines two
+// [time.Duration] values to be equal if they are within some margin of one another.
+// The margin must be non-negative.
+func EquateApproxDuration(margin time.Duration) cmp.Option {
+	if margin < 0 {
+		panic("margin must be a non-negative number")
+	}
+	a := durationApproximator{margin}
+	return cmp.Comparer(a.compare)
+}
+
+type durationApproximator struct {
+	margin time.Duration
+}
+
+func (a durationApproximator) compare(x, y time.Duration) bool {
+	if x > y {
+		x, y = y, x
+	}
+	return uint64(y)-uint64(x) <= uint64(a.margin)
+}
+
 // AnyError is an error that matches any non-nil error.
 var AnyError anyError
 
@@ -140,9 +162,9 @@ func EquateErrors() cmp.Option {
 }
 
 // areConcreteErrors reports whether x and y are types that implement error.
-// The input types are deliberately of the interface{} type rather than the
+// The input types are deliberately of the [any] type rather than the
 // error type so that we can handle situations where the current type is an
-// interface{}, but the underlying concrete types both happen to implement
+// [any], but the underlying concrete types both happen to implement
 // the error interface.
 func areConcreteErrors(x, y any) bool {
 	_, ok1 := x.(error)
