@@ -31,6 +31,21 @@ func SortKeys(vs []reflect.Value) []reflect.Value {
 	return vs2
 }
 
+// MapEntry is a single key-value pair in a map.
+type MapEntry struct{ Key, Value reflect.Value }
+
+// SortMapEntries returns the entries of the map v sorted by key.
+// Unlike MapKeys followed by MapIndex, this also retrieves the values
+// for keys containing NaNs. The key type must be comparable.
+func SortMapEntries(v reflect.Value) []MapEntry {
+	es := make([]MapEntry, 0, v.Len())
+	for iter := v.MapRange(); iter.Next(); {
+		es = append(es, MapEntry{iter.Key(), iter.Value()})
+	}
+	sort.SliceStable(es, func(i, j int) bool { return isLess(es[i].Key, es[j].Key) })
+	return es
+}
+
 // isLess is a generic function for sorting arbitrary map keys.
 // The inputs must be of the same type and must be comparable.
 func isLess(x, y reflect.Value) bool {
