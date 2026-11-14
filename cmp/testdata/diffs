@@ -1194,6 +1194,18 @@
   	"""
   )
 >>> TestDiff/Reporter/ManyEscapeCharacters
+<<< TestDiff/Reporter/MapNaNKeyVersusNil
+  (*struct{ M map[float64]string })(
+- 	&{M: map[float64]string{NaN: "a", 1: "b"}},
++ 	nil,
+  )
+>>> TestDiff/Reporter/MapNaNKeyVersusNil
+<<< TestDiff/Reporter/MapNaNKeyWithComparer
+  map[float64]string(
+- 	{NaN: "a", 1: "b"},
++ 	{NaN: "a", 1: "c"},
+  )
+>>> TestDiff/Reporter/MapNaNKeyWithComparer
 <<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{

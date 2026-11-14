@@ -1417,6 +1417,19 @@ using the AllowUnexported option.`, "\n"),
 	{"Base32": "NBSWY3DP"}
 ]`,
 		reason: "should use line-based diffing since byte-based diffing is unreadable due to heavy amounts of escaping",
+	}, {
+		label:  label + "/MapNaNKeyVersusNil",
+		x:      &struct{ M map[float64]string }{map[float64]string{math.NaN(): "a", 1: "b"}},
+		y:      (*struct{ M map[float64]string })(nil),
+		reason: "should print map entries with NaN keys",
+	}, {
+		label: label + "/MapNaNKeyWithComparer",
+		x:     map[float64]string{math.NaN(): "a", 1: "b"},
+		y:     map[float64]string{math.NaN(): "a", 1: "c"},
+		opts: []cmp.Option{
+			cmp.Comparer(func(x, y map[float64]string) bool { return false }),
+		},
+		reason: "should print map entries with NaN keys",
 	}}
 }
 

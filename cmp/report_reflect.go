@@ -263,13 +263,13 @@ func (opts formatOptions) FormatValue(v reflect.Value, parentKind reflect.Kind, 
 			opts.VerbosityLevel--
 		}
 		var list textList
-		for _, k := range value.SortKeys(v.MapKeys()) {
+		for _, e := range value.SortMapEntries(v) {
 			if len(list) == maxLen {
 				list.AppendEllipsis(diffStats{})
 				break
 			}
-			sk := formatMapKey(k, false, ptrs)
-			sv := opts.WithTypeMode(elideType).FormatValue(v.MapIndex(k), t.Kind(), ptrs)
+			sk := formatMapKey(e.Key, false, ptrs)
+			sv := opts.WithTypeMode(elideType).FormatValue(e.Value, t.Kind(), ptrs)
 			list = append(list, textRecord{Key: sk, Value: sv})
 		}
 
