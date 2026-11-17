@@ -281,6 +281,7 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind, pt
 	var numDiffs int
 	var list textList
 	var keys []reflect.Value // invariant: len(list) == len(keys)
+	var nodes []*valueNode   // invariant: len(list) == len(nodes)
 	groups := coalesceAdjacentRecords(name, recs)
 	maxGroup := diffStats{Name: name}
 	for i, ds := range groups {
@@ -315,18 +316,21 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind, pt
 				out := opts.WithDiffMode(diffIdentical).FormatDiff(r.Value, ptrs)
 				list = append(list, textRecord{Key: formatKey(r.Key), Value: out})
 				keys = append(keys, r.Key)
+				nodes = append(nodes, r.Value)
 			}
 			if numEqual > numLo+numHi {
 				ds.NumIdentical -= numLo + numHi
 				list.AppendEllipsis(ds)
 				for len(keys) < len(list) {
 					keys = append(keys, reflect.Value{})
+					nodes = append(nodes, nil)
 				}
 			}
 			for _, r := range recs[numEqual-numHi : numEqual] {
 				out := opts.WithDiffMode(diffIdentical).FormatDiff(r.Value, ptrs)
 				list = append(list, textRecord{Key: formatKey(r.Key), Value: out})
 				keys = append(keys, r.Key)
+				nodes = append(nodes, r.Value)
 			}
 			recs = recs[numEqual:]
 			continue
@@ -339,6 +343,7 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind, pt
 				out := opts.FormatDiffSlice(r.Value)
 				list = append(list, textRecord{Key: formatKey(r.Key), Value: out})
 				keys = append(keys, r.Key)
+				nodes = append(nodes, r.Value)
 			case r.Value.NumChildren == r.Value.MaxDepth:
 				outx := opts.WithDiffMode(diffRemoved).FormatDiff(r.Value, ptrs)
 				outy := opts.WithDiffMode(diffInserted).FormatDiff(r.Value, ptrs)
@@ -350,29 +355,52 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind, pt
 				if outx != nil {
 					list = append(list, textRecord{Diff: diffRemoved, Key: formatKey(r.Key), Value: outx})
 					keys = append(keys, r.Key)
+					nodes = append(nodes, r.Value)
 				}
 				if outy != nil {
 					list = append(list, textRecord{Diff: diffInserted, Key: formatKey(r.Key), Value: outy})
 					keys = append(keys, r.Key)
+					nodes = append(nodes, r.Value)
 				}
 			default:
 				out := opts.FormatDiff(r.Value, ptrs)
 				list = append(list, textRecord{Key: formatKey(r.Key), Value: out})
 				keys = append(keys, r.Key)
+				nodes = append(nodes, r.Value)
 			}
 		}
 		recs = recs[ds.NumDiff():]
 		numDiffs += ds.NumDiff()
 	}
+
 	if maxGroup.IsZero() {
 		assert(len(recs) == 0)
 	} else {
 		list.AppendEllipsis(maxGroup)
 		for len(keys) < len(list) {
 			keys = append(keys, reflect.Value{})
+			nodes = append(nodes, nil)
 		}
 	}
-	assert(len(list) == len(keys))
+	assert(len(list) == len(keys) && len(list) == len(nodes))
+
+	// Check if adjacent - and + records have identical output (e.g., from String or Error methods).
+	// If so, re-format them using verbosity presets that avoid custom stringers.
+	for i := 0; i < len(list)-1; i++ {
+		r1, r2 := &list[i], &list[i+1]
+		if (r1.Diff == diffRemoved && r2.Diff == diffInserted) || (r1.Diff == diffInserted && r2.Diff == diffRemoved) {
+			if r1.Key == r2.Key && r1.Value != nil && r2.Value != nil && r1.Value.Equal(r2.Value) {
+				node1, node2 := nodes[i], nodes[i+1]
+				if node1 != nil && node2 != nil {
+					for p := 0; p <= maxVerbosityPreset && r1.Value != nil && r2.Value != nil && r1.Value.Equal(r2.Value); p++ {
+						opts2 := verbosityPreset(opts, p)
+						r1.Value = opts2.WithDiffMode(r1.Diff).FormatDiff(node1, ptrs)
+						r2.Value = opts2.WithDiffMode(r2.Diff).FormatDiff(node2, ptrs)
+					}
+				}
+			}
+		}
+	}
 
 	// For maps, the default formatting logic uses fmt.Stringer which may
 	// produce ambiguous output. Avoid calling String to disambiguate.

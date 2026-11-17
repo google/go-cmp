@@ -320,6 +320,13 @@
 + 	"zero": &cmp_test.Stringer("hello"),
   }
 >>> TestDiff/Reporter/AmbiguousStringerMap
+<<< TestDiff/Reporter/AmbiguousStringerAdjacentDiff
+  cmp_test.stringerSlice{
+  	int(0),
+- 	cmp_test.stringerSlice{float64(1), float64(2), float64(3)},
++ 	cmp_test.stringerSlice{int(1), int(2), int(3)},
+  }
+>>> TestDiff/Reporter/AmbiguousStringerAdjacentDiff
 <<< TestDiff/Reporter/AmbiguousSliceHeader
   []int(
 - 	⟪ptr:0xdeadf00f, len:0, cap:5⟫{},
