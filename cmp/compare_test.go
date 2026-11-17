@@ -3003,3 +3003,162 @@ func BenchmarkBytes(b *testing.B) {
 		})
 	}
 }
+
+func TestSliceOfMaps(t *testing.T) {
+	t.Run("UntypedSliceAllDifferent", func(t *testing.T) {
+		x := []any{map[string]any{"a": 1, "b": 2, "c": 3}}
+		y := []any{map[string]any{"a": 2, "b": 4, "c": 6}}
+		if cmp.Equal(x, y) {
+			t.Fatal("Equal returned true, want false")
+		}
+		got := cmp.Diff(x, y)
+		for _, want := range []string{
+			`- 		"a": int(1),`,
+			`+ 		"a": int(2),`,
+			`- 		"b": int(2),`,
+			`+ 		"b": int(4),`,
+			`- 		"c": int(3),`,
+			`+ 		"c": int(6),`,
+		} {
+			if !strings.Contains(got, want) {
+				t.Errorf("Diff missing expected substring %q; got:\n%s", want, got)
+			}
+		}
+		if strings.Contains(got, "0->?") || strings.Contains(got, "?->0") {
+			t.Errorf("Diff should not have unaligned index: %s", got)
+		}
+	})
+
+	t.Run("UntypedSlicePartiallyDifferent", func(t *testing.T) {
+		x := []any{map[string]any{"a": 1, "b": 2, "c": 3, "d": 4}}
+		y := []any{map[string]any{"a": 2, "b": 4, "c": 6, "d": 4}}
+		if cmp.Equal(x, y) {
+			t.Fatal("Equal returned true, want false")
+		}
+		got := cmp.Diff(x, y)
+		for _, want := range []string{
+			`- 		"a": int(1),`,
+			`+ 		"a": int(2),`,
+			`- 		"b": int(2),`,
+			`+ 		"b": int(4),`,
+			`- 		"c": int(3),`,
+			`+ 		"c": int(6),`,
+			`  		"d": int(4),`,
+		} {
+			if !strings.Contains(got, want) {
+				t.Errorf("Diff missing expected substring %q; got:\n%s", want, got)
+			}
+		}
+	})
+
+	t.Run("TypedSliceAllDifferent", func(t *testing.T) {
+		x := []map[string]any{{"a": 1, "b": 2, "c": 3}}
+		y := []map[string]any{{"a": 2, "b": 4, "c": 6}}
+		if cmp.Equal(x, y) {
+			t.Fatal("Equal returned true, want false")
+		}
+		got := cmp.Diff(x, y)
+		for _, want := range []string{
+			`- 		"a": int(1),`,
+			`+ 		"a": int(2),`,
+			`- 		"b": int(2),`,
+			`+ 		"b": int(4),`,
+			`- 		"c": int(3),`,
+			`+ 		"c": int(6),`,
+		} {
+			if !strings.Contains(got, want) {
+				t.Errorf("Diff missing expected substring %q; got:\n%s", want, got)
+			}
+		}
+	})
+
+	t.Run("TypedSliceConcreteTypes", func(t *testing.T) {
+		x := []map[string]int{{"x": 10, "y": 20, "z": 30}}
+		y := []map[string]int{{"x": 11, "y": 22, "z": 33}}
+		if cmp.Equal(x, y) {
+			t.Fatal("Equal returned true, want false")
+		}
+		got := cmp.Diff(x, y)
+		for _, want := range []string{
+			`- 		"x": 10,`,
+			`+ 		"x": 11,`,
+			`- 		"y": 20,`,
+			`+ 		"y": 22,`,
+			`- 		"z": 30,`,
+			`+ 		"z": 33,`,
+		} {
+			if !strings.Contains(got, want) {
+				t.Errorf("Diff missing expected substring %q; got:\n%s", want, got)
+			}
+		}
+	})
+
+	t.Run("MultipleElementsAlignment", func(t *testing.T) {
+		x := []any{
+			map[string]any{"id": 1, "status": "active"},
+			map[string]any{"id": 2, "status": "pending", "retries": 0},
+		}
+		y := []any{
+			map[string]any{"id": 1, "status": "active"},
+			map[string]any{"id": 2, "status": "failed", "retries": 3},
+		}
+		if cmp.Equal(x, y) {
+			t.Fatal("Equal returned true, want false")
+		}
+		got := cmp.Diff(x, y)
+		for _, want := range []string{
+			`- 		"status":  string("pending"),`,
+			`+ 		"status":  string("failed"),`,
+			`- 		"retries": int(0),`,
+			`+ 		"retries": int(3),`,
+		} {
+			if !strings.Contains(got, want) {
+				t.Errorf("Diff missing expected substring %q; got:\n%s", want, got)
+			}
+		}
+	})
+
+	t.Run("SliceInsertionDeletion", func(t *testing.T) {
+		x := []any{
+			map[string]any{"id": 1},
+			map[string]any{"id": 3},
+		}
+		y := []any{
+			map[string]any{"id": 1},
+			map[string]any{"id": 2},
+			map[string]any{"id": 3},
+		}
+		if cmp.Equal(x, y) {
+			t.Fatal("Equal returned true, want false")
+		}
+		got := cmp.Diff(x, y)
+		if !strings.Contains(got, `+ 	map[string]any{"id": int(2)},`) {
+			t.Errorf("Diff missing expected insertion; got:\n%s", got)
+		}
+	})
+
+	t.Run("IdenticalSlices", func(t *testing.T) {
+		x := []any{map[string]any{"a": 1, "b": 2}}
+		y := []any{map[string]any{"a": 1, "b": 2}}
+		if !cmp.Equal(x, y) {
+			t.Fatal("Equal returned false, want true")
+		}
+		if diff := cmp.Diff(x, y); diff != "" {
+			t.Fatalf("Diff returned non-empty string: %s", diff)
+		}
+	})
+
+	t.Run("PathStepVerification", func(t *testing.T) {
+		x := []any{map[string]any{"a": 1, "b": 2, "c": 3}}
+		y := []any{map[string]any{"a": 2, "b": 4, "c": 6}}
+		var r DiffReporter
+		cmp.Equal(x, y, cmp.Reporter(&r))
+		reporterOutput := r.String()
+		if strings.Contains(reporterOutput, "0->?") || strings.Contains(reporterOutput, "?->0") {
+			t.Errorf("Reporter should not contain unaligned index: %s", reporterOutput)
+		}
+		if !strings.Contains(reporterOutput, `[0].(map[string]any)["a"]`) {
+			t.Errorf("Reporter output should contain indexed map path: %s", reporterOutput)
+		}
+	})
+}
