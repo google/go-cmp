@@ -26,6 +26,19 @@ func IgnoreFields(typ any, names ...string) cmp.Option {
 	return cmp.FilterPath(sf.filter, cmp.Ignore())
 }
 
+// IgnoreFieldsExcept returns a [cmp.Option] that ignores all fields on a single
+// struct type except for the fields of the given names. It respects the names
+// of exported fields that are forwarded due to struct embedding.
+// The struct type is specified by passing in a value of that type or a pointer
+// to that type.
+//
+// The name may be a dot-delimited string (e.g., "Foo.Bar") to preserve a
+// specific sub-field that is embedded or nested within the parent struct.
+func IgnoreFieldsExcept(typ any, names ...string) cmp.Option {
+	sf := newStructExceptFilter(typ, names...)
+	return cmp.FilterPath(sf.filter, cmp.Ignore())
+}
+
 // IgnoreTypes returns an [cmp.Option] that ignores all values assignable to
 // certain types, which are specified by passing in a value of each type.
 func IgnoreTypes(typs ...any) cmp.Option {

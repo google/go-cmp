@@ -64,6 +64,80 @@ func (sf structFilter) filter(p cmp.Path) bool {
 	return false
 }
 
+type structExceptFilter struct {
+	t  reflect.Type // The root struct type to match on
+	ft fieldTree    // Tree of fields to preserve
+}
+
+func newStructExceptFilter(typ any, names ...string) structExceptFilter {
+	t := reflect.TypeOf(typ)
+	if t != nil && t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if t == nil || t.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("%T must be a struct or pointer to struct", typ))
+	}
+	var ft fieldTree
+	for _, name := range names {
+		cname, err := canonicalName(t, name)
+		if err != nil {
+			panic(fmt.Sprintf("%s: %v", strings.Join(cname, "."), err))
+		}
+		ft.insert(cname)
+	}
+	return structExceptFilter{t, ft}
+}
+
+func (sf structExceptFilter) filter(p cmp.Path) bool {
+	var structIdx = -1
+	for i := len(p) - 1; i >= 0; i-- {
+		if p[i].Type().AssignableTo(sf.t) {
+			structIdx = i
+			break
+		}
+	}
+	if structIdx < 0 {
+		return false
+	}
+
+	subpath := p[structIdx+1:]
+	for len(subpath) > 0 {
+		if _, ok := subpath[0].(cmp.Indirect); ok {
+			subpath = subpath[1:]
+		} else {
+			break
+		}
+	}
+
+	if len(subpath) == 0 {
+		return false
+	}
+
+	if _, ok := subpath[0].(cmp.StructField); !ok {
+		return false
+	}
+
+	curr := sf.ft
+	for _, ps := range subpath {
+		switch ps := ps.(type) {
+		case cmp.StructField:
+			next, ok := curr.sub[ps.Name()]
+			if !ok {
+				return true
+			}
+			curr = next
+			if curr.ok {
+				return false
+			}
+		case cmp.Indirect:
+		default:
+			return false
+		}
+	}
+
+	return false
+}
+
 // fieldTree represents a set of dot-separated identifiers.
 //
 // For example, inserting the following selectors:
