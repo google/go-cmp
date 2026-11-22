@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -21,6 +22,7 @@ var (
 	stringType = reflect.TypeOf((*string)(nil)).Elem()
 	bytesType  = reflect.TypeOf((*[]byte)(nil)).Elem()
 	byteType   = reflect.TypeOf((*byte)(nil)).Elem()
+	timeType   = reflect.TypeOf(time.Time{})
 )
 
 type formatValueOptions struct {
@@ -116,6 +118,11 @@ func (opts formatOptions) FormatValue(v reflect.Value, parentKind reflect.Kind, 
 		return nil
 	}
 	t := v.Type()
+	if opts.AvoidStringer && t == timeType {
+		// A time.Location is initialized lazily. Synchronize with the location
+		// referenced by this value before reflecting over its unexported fields.
+		_ = v.Interface().(time.Time).Location().String()
+	}
 
 	// Check slice element for cycles.
 	if parentKind == reflect.Slice {
