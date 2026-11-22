@@ -10,7 +10,15 @@ import (
 )
 
 // numContextRecords is the number of surrounding equal records to print.
-const numContextRecords = 2
+var numContextRecords = 2
+
+func SetNumContextRecords(n int) {
+	numContextRecords = n
+}
+
+func GetNumContextRecords() int {
+	return numContextRecords
+}
 
 type diffMode byte
 
@@ -57,15 +65,18 @@ func (opts formatOptions) WithDiffMode(d diffMode) formatOptions {
 	opts.DiffMode = d
 	return opts
 }
+
 func (opts formatOptions) WithTypeMode(t typeMode) formatOptions {
 	opts.TypeMode = t
 	return opts
 }
+
 func (opts formatOptions) WithVerbosity(level int) formatOptions {
 	opts.VerbosityLevel = level
 	opts.LimitVerbosity = true
 	return opts
 }
+
 func (opts formatOptions) verbosity() uint {
 	switch {
 	case opts.VerbosityLevel < 0:
