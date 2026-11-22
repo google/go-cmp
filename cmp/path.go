@@ -168,7 +168,7 @@ func (ps pathStep) String() string {
 	if ps.typ == nil {
 		return "<nil>"
 	}
-	s := value.TypeString(ps.typ, false)
+	s := value.TypeStringNotQualified(ps.typ)
 	if s == "" || strings.ContainsAny(s, "{}\n") {
 		return "root" // Type too simple or complex to print
 	}
