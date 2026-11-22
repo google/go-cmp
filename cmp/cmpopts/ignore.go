@@ -7,6 +7,7 @@ package cmpopts
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"unicode"
 	"unicode/utf8"
 
@@ -203,4 +204,13 @@ func IgnoreMapEntries(discardFunc any) cmp.Option {
 		}
 		return false
 	}, cmp.Ignore())
+}
+
+// IgnoreMapKeys returns an [cmp.Option] that ignores map entries of map[KA]VA,
+// where KA and VA are assignable to K and V, and the map key matches one of the
+// specified keys.
+func IgnoreMapKeys[K comparable, V any](keys ...K) cmp.Option {
+	return IgnoreMapEntries(func(key K, _ V) bool {
+		return slices.Contains(keys, key)
+	})
 }

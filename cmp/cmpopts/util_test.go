@@ -1281,6 +1281,168 @@ func TestOptions(t *testing.T) {
 		wantEqual: false,
 		reason:    "not equal because ignored entries does not imply empty map",
 	}, {
+		label: "IgnoreMapKeys",
+		x:     map[string]int{"a": 1, "b": 2, "c": 3},
+		y:     map[string]int{"a": 1, "b": 3, "c": 5},
+		opts: []cmp.Option{
+			IgnoreMapKeys[string, int]("b", "c"),
+		},
+		wantEqual: true,
+		reason:    "equal because differing keys are ignored",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]int{1: 10, 2: 20, 3: 30},
+		y:     map[int]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[int, int](2, 3),
+		},
+		wantEqual: true,
+		reason:    "equal because differing keys are ignored",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[string]int{"a": 1, "b": 2, "c": 3},
+		y:     map[string]int{"a": 2, "b": 3, "c": 5},
+		opts: []cmp.Option{
+			IgnoreMapKeys[string, int]("b", "c"),
+		},
+		wantEqual: false,
+		reason:    "not equal because key a is not ignored and differs",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]int{1: 10, 2: 20, 3: 30},
+		y:     map[int]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[int, string](2, 3),
+		},
+		wantEqual: false,
+		reason:    "not equal because int value type is not assignable to string",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]int{1: 10, 2: 20, 3: 30},
+		y:     map[int]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[int, MyInt](2, 3),
+		},
+		wantEqual: false,
+		reason:    "not equal because int value type is not assignable to MyInt",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]int{1: 10, 2: 20, 3: 30},
+		y:     map[int]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[int, any](2, 3),
+		},
+		wantEqual: true,
+		reason:    "equal because int value type is assignable to any",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]MyInt{1: 10, 2: 20, 3: 30},
+		y:     map[int]MyInt{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[int, int](2, 3),
+		},
+		wantEqual: false,
+		reason:    "not equal because MyInt value type is not assignable to int",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]MyInt{1: 10, 2: 20, 3: 30},
+		y:     map[int]MyInt{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[int, MyInt](2, 3),
+		},
+		wantEqual: true,
+		reason:    "equal because MyInt value type is identical to MyInt",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]MyInt{1: 10, 2: 20, 3: 30},
+		y:     map[int]MyInt{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[int, any](2, 3),
+		},
+		wantEqual: true,
+		reason:    "equal because MyInt value type is assignable to any",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]int{1: 10, 2: 20, 3: 30},
+		y:     map[int]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[MyInt, int](2, 3),
+		},
+		wantEqual: false,
+		reason:    "not equal because int key type is not assignable to MyInt",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]int{1: 10, 2: 20, 3: 30},
+		y:     map[int]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[any, int](2, 3, "fizz"),
+		},
+		wantEqual: true,
+		reason:    "equal because int key type is assignable into any; fizz string value is valid in comparison operation, but always irrelevant",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[int]int{1: 10, 2: 20, 3: 30},
+		y:     map[int]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[any, int](2, 3.0, "fizz"),
+		},
+		wantEqual: false,
+		reason:    "not equal because 3.0 float64 key does not match 3 int key",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[MyInt]int{1: 10, 2: 20, 3: 30},
+		y:     map[MyInt]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[int, int](2, 3),
+		},
+		wantEqual: false,
+		reason:    "not equal because MyInt key type is not assignable into int",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[MyInt]int{1: 10, 2: 20, 3: 30},
+		y:     map[MyInt]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[MyInt, int](2, 3),
+		},
+		wantEqual: true,
+		reason:    "equal because MyInt key type is assignable into int",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[MyInt]int{1: 10, 2: 20, 3: 30},
+		y:     map[MyInt]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[any, int](MyInt(2), MyInt(3)),
+		},
+		wantEqual: true,
+		reason:    "equal because MyInt key type is assignable into any",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[MyInt]int{1: 10, 2: 20, 3: 30},
+		y:     map[MyInt]int{1: 10, 2: 30, 3: 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[any, int](2, 3),
+		},
+		wantEqual: false,
+		reason:    "not equal because any values are of type int rather than MyInt",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[string]int{"a": 1, "b": 2},
+		y:     map[string]int{"a": 1},
+		opts: []cmp.Option{
+			IgnoreMapKeys[string, int]("b"),
+		},
+		wantEqual: true,
+		reason:    "equal because key b is ignored even though it is only present in x",
+	}, {
+		label: "IgnoreMapKeys",
+		x:     map[any]int{"a": 1, 2: 20, MyInt(3): 30},
+		y:     map[any]int{"a": 1, 2: 30, MyInt(3): 50},
+		opts: []cmp.Option{
+			IgnoreMapKeys[any, int](2, MyInt(3)),
+		},
+		wantEqual: true,
+		reason:    "equal because interface keys match ignored keys of the same dynamic type",
+	}, {
 		label: "AcyclicTransformer",
 		x:     "a\nb\nc\nd",
 		y:     "a\nb\nd\nd",
