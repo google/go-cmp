@@ -53,6 +53,44 @@ func ExampleIgnoreFields_testing() {
 	//   }
 }
 
+// IgnoreUnexported drops unexported fields of the named struct types from the
+// comparison entirely. This is useful when comparing types that contain
+// unexported state (caches, timestamps, internal bookkeeping) that should not
+// affect equality.
+//
+// Unlike [github.com/google/go-cmp/cmp.AllowUnexported], which allows the
+// fields to be compared, IgnoreUnexported skips them. Only the immediate
+// unexported fields of the listed types are ignored; unexported fields on
+// nested struct types are not ignored unless those types are also listed.
+func ExampleIgnoreUnexported() {
+	// user has an exported Name and an unexported cache field that is not
+	// part of the user's identity.
+	type user struct {
+		Name  string
+		cache string
+	}
+
+	x := user{Name: "alice", cache: "stale"}
+	y := user{Name: "alice", cache: "fresh"}
+	z := user{Name: "bob", cache: "fresh"}
+
+	// IgnoreUnexported drops user.cache from the comparison.
+	opt := cmpopts.IgnoreUnexported(user{})
+
+	fmt.Println(cmp.Equal(x, y, opt))
+	fmt.Println(cmp.Equal(x, z, opt))
+	fmt.Println(cmp.Diff(x, z, opt))
+
+	// Output:
+	// true
+	// false
+	//   cmpopts_test.user{
+	// - 	Name: "alice",
+	// + 	Name: "bob",
+	//   	... // 1 ignored field
+	//   }
+}
+
 type (
 	Gateway struct {
 		SSID      string

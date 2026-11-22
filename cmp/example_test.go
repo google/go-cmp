@@ -303,6 +303,41 @@ func ExampleOption_transformComplex() {
 	// false
 }
 
+// By default, [Equal] panics when it encounters an unexported field of a
+// struct because it cannot safely introspect such fields. When the type is
+// owned by the test author, [AllowUnexported] permits comparison of those
+// fields by name.
+//
+// Avoid using [AllowUnexported] on types that you do not control; doing so
+// couples tests to internal implementation details that may change.
+func ExampleAllowUnexported() {
+	// account has both an exported and an unexported field.
+	type account struct {
+		Name    string
+		balance int64
+	}
+
+	x := account{Name: "alice", balance: 100}
+	y := account{Name: "alice", balance: 100}
+	z := account{Name: "alice", balance: 200}
+
+	// AllowUnexported permits Equal/Diff to read account.balance.
+	opt := cmp.AllowUnexported(account{})
+
+	fmt.Println(cmp.Equal(x, y, opt))
+	fmt.Println(cmp.Equal(x, z, opt))
+	fmt.Println(cmp.Diff(x, z, opt))
+
+	// Output:
+	// true
+	// false
+	//   cmp_test.account{
+	//   	Name:    "alice",
+	// - 	balance: 100,
+	// + 	balance: 200,
+	//   }
+}
+
 type (
 	Gateway struct {
 		SSID      string
