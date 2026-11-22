@@ -99,7 +99,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 	// Auto-detect the type of the data.
 	var sx, sy string
 	var ssx, ssy []string
-	var isString, isMostlyText, isPureLinedText, isBinary bool
+	var isString, isMostlyText, isPureLinedText, isBinary, isValidUTF8 bool
 	switch {
 	case t.Kind() == reflect.String:
 		sx, sy = vx.String(), vy.String()
@@ -133,6 +133,7 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 		isMostlyText = float64(numValidRunes) > math.Floor(0.90*float64(numTotalRunes))
 		isPureLinedText = isPureText && numLines >= 4 && maxLineLen <= 1024
 		isBinary = !isMostlyText
+		isValidUTF8 = utf8.ValidString(sx) && utf8.ValidString(sy)
 
 		// Avoid diffing by lines if it produces a significantly more complex
 		// edit script than diffing by bytes.
@@ -251,13 +252,32 @@ func (opts formatOptions) FormatDiffSlice(v *valueNode) textNode {
 	// then perform differencing in approximately fixed-sized chunks.
 	// The output is printed as quoted strings.
 	case isMostlyText:
-		list = opts.formatDiffSlice(
-			reflect.ValueOf(sx), reflect.ValueOf(sy), 64, "byte",
-			func(v reflect.Value, d diffMode) textRecord {
-				s := formatString(v.String())
-				return textRecord{Diff: d, Value: textLine(s)}
-			},
-		)
+		if isValidUTF8 {
+			// Rune-based diffing for valid UTF-8 strings
+			rx := []rune(sx)
+			ry := []rune(sy)
+			list = opts.formatDiffSlice(
+				reflect.ValueOf(rx), reflect.ValueOf(ry), 64, "rune",
+				func(v reflect.Value, d diffMode) textRecord {
+					// Convert []rune chunk back to string for display
+					runes := make([]rune, v.Len())
+					for i := 0; i < v.Len(); i++ {
+						runes[i] = rune(v.Index(i).Int())
+					}
+					s := formatString(string(runes))
+					return textRecord{Diff: d, Value: textLine(s)}
+				},
+			)
+		} else {
+			// Byte-based diffing for invalid UTF-8 (original behavior)
+			list = opts.formatDiffSlice(
+				reflect.ValueOf(sx), reflect.ValueOf(sy), 64, "byte",
+				func(v reflect.Value, d diffMode) textRecord {
+					s := formatString(v.String())
+					return textRecord{Diff: d, Value: textLine(s)}
+				},
+			)
+		}
 
 	// If the text appears to be binary data,
 	// then perform differencing in approximately fixed-sized chunks.
