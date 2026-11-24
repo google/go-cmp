@@ -1194,6 +1194,50 @@
   	"""
   )
 >>> TestDiff/Reporter/ManyEscapeCharacters
+<<< TestDiff/Reporter/SimilarityWithEmptyComposites
+  []*cmp_test.Wrapper{
+  	&{
+  		Slice: {},
+  		Data: map[string]string{
+  			... // 6 identical entries
+  			"key06": "same",
+  			"key07": "same",
+- 			"key08": "missing",
+- 			"key09": "missing",
+- 			"key10": "missing",
+- 			"key11": "missing",
+- 			"key12": "missing",
+- 			"key13": "missing",
+- 			"key14": "missing",
+- 			"key15": "missing",
+- 			"key16": "missing",
+- 			"key17": "missing",
+  		},
+  	},
+  }
+>>> TestDiff/Reporter/SimilarityWithEmptyComposites
+<<< TestDiff/Reporter/SimilarityWithNilComposites
+  []*cmp_test.Wrapper{
+  	&{
+  		Slice: nil,
+  		Data: map[string]string{
+  			... // 6 identical entries
+  			"key06": "same",
+  			"key07": "same",
+- 			"key08": "missing",
+- 			"key09": "missing",
+- 			"key10": "missing",
+- 			"key11": "missing",
+- 			"key12": "missing",
+- 			"key13": "missing",
+- 			"key14": "missing",
+- 			"key15": "missing",
+- 			"key16": "missing",
+- 			"key17": "missing",
+  		},
+  	},
+  }
+>>> TestDiff/Reporter/SimilarityWithNilComposites
 <<< TestDiff/EmbeddedStruct/ParentStructA/Inequal
   teststructs.ParentStructA{
   	privateStruct: teststructs.privateStruct{
