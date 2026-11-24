@@ -886,6 +886,25 @@ func reporterTests() []test {
 		PointerString *string
 	)
 
+	type Wrapper struct {
+		Slice []string
+		Data  map[string]string
+	}
+
+	// The maps share 8 identical entries and differ in 10 entries, which
+	// tips the similarity decision of the containing struct unless the
+	// equal empty slice is also counted.
+	mx, my := map[string]string{}, map[string]string{}
+	for i := 0; i < 18; i++ {
+		k := fmt.Sprintf("key%02d", i)
+		mx[k] = "same"
+		if i < 8 {
+			my[k] = "same"
+		} else {
+			mx[k] = "missing" // absent from my
+		}
+	}
+
 	return []test{{
 		label:     label + "/PanicStringer",
 		x:         struct{ X fmt.Stringer }{struct{ fmt.Stringer }{nil}},
@@ -1417,6 +1436,18 @@ using the AllowUnexported option.`, "\n"),
 	{"Base32": "NBSWY3DP"}
 ]`,
 		reason: "should use line-based diffing since byte-based diffing is unreadable due to heavy amounts of escaping",
+	}, {
+		label:     label + "/SimilarityWithEmptyComposites",
+		x:         []*Wrapper{{Slice: []string{}, Data: mx}},
+		y:         []*Wrapper{{Slice: []string{}, Data: my}},
+		wantEqual: false,
+		reason:    "equal empty composites should count toward similarity so the field-wise diff is shown instead of a whole-object diff that elides the differences",
+	}, {
+		label:     label + "/SimilarityWithNilComposites",
+		x:         []*Wrapper{{Slice: nil, Data: mx}},
+		y:         []*Wrapper{{Slice: nil, Data: my}},
+		wantEqual: false,
+		reason:    "equal nil composites already count toward similarity, so the output should match the empty composite case",
 	}}
 }
 

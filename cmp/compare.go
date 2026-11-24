@@ -371,6 +371,13 @@ func detectRaces(c chan<- reflect.Value, f reflect.Value, vs ...reflect.Value) {
 }
 
 func (s *state) compareStruct(t reflect.Type, vx, vy reflect.Value) {
+	if t.NumField() == 0 {
+		// Empty structs are equal, but still need reporting so that the
+		// similarity decision of the parent accounts for this child.
+		s.report(true, 0)
+		return
+	}
+
 	var addr bool
 	var vax, vay reflect.Value // Addressable versions of vx and vy
 
@@ -417,6 +424,12 @@ func (s *state) compareSlice(t reflect.Type, vx, vy reflect.Value) {
 	isSlice := t.Kind() == reflect.Slice
 	if isSlice && (vx.IsNil() || vy.IsNil()) {
 		s.report(vx.IsNil() && vy.IsNil(), 0)
+		return
+	}
+	if vx.Len() == 0 && vy.Len() == 0 {
+		// Empty composites are equal, but still need reporting so that the
+		// similarity decision of the parent accounts for this child.
+		s.report(true, 0)
 		return
 	}
 
@@ -508,6 +521,12 @@ func (s *state) compareSlice(t reflect.Type, vx, vy reflect.Value) {
 func (s *state) compareMap(t reflect.Type, vx, vy reflect.Value) {
 	if vx.IsNil() || vy.IsNil() {
 		s.report(vx.IsNil() && vy.IsNil(), 0)
+		return
+	}
+	if vx.Len() == 0 && vy.Len() == 0 {
+		// Empty composites are equal, but still need reporting so that the
+		// similarity decision of the parent accounts for this child.
+		s.report(true, 0)
 		return
 	}
 
