@@ -81,7 +81,38 @@ func (opts formatOptions) CanFormatDiffSlice(v *valueNode) bool {
 
 	// Use specialized string diffing for longer slices or strings.
 	const minLength = 32
-	return vx.Len() >= minLength && vy.Len() >= minLength
+	if vx.Len() < minLength || vy.Len() < minLength {
+		return false
+	}
+
+	// Avoid specialized diffing of single-lined strings that differ more than
+	// they are similar (e.g., two random UUIDs). Splitting such strings into
+	// fragments obscures the difference rather than highlighting it.
+	if t.Kind() == reflect.String {
+		sx, sy := vx.String(), vy.String()
+		if !strings.Contains(sx, "\n") && !strings.Contains(sy, "\n") && isMostlyDissimilar(sx, sy) {
+			return false
+		}
+	}
+	return true
+}
+
+// isMostlyDissimilar reports whether sx and sy have more differing bytes
+// than identical bytes when diffed and grouped in the same way that
+// FormatDiffSlice does for single-lined text.
+func isMostlyDissimilar(sx, sy string) bool {
+	es := diff.Difference(len(sx), len(sy), func(ix, iy int) diff.Result {
+		return diff.BoolResult(sx[ix] == sy[iy])
+	})
+	const chunkSize = 64 // must match the chunk size used for single-lined text
+	groups := coalesceAdjacentEdits("byte", es)
+	groups = coalesceInterveningIdentical(groups, chunkSize/4)
+	var numSame, numDiff int
+	for _, ds := range groups {
+		numSame += ds.NumIdentical
+		numDiff += ds.NumDiff()
+	}
+	return numDiff > numSame
 }
 
 // FormatDiffSlice prints a diff for the slices (or strings) represented by v.
