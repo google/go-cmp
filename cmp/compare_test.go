@@ -1303,6 +1303,21 @@ using the AllowUnexported option.`, "\n"),
 		y:      struct{ X any }{[1]string{"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam sit amet pretium ligula, at gravida quam. Integer iaculis, velit at sagittis ultricies, lacus metus scelerisque turpis, ornare feugiat nulla nisl ac erat. Maecenas elementum ultricies libero, sed efficitur lacus molestie non. Nulla ac pretium dolor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Pellentesque mi lorem, consectetur id porttitor id, sollicitudin sit amet enim. Duis eu dolor magna. Nunc ut augue turpis,"}},
 		reason: "printing a large standalone string that is different should print enough context to see the difference",
 	}, {
+		label:  label + "/DissimilarUUIDs",
+		x:      struct{ ID string }{"e93d2d8b-7d2a-4c62-967a-b189347a4fa2"},
+		y:      struct{ ID string }{"7e93c401-4e27-3b83-7edc-2dd0803c39b3"},
+		reason: "strings that differ more than they are similar should not use specialized diffing",
+	}, {
+		label:  label + "/MostlyDissimilarUUIDs",
+		x:      struct{ ID string }{"217d67ef-d686-4107-ab35-347ed6c91a22"},
+		y:      struct{ ID string }{"68416ab-a20e-48ae-afaa-8df7b91a4af3"},
+		reason: "strings that share only a few bytes should not be split into fragments",
+	}, {
+		label:  label + "/SimilarUUIDs",
+		x:      struct{ ID string }{"217d67ef-d686-4107-ab35-347ed6c91a22"},
+		y:      struct{ ID string }{"217d67ef-d686-4107-ab35-347ed6c91a23"},
+		reason: "strings that are mostly similar should still use specialized diffing",
+	}, {
 		label:  label + "/SurroundingEqualElements",
 		x:      "org-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=aa,#=_value _value=2 11\torg-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=bb,#=_value _value=2 21\torg-4747474747474747,bucket-4242424242424242:m,tag1=b,tag2=cc,#=_value _value=1 21\torg-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=dd,#=_value _value=3 31\torg-4747474747474747,bucket-4242424242424242:m,tag1=c,#=_value _value=4 41\t",
 		y:      "org-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=aa _value=2 11\torg-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=bb _value=2 21\torg-4747474747474747,bucket-4242424242424242:m,tag1=b,tag2=cc _value=1 21\torg-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=dd _value=3 31\torg-4747474747474747,bucket-4242424242424242:m,tag1=c _value=4 41\t",

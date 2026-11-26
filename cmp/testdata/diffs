@@ -1048,6 +1048,27 @@
 + 	},
   }
 >>> TestDiff/Reporter/LargeStandaloneString
+<<< TestDiff/Reporter/DissimilarUUIDs
+  struct{ ID string }{
+- 	ID: "e93d2d8b-7d2a-4c62-967a-b189347a4fa2",
++ 	ID: "7e93c401-4e27-3b83-7edc-2dd0803c39b3",
+  }
+>>> TestDiff/Reporter/DissimilarUUIDs
+<<< TestDiff/Reporter/MostlyDissimilarUUIDs
+  struct{ ID string }{
+- 	ID: "217d67ef-d686-4107-ab35-347ed6c91a22",
++ 	ID: "68416ab-a20e-48ae-afaa-8df7b91a4af3",
+  }
+>>> TestDiff/Reporter/MostlyDissimilarUUIDs
+<<< TestDiff/Reporter/SimilarUUIDs
+  struct{ ID string }{
+  	ID: strings.Join({
+  		"217d67ef-d686-4107-ab35-347ed6c91a2",
+- 		"2",
++ 		"3",
+  	}, ""),
+  }
+>>> TestDiff/Reporter/SimilarUUIDs
 <<< TestDiff/Reporter/SurroundingEqualElements
   strings.Join({
   	"org-4747474747474747,bucket-4242424242424242:m,tag1=a,tag2=aa",
